@@ -1,0 +1,46 @@
+name: drift
+
+# Issuers move under you. A census nobody re-checks is a snapshot that quietly
+# becomes wrong, which is exactly what happened to the last public one.
+on:
+  schedule:
+    - cron: '23 6 * * *'   # minute offset on purpose; do not tidy it to 0
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: re-fetch every verified discovery document
+        id: drift
+        run: |
+          set +e
+          python3 scripts/drift.py | tee drift.txt
+          echo "changed=$?" >> "$GITHUB_OUTPUT"
+
+      # A human writes the entry. The job only says something moved -- it never
+      # edits the census, because a field here means somebody looked.
+      - name: open an issue when something moved
+        if: steps.drift.outputs.changed == '1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('drift.txt', 'utf8');
+            const title = `drift: an issuer changed on ${new Date().toISOString().slice(0,10)}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body: '```\n' + body + '\n```\n\n' +
+                    'Confirm by hand before editing `issuers.yaml`. A `discovery_status: ok` ' +
+                    'entry must be reproducible: paste the curl and its output.',
+            });

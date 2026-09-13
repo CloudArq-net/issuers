@@ -1,0 +1,33 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: install build deps
+        run: pip install pyyaml pytest
+
+      # issuers.json is generated. If regenerating it changes the file, the
+      # committed JSON and the YAML have diverged and every consumer is reading
+      # something no reviewer approved.
+      - name: json is in sync with yaml
+        run: |
+          python3 scripts/build.py
+          git diff --exit-code issuers.json python/src/cloudarq_issuers/issuers.json
+
+      - run: go vet ./... && go test ./... -count=1
+      - run: cd python && PYTHONPATH=src python3 -m pytest tests -q
