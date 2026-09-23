@@ -1,7 +1,8 @@
 """A census of the OIDC issuers a cloud will federate to for workload identity.
 
 No dependencies, no network calls. The data is a snapshot taken on
-``CENSUS_DATE``; it is not a live view.
+``CENSUS_DATE``; it is not a live view. Facts added later carry their own
+``verified_at``.
 
 Four fields are not published anywhere else, and three of them exist because the
 obvious reading of the data is wrong:
@@ -9,7 +10,7 @@ obvious reading of the data is wrong:
 ``aud_controlled_by``
     Who picks the ``aud`` value. When it is ``"workload"``, ``aud`` is not a
     boundary: anyone who can run a job on that platform can request a token
-    carrying your audience. Sixteen entries here are in that state, GitHub
+    carrying your audience. Seventeen entries here are in that state, GitHub
     Actions among them.
 
 ``vendor_example_verdict``
@@ -25,7 +26,19 @@ obvious reading of the data is wrong:
     Empty for most entries, which means every subject written against them is a
     recyclable name.
 
-Anything nobody confirmed says ``"unverified"``. That never means ``"absent"``.
+The tenancy fields answer who can hold a token an issuer mints: whether it
+mints them to people with no account (``anonymous_tokens``), which claims and
+subject forms name a tenant (``tenancy_claims``, ``subject_forms``,
+``owner_charset``), which claims look like tenants and are not
+(``not_tenancy``), and, for an issuer whose URL names the tenant, how to read
+it (``match``, ``tenant_membership``). Each value rests on vendor sentences kept
+beside it, with their source and the date they were read. ``match()`` finds an
+issuer's entry and its tenant.
+
+Anything nobody confirmed says ``"unverified"``. In a tenancy field it means
+exactly that no vendor sentence establishes the value in this release, whatever
+the reason, and ``researched`` says whether this release looked at all. It
+never means ``"absent"``.
 """
 
 from __future__ import annotations
@@ -33,19 +46,29 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, NamedTuple, Optional
+
+from . import _tenancy
 
 __all__ = [
     "CENSUS_DATE",
+    "Answer",
     "issuers",
     "get",
+    "match",
+    "tenancy",
     "multi_tenant_hosts",
     "audience_is_boundary",
     "subjects_are_recyclable",
+    "issues_anonymous_tokens",
+    "controlled_tenant",
+    "tenant_is_recyclable",
+    "owner_name_may_contain",
+    "names_compare_without_case",
     "host_of",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 _DATA = Path(__file__).with_name("issuers.json")
 
@@ -62,14 +85,40 @@ def host_of(issuer_or_url: str) -> str:
     return h.split("/", 1)[0].lower()
 
 
+def _entry_host(e: Mapping[str, Any]) -> str:
+    """An entry's host, lowercased, or ``""`` when its issuer field holds a note
+    such as ``"unverified"`` rather than an issuer."""
+    h = _tenancy.host_of_issuer(e.get("issuer") or "") or _tenancy.host_of_issuer(e.get("issuer_pattern") or "")
+    return h.lower()
+
+
+def _owns_host(e: Mapping[str, Any]) -> bool:
+    """Whether the entry's issuer is its host alone, with no path."""
+    u = (e.get("issuer") or "").removeprefix("https://")
+    return u != "" and "/" not in u.removesuffix("/")
+
+
 @lru_cache(maxsize=1)
 def _by_host() -> Mapping[str, Mapping[str, Any]]:
-    out = {}
+    # Several entries can share a host, told apart by path. A lookup by host
+    # alone answers with the host's own issuer, as it did before any host had
+    # two entries, and otherwise with the first.
+    out: dict = {}
     for e in _census()["issuers"]:
-        u = e.get("issuer") or e.get("issuer_pattern") or ""
-        if u:
-            out[host_of(u)] = e
+        h = _entry_host(e)
+        if h and (h not in out or not _owns_host(out[h]) and _owns_host(e)):
+            out[h] = e
     return out
+
+
+@lru_cache(maxsize=1)
+def _matcher() -> _tenancy.Matcher:
+    items = []
+    for e in _census()["issuers"]:
+        rule = _tenancy.rule_of(e)
+        if rule is not None:
+            items.append((e, *rule))
+    return _tenancy.compile_rules(items)
 
 
 CENSUS_DATE: str = _census()["census_date"]
@@ -84,9 +133,39 @@ def get(host_or_url: str) -> Optional[Mapping[str, Any]]:
     """Look an issuer up by hostname or by full issuer URL.
 
     Returns ``None`` when the host is not in the census, which means nobody has
-    surveyed it. It does not mean the host is safe.
+    surveyed it. It does not mean the host is safe. When several entries share
+    the host, it returns the one whose issuer is the host itself; ``match``
+    reads the path as well.
     """
     return _by_host().get(host_of(host_or_url))
+
+
+def match(issuer: str) -> Optional[tuple[Mapping[str, Any], str]]:
+    """Find the census entry for an issuer URL, as a token's ``iss`` or a trust
+    policy's provider carries it, and the tenant the URL names (``""`` for an
+    issuer that names none).
+
+    Returns ``None`` when no entry matches, which means nobody surveyed that
+    issuer: never that it is safe.
+
+    An issuer is read with ``https://`` or with no scheme, its host compared
+    without ASCII case and its path exactly, one trailing slash ignored. An
+    exact issuer matches only itself. A pattern matches when every placeholder
+    holds one non-empty host label of letters, digits and dashes, or one path
+    segment of letters, digits, dashes and underscores, in the tenant's syntax
+    where the census records one. Of several matching entries, the one with the
+    most characters outside placeholders wins, and of those the first in census
+    order. These are the Go ``tenancy.Match`` rules, held to the same cases.
+    """
+    return _matcher().match(issuer)
+
+
+def tenancy(entry: Mapping[str, Any]) -> dict:
+    """The entry as a classifier reads it: the values a vendor sentence
+    settles, and nothing unverified, multi-valued or of unknown cardinality, so
+    that absent reads the cautious way. It is the Go ``Issuer.Tenancy`` and the
+    data of the Go ``tenancy`` sub-package."""
+    return _tenancy.projection(entry)
 
 
 def multi_tenant_hosts() -> frozenset[str]:
@@ -94,13 +173,13 @@ def multi_tenant_hosts() -> frozenset[str]:
 
     A token from any tenant of these carries the same ``iss``, so conditioning on
     the issuer alone does not identify a tenant. Drop-in for a hard-coded set of
-    the same shape.
+    the same shape. A host missing from the set is not thereby known to identify
+    a tenant: its entry may be unverified, or not in the census at all.
     """
     return frozenset(
-        host_of(e.get("issuer") or e.get("issuer_pattern") or "")
+        _entry_host(e)
         for e in _census()["issuers"]
-        if e.get("tenancy_model") in ("shared", "per_tenant_path")
-        and (e.get("issuer") or e.get("issuer_pattern"))
+        if e.get("tenancy_model") in ("shared", "per_tenant_path") and _entry_host(e)
     )
 
 
@@ -136,3 +215,85 @@ def subjects_are_recyclable(host_or_url: str) -> Optional[bool]:
     if e is None:
         return None
     return not e.get("immutable_id_claims")
+
+
+class Answer(NamedTuple):
+    """A reader's answer and whether the census knows it, as the Go readers
+    return them. When ``known`` is false, ``value`` is the cautious answer.
+
+    An answer refuses to be read as true or false: a pair would be true
+    whatever it says, which for a question whose cautious answer is false
+    (is this tenant controlled?) is the wrong direction. Unpack it, or read
+    ``value`` and ``known``.
+    """
+
+    value: bool
+    known: bool
+
+    def __bool__(self) -> bool:
+        raise TypeError("an Answer is a (value, known) pair: unpack it, or read .value and .known")
+
+
+def _yes_no(value: Any, cautious: bool) -> Answer:
+    if value == "yes":
+        return Answer(True, True)
+    if value == "no":
+        return Answer(False, True)
+    return Answer(cautious, False)
+
+
+def issues_anonymous_tokens(entry: Mapping[str, Any]) -> Answer:
+    """Whether the issuer mints tokens to people with no account anywhere.
+    Not known when the census has not verified it, and the answer beside it is
+    then the cautious one, ``True``: an unverified issuer may."""
+    return _yes_no(tenancy(entry).get("anonymous_tokens"), True)
+
+
+def controlled_tenant(entry: Mapping[str, Any], tenant: str) -> Answer:
+    """Whether the owner of ``tenant``, as ``match`` names it, controls who
+    obtains tokens naming it. Known and false for a tenant the census lists as
+    open to anyone; not known when the census has not verified the issuer's
+    membership."""
+    t = tenancy(entry)
+    if t.get("tenant_membership") != "controlled" or not tenant:
+        return Answer(False, False)
+    for open_tenant in t.get("not_a_controlled_tenant", []):
+        # The listed tenants are GUIDs, whose letters are hex digits that name
+        # the same tenant in either case.
+        if _tenancy.lower_ascii(open_tenant) == _tenancy.lower_ascii(tenant):
+            return Answer(False, True)
+    return Answer(True, True)
+
+
+def tenant_is_recyclable(entry: Mapping[str, Any]) -> Answer:
+    """Whether the tenant a matching issuer URL names can be released and
+    taken by another customer, which would put that customer's tokens behind
+    the same issuer. Not known when no vendor sentence settles it, and the
+    answer beside it is then the cautious one, ``True``."""
+    return _yes_no(tenancy(entry).get("tenant_recyclable"), True)
+
+
+def names_compare_without_case(entry: Mapping[str, Any]) -> Answer:
+    """Whether two owner names that differ only in case name one owner. When
+    the census has not verified it, names compare exactly, which can only
+    leave a name unmatched."""
+    return _yes_no(tenancy(entry).get("names_unique_regardless_of_case"), False)
+
+
+def owner_name_may_contain(entry: Mapping[str, Any], character: str) -> bool:
+    """Whether ``character`` can occur in an owner name. With no recorded
+    character set, or one this package cannot read, any character may."""
+    if len(character) != 1:
+        raise ValueError(f"one character, not {character!r}")
+    chars = tenancy(entry).get("owner_name_characters")
+    if not chars:
+        return True
+    found = False
+    for c in chars:
+        if len(c) == 1:
+            found = found or c == character
+        elif len(c) == 3 and c[1] == "-" and c[0] < c[2]:
+            found = found or c[0] <= character <= c[2]
+        else:
+            return True
+    return found

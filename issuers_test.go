@@ -1,8 +1,18 @@
 package issuers
 
 import (
+	"bytes"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"reflect"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/CloudArq-net/issuers/tenancy"
 )
 
 func TestCensusParsesAndIsNotEmpty(t *testing.T) {
@@ -90,4 +100,901 @@ func TestMultiTenantHostsIsUsefullyPopulated(t *testing.T) {
 	if !found {
 		t.Errorf("%s missing from the multi-tenant set", want)
 	}
+}
+
+// The entries this release researched (ruling 10.4's list, and 10.10 item 2's
+// three issuers with anonymous_tokens only). Every other entry is
+// not_in_this_release.
+var researched = []string{
+	"Bitbucket Pipelines", "Buildkite", "CircleCI", "GitHub Actions", "GitHub Actions (enterprise issuer path)",
+	"GitLab.com", "HCP Terraform (Terraform Cloud)", "Spacelift",
+	"Amazon EKS (Kubernetes service account issuer / IRSA)", "Azure Kubernetes Service (AKS workload identity)",
+	"Google Kubernetes Engine (GKE)", "AWS (outbound identity federation)", "Google (accounts.google.com)",
+	"Amazon Cognito identity pools", "Login with Amazon", "Facebook", "Microsoft Entra ID",
+}
+
+// The nine per-tenant patterns the research verified, with GitHub's
+// enterprise path first.
+var perTenant = []string{
+	"GitHub Actions (enterprise issuer path)", "Amazon EKS (Kubernetes service account issuer / IRSA)",
+	"Azure Kubernetes Service (AKS workload identity)", "Google Kubernetes Engine (GKE)", "Microsoft Entra ID",
+	"Spacelift", "CircleCI", "Bitbucket Pipelines", "AWS (outbound identity federation)",
+}
+
+// matchCase is one case of tenancy/testdata/match_cases.json, which the
+// tenancy sub-package and the Python package read too.
+type matchCase struct {
+	Issuer string  `json:"issuer"`
+	Entry  *string `json:"entry"`
+	Tenant string  `json:"tenant"`
+	Why    string  `json:"why"`
+}
+
+// keyOf is the census string an entry is matched by, stated here apart from
+// the package: its verified issuer pattern, or its exact issuer.
+func keyOf(e Issuer) string {
+	if e.Match.Value == "verified" {
+		return e.Match.IssuerPattern
+	}
+	return e.Issuer
+}
+
+// matchable is the census's rule for which entries Match can return, written
+// out apart from the package: a verified issuer pattern, or an exact issuer
+// that is a host and not a note.
+func matchable(e Issuer) bool {
+	if e.Match.Value == "verified" {
+		return true
+	}
+	host := strings.TrimPrefix(e.Issuer, "https://")
+	if i := strings.IndexByte(host, '/'); i >= 0 {
+		host = host[:i]
+	}
+	return e.Issuer != "" && !strings.Contains(e.Issuer, "<") && strings.Contains(host, ".") && !strings.ContainsAny(e.Issuer, " \t\n")
+}
+
+func readJSON(t *testing.T, path string, into any) {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	if err := json.Unmarshal(b, into); err != nil {
+		t.Fatalf("decode %s: %v", path, err)
+	}
+}
+
+func byName(t *testing.T, name, issuer string) Issuer {
+	t.Helper()
+	for _, e := range All() {
+		if e.Name == name && (issuer == "" || e.Issuer == issuer) {
+			return e
+		}
+	}
+	t.Fatalf("no census entry %s %s", name, issuer)
+	return Issuer{}
+}
+
+func TestMatchReadsTheCensusAsTheSharedCasesSay(t *testing.T) {
+	var mc struct {
+		Census []matchCase `json:"census"`
+	}
+	readJSON(t, "tenancy/testdata/match_cases.json", &mc)
+	matched, refused := 0, 0
+	for _, c := range mc.Census {
+		got, tenant, ok := Match(c.Issuer)
+		switch {
+		case c.Entry == nil && ok:
+			t.Errorf("Match(%q) = %s (%q), tenant %q; want no match (%s)", c.Issuer, got.Name, keyOf(got), tenant, c.Why)
+		case c.Entry != nil && !ok:
+			t.Errorf("Match(%q) found nothing; want %q, tenant %q (%s)", c.Issuer, *c.Entry, c.Tenant, c.Why)
+		case c.Entry != nil && (keyOf(got) != *c.Entry || tenant != c.Tenant):
+			t.Errorf("Match(%q) = %q, tenant %q; want %q, tenant %q (%s)", c.Issuer, keyOf(got), tenant, *c.Entry, c.Tenant, c.Why)
+		}
+		if c.Entry == nil {
+			refused++
+		} else {
+			matched++
+		}
+	}
+	if matched == 0 || refused == 0 {
+		t.Fatalf("the shared cases hold %d matches and %d refusals; both kinds must be exercised", matched, refused)
+	}
+}
+
+// Match hands back the census's own entry, with every fact behind it, so a
+// caller can quote the sentence that placed a grant.
+func TestMatchReturnsTheWholeEntry(t *testing.T) {
+	eks, tenant, ok := Match("https://oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE")
+	if !ok || eks.Name != "Amazon EKS (Kubernetes service account issuer / IRSA)" || tenant != "EXAMPLED539D4633E53DE1B71EXAMPLE" {
+		t.Fatalf("EKS: %q, tenant %q, %v", eks.Name, tenant, ok)
+	}
+	if eks.TenantMembership.Value != "controlled" || len(eks.TenantMembership.Evidence) == 0 || eks.SubjectFormat == "" {
+		t.Errorf("EKS: the entry came back without its facts: %+v", eks.TenantMembership)
+	}
+	gh, tenant, ok := Match("https://token.actions.githubusercontent.com/octocorp")
+	if !ok || gh.Name != "GitHub Actions (enterprise issuer path)" || tenant != "octocorp" {
+		t.Errorf("GitHub's enterprise path: %q, tenant %q, %v", gh.Name, tenant, ok)
+	}
+}
+
+// The sub-package is generated from this census by scripts/build.py. Each of
+// its entries must be the Tenancy projection of one census entry, in census
+// order, and every entry the census can match must be in it.
+func TestTheTenancySubPackageIsInStepWithTheCensus(t *testing.T) {
+	var want []tenancy.Issuer
+	for _, e := range All() {
+		if matchable(e) {
+			want = append(want, e.Tenancy())
+		}
+	}
+	got := tenancy.All()
+	if len(want) < 29 || len(got) != len(want) {
+		t.Fatalf("the sub-package holds %d entries; the census has %d an issuer can match (at least 29)", len(got), len(want))
+	}
+	for i := range want {
+		if !reflect.DeepEqual(got[i], want[i]) {
+			t.Errorf("entry %d: the sub-package says\n  %+v\nthe census says\n  %+v", i, got[i], want[i])
+		}
+	}
+	if tenancy.CensusDate() != CensusDate() {
+		t.Errorf("census date: sub-package %q, census %q", tenancy.CensusDate(), CensusDate())
+	}
+}
+
+// The projection keeps what a classifier may rely on and nothing it must not:
+// no unverified value, no multi-valued claim, no claim of unknown cardinality,
+// and nothing from a list that is itself unverified.
+func TestTenancyKeepsOnlyWhatIsVerified(t *testing.T) {
+	e := Issuer{
+		Name: "invented", Issuer: "https://example.com",
+		AnonymousTokens: AnonymousTokens{Value: "unverified"},
+		TenancyClaims: TenancyClaims{Value: "verified", Claims: []TenantClaim{
+			{Claim: "single", Kind: "id", Scope: "owner", MultiValued: "no", Immutable: "unverified"},
+			{Claim: "list", Kind: "id", Scope: "owner", MultiValued: "yes", Immutable: "yes"},
+			{Claim: "unknown", Kind: "id", Scope: "owner", MultiValued: "unverified", Immutable: "yes"},
+		}},
+		SubjectForms:                SubjectForms{Value: "unverified", Forms: []SubjectForm{{LeadingLiteral: "x:"}}},
+		OwnerCharset:                OwnerCharset{Value: "unverified", Characters: []string{"a-z"}},
+		NamesUniqueRegardlessOfCase: NameCase{Value: "unverified"},
+		Match:                       MatchRule{Value: "unverified", IssuerPattern: "https://<t>.example.com", TenantRecyclable: "no"},
+		TenantMembership:            TenantMembership{Value: "unverified"},
+	}
+	want := tenancy.Issuer{Name: "invented", Issuer: "https://example.com",
+		TenancyClaims: []tenancy.Claim{{Claim: "single", Kind: "id", Scope: "owner"}}}
+	if got := e.Tenancy(); !reflect.DeepEqual(got, want) {
+		t.Errorf("Tenancy() = %+v, want %+v", got, want)
+	}
+}
+
+// facts gathers every Fact an entry's tenancy fields carry, with where it sits.
+func facts(e Issuer) map[string][]Fact {
+	out := map[string][]Fact{}
+	add := func(where string, fs ...Fact) { out[where] = append(out[where], fs...) }
+	a := e.AnonymousTokens
+	add("anonymous_tokens.evidence", a.Evidence...)
+	add("anonymous_tokens.chain", a.Chain...)
+	add("anonymous_tokens.context", a.Context...)
+	for _, c := range e.TenancyClaims.Claims {
+		add("tenancy_claims."+c.Claim, c.Evidence)
+		add("tenancy_claims."+c.Claim+".immutable_evidence", c.ImmutableEvidence...)
+		add("tenancy_claims."+c.Claim+".context", c.Context...)
+	}
+	for _, c := range e.NotTenancy.Claims {
+		add("not_tenancy."+c.Claim, c.Evidence)
+		add("not_tenancy."+c.Claim+".context", c.Context...)
+	}
+	s := e.SubjectForms
+	for _, f := range s.Forms {
+		add("subject_forms."+f.Form, f.Evidence)
+		add("subject_forms."+f.Form+".issued_for", f.IssuedFor...)
+	}
+	for _, n := range s.NeverPin {
+		add("subject_forms.never_pin."+n.LeadingLiteral, n.Evidence)
+	}
+	add("subject_forms.chosen_by", s.ChosenBy...)
+	add("subject_forms.evidence", s.Evidence...)
+	add("owner_charset.evidence", e.OwnerCharset.Evidence...)
+	add("owner_charset.context", e.OwnerCharset.Context...)
+	add("names_unique_regardless_of_case.evidence", e.NamesUniqueRegardlessOfCase.Evidence...)
+	add("names_unique_regardless_of_case.context", e.NamesUniqueRegardlessOfCase.Context...)
+	m := e.Match
+	add("match.evidence", m.Evidence...)
+	add("match.context", m.Context...)
+	add("match.tenant_syntax_evidence", m.TenantSyntaxEvidence...)
+	add("match.tenant_immutable_evidence", m.TenantImmutableEvidence...)
+	add("match.tenant_recyclable_evidence", m.TenantRecyclableEvidence...)
+	for _, x := range m.NotAControlledTenant {
+		add("match.not_a_controlled_tenant."+x.Tenant, x.Evidence)
+	}
+	add("tenant_membership.evidence", e.TenantMembership.Evidence...)
+	add("tenant_membership.context", e.TenantMembership.Context...)
+	add("built_in.evidence", e.BuiltIn.Evidence...)
+	add("built_in.discrepancy", e.BuiltIn.Discrepancy...)
+	researchFacts(e.Research, "research", out)
+	return out
+}
+
+var factKeys = map[string]bool{"source": true, "quote": true, "verified_at": true, "role": true,
+	"observed": true, "method": true, "at": true, "result": true}
+
+// researchFacts gathers the facts inside an entry's free-form research block:
+// every mapping that carries a quote or a source, or an observation. A key
+// named observed whose value is a mapping or a list names a group, not an
+// observation. A mapping that looks like a fact and carries a key a fact does
+// not have is reported as broken rather than read as a fact with the key
+// dropped.
+func researchFacts(v any, where string, out map[string][]Fact) {
+	switch x := v.(type) {
+	case map[string]any:
+		_, q := x["quote"]
+		_, s := x["source"]
+		o := false
+		if obs, has := x["observed"]; has {
+			switch obs.(type) {
+			case map[string]any, []any:
+			default:
+				o = true
+			}
+		}
+		if q || s || o {
+			for k := range x {
+				if !factKeys[k] {
+					out[where+" (not a fact: "+k+")"] = append(out[where+" (not a fact: "+k+")"], Fact{})
+				}
+			}
+			var f Fact
+			b, err := json.Marshal(x)
+			if err == nil {
+				err = json.Unmarshal(b, &f)
+			}
+			if err != nil {
+				out[where+" (not a fact)"] = append(out[where+" (not a fact)"], Fact{})
+				return
+			}
+			out[where] = append(out[where], f)
+			return
+		}
+		for k, y := range x {
+			researchFacts(y, where+"."+k, out)
+		}
+	case []any:
+		for i, y := range x {
+			researchFacts(y, fmt.Sprintf("%s[%d]", where, i), out)
+		}
+	}
+}
+
+var date = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+
+// N5: every fact keeps its own source URL, its exact quote and the date it
+// was read; an observation keeps what was requested, how, when and what came
+// back. A fact with no source or no quote is not a fact.
+func TestEveryFactHasASourceAQuoteAndADate(t *testing.T) {
+	examined := 0
+	for _, e := range All() {
+		for where, fs := range facts(e) {
+			for _, f := range fs {
+				examined++
+				observation := f.Observed != "" || f.Method != "" || f.At != "" || f.Result != ""
+				switch {
+				case observation && (f.Observed == "" || f.Method == "" || f.At == "" || f.Result == "" || f.Quote != "" || f.Source != ""):
+					t.Errorf("%s %s: an observation needs observed, method, at and result, and no quote: %+v", e.Name, where, f)
+				case !observation && (!strings.HasPrefix(f.Source, "https://") || strings.TrimSpace(f.Quote) == "" || !date.MatchString(f.VerifiedAt)):
+					t.Errorf("%s %s: a fact needs an https source, a quote and a verified_at date: %+v", e.Name, where, f)
+				}
+			}
+		}
+	}
+	if examined < 150 {
+		t.Fatalf("examined %d facts; the tenancy research recorded more than 150", examined)
+	}
+}
+
+// The embedded census decodes into Issuer with no key left over, so no field
+// the census carries is silently dropped by the Go type.
+func TestTheGoTypeReadsEveryField(t *testing.T) {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	var c census
+	if err := dec.Decode(&c); err != nil {
+		t.Fatalf("the census carries a field Issuer does not: %v", err)
+	}
+	if len(c.Issuers) != len(All()) {
+		t.Fatalf("strict decode read %d entries, the package %d", len(c.Issuers), len(All()))
+	}
+}
+
+func oneOf(v string, allowed ...string) bool { return slices.Contains(allowed, v) }
+
+func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
+	threeWay := []string{"yes", "no", "unverified"}
+	claims := 0
+	for _, e := range All() {
+		n := e.Name
+		if !oneOf(e.Researched, "in_release", "not_in_this_release") {
+			t.Errorf("%s: researched %q", n, e.Researched)
+		}
+		if !oneOf(e.AnonymousTokens.Value, threeWay...) || !oneOf(e.AnonymousTokens.Basis, "", "chain") {
+			t.Errorf("%s: anonymous_tokens %q, basis %q", n, e.AnonymousTokens.Value, e.AnonymousTokens.Basis)
+		}
+		for field, v := range map[string]string{"tenancy_claims": e.TenancyClaims.Value, "not_tenancy": e.NotTenancy.Value,
+			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value, "match": e.Match.Value} {
+			if !oneOf(v, "verified", "unverified") {
+				t.Errorf("%s: %s value %q", n, field, v)
+			}
+		}
+		if !oneOf(e.TenantMembership.Value, "controlled", "unverified") {
+			t.Errorf("%s: tenant_membership %q", n, e.TenantMembership.Value)
+		}
+		if !oneOf(e.NamesUniqueRegardlessOfCase.Value, threeWay...) {
+			t.Errorf("%s: names_unique_regardless_of_case %q", n, e.NamesUniqueRegardlessOfCase.Value)
+		}
+		if !oneOf(e.BuiltIn.Value, "yes", "unverified") {
+			t.Errorf("%s: built_in %q", n, e.BuiltIn.Value)
+		}
+		seen := map[string]bool{}
+		for _, c := range e.TenancyClaims.Claims {
+			claims++
+			if !oneOf(c.Kind, "name", "id") || !oneOf(c.Scope, "owner", "repository", "enterprise") ||
+				!oneOf(c.MultiValued, threeWay...) || !oneOf(c.Immutable, threeWay...) || seen[c.Claim] {
+				t.Errorf("%s: tenancy claim %+v", n, c)
+			}
+			seen[c.Claim] = true
+		}
+		for _, c := range e.NotTenancy.Claims {
+			if seen[c.Claim] || c.Why == "" {
+				t.Errorf("%s: %s is both a tenancy claim and not one, or says no why", n, c.Claim)
+			}
+		}
+		for _, f := range e.SubjectForms.Forms {
+			if f.LeadingLiteral == "" || len(f.OwnerParts)+len(f.RepositoryParts) == 0 {
+				t.Errorf("%s: subject form %q has no leading literal or no parts", n, f.Form)
+			}
+			for _, p := range append(slices.Clone(f.OwnerParts), f.RepositoryParts...) {
+				if !oneOf(p.Kind, "name", "id") || len(p.DelimiterAfter) != 1 {
+					t.Errorf("%s: subject form %q part %+v", n, f.Form, p)
+				}
+			}
+		}
+		for _, c := range e.OwnerCharset.Characters {
+			if !(len(c) == 1 || len(c) == 3 && c[1] == '-' && c[0] < c[2]) {
+				t.Errorf("%s: owner character item %q is neither one character nor a range", n, c)
+			}
+		}
+		if m := e.Match; m.Value == "verified" {
+			if !oneOf(m.TenantKind, "name", "id") || !oneOf(m.TenantSyntax, "", "guid") ||
+				!oneOf(m.TenantImmutable, "", "yes", "no", "unverified") || !oneOf(m.TenantRecyclable, threeWay...) {
+				t.Errorf("%s: match %+v", n, m)
+			}
+		}
+	}
+	if claims == 0 {
+		t.Fatal("no tenancy claim examined")
+	}
+}
+
+// A value other than unverified is a claim about a vendor, and a claim with
+// nothing behind it is not a fact.
+func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
+	verified := 0
+	for _, e := range All() {
+		n := e.Name
+		a := e.AnonymousTokens
+		if (a.Value == "yes" || a.Value == "no") && len(a.Evidence)+len(a.Chain) == 0 {
+			t.Errorf("%s: anonymous_tokens %q with no evidence", n, a.Value)
+		}
+		if a.Basis == "chain" && len(a.Chain) == 0 {
+			t.Errorf("%s: basis chain with no chain", n)
+		}
+		if a.Value == "unverified" && e.Researched == "in_release" && a.WhyUnverified == "" {
+			t.Errorf("%s: researched, and anonymous_tokens unverified with no why", n)
+		}
+		if e.TenantMembership.Value == "controlled" {
+			verified++
+			if len(e.TenantMembership.Evidence) == 0 || e.Match.Value != "verified" {
+				t.Errorf("%s: a controlled tenant needs its evidence and a verified pattern", n)
+			}
+		}
+		for _, c := range e.TenancyClaims.Claims {
+			if (c.Immutable == "yes" || c.Immutable == "no") && len(c.ImmutableEvidence) == 0 {
+				t.Errorf("%s: %s immutable %q with no evidence", n, c.Claim, c.Immutable)
+			}
+		}
+		if s := e.SubjectForms; s.Value == "verified" && len(s.Forms) == 0 && len(s.Evidence) == 0 {
+			t.Errorf("%s: subject forms recorded as none, with nothing to say so", n)
+		}
+		if o := e.OwnerCharset; o.Value == "verified" && (len(o.Characters) == 0 || len(o.Evidence) == 0 || o.Description == "") {
+			t.Errorf("%s: an owner character set needs its characters, its description and its evidence", n)
+		}
+		if v := e.NamesUniqueRegardlessOfCase.Value; (v == "yes" || v == "no") && len(e.NamesUniqueRegardlessOfCase.Evidence) == 0 {
+			t.Errorf("%s: names_unique_regardless_of_case %q with no evidence", n, v)
+		}
+		if m := e.Match; m.Value == "verified" {
+			verified++
+			if m.IssuerPattern == "" || m.TenantPlaceholder == "" || len(m.Evidence) == 0 {
+				t.Errorf("%s: a verified pattern needs its pattern, its tenant and its evidence", n)
+			}
+			if m.TenantSyntax != "" && len(m.TenantSyntaxEvidence) == 0 {
+				t.Errorf("%s: tenant syntax %q with no evidence", n, m.TenantSyntax)
+			}
+			if (m.TenantImmutable == "yes" || m.TenantImmutable == "no") && len(m.TenantImmutableEvidence) == 0 {
+				t.Errorf("%s: tenant_immutable %q with no evidence", n, m.TenantImmutable)
+			}
+			if (m.TenantRecyclable == "yes" || m.TenantRecyclable == "no") && len(m.TenantRecyclableEvidence) == 0 {
+				t.Errorf("%s: tenant_recyclable %q with no evidence", n, m.TenantRecyclable)
+			}
+		}
+		if e.BuiltIn.Value == "yes" && (len(e.BuiltIn.Evidence) == 0 || e.BuiltIn.Principal == "") {
+			t.Errorf("%s: built_in with no evidence or no principal", n)
+		}
+	}
+	if verified < 18 {
+		t.Fatalf("examined %d verified patterns and memberships; the research recorded 18", verified)
+	}
+}
+
+// Ruling 10.10 item 1: every entry says whether this release researched it,
+// and an entry it did not research holds only unverified in its new fields:
+// each is written out, and each reads unverified and nothing else.
+func TestEveryEntrySaysWhetherItWasResearched(t *testing.T) {
+	var doc struct {
+		Issuers []map[string]json.RawMessage `json:"issuers"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	fields := []string{"anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
+		"names_unique_regardless_of_case", "match", "tenant_membership", "built_in"}
+	var inRelease []string
+	unresearched := 0
+	for _, e := range doc.Issuers {
+		var name, state string
+		if err := json.Unmarshal(e["name"], &name); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(e["researched"], &state); err != nil {
+			t.Errorf("%s: no researched field: %v", name, err)
+			continue
+		}
+		for _, k := range fields {
+			if _, ok := e[k]; !ok {
+				t.Errorf("%s does not write out %s", name, k)
+			}
+		}
+		if state == "in_release" {
+			inRelease = append(inRelease, name)
+			continue
+		}
+		unresearched++
+		for _, k := range fields {
+			if string(e[k]) != `{"value":"unverified"}` {
+				t.Errorf("%s was not researched in this release, yet its %s reads %s", name, k, e[k])
+			}
+		}
+		if _, ok := e["research"]; ok {
+			t.Errorf("%s was not researched in this release, yet carries research", name)
+		}
+	}
+	slices.Sort(inRelease)
+	want := slices.Clone(researched)
+	slices.Sort(want)
+	if !slices.Equal(inRelease, want) {
+		t.Errorf("researched in this release: %q\nthe research list: %q", inRelease, want)
+	}
+	if unresearched < 27 {
+		t.Fatalf("examined %d entries this release did not research; the census has 27", unresearched)
+	}
+}
+
+// Ruling 10.7 item 1: the owner character set cites its sources, and the
+// organisation-name fact is AWS's sentence, which the census must say.
+func TestGitHubsOwnerCharacterSetNamesItsSources(t *testing.T) {
+	gh := byName(t, "GitHub Actions", "")
+	if gh.OwnerCharset.Value != "verified" || len(gh.OwnerCharset.Characters) == 0 {
+		t.Fatalf("GitHub's owner character set is not recorded: %+v", gh.OwnerCharset)
+	}
+	tg := gh.Tenancy()
+	for _, r := range "/@:" {
+		if tg.OwnerNameMayContain(r) {
+			t.Errorf("GitHub's owner characters %q admit the delimiter %q", gh.OwnerCharset.Characters, r)
+		}
+	}
+	aws, github := 0, 0
+	for _, f := range gh.OwnerCharset.Evidence {
+		switch {
+		case strings.HasPrefix(f.Source, "https://docs.aws.amazon.com/"):
+			aws++
+			if !strings.Contains(f.Role, "AWS") || !strings.Contains(f.Quote, "organization name") {
+				t.Errorf("the organisation-name sentence from %s is not labelled as AWS's: role %q", f.Source, f.Role)
+			}
+		case strings.HasPrefix(f.Source, "https://docs.github.com/"):
+			github++
+			if f.Role == "" {
+				t.Errorf("a GitHub source of the character set says no role: %+v", f)
+			}
+		}
+	}
+	if aws != 1 || github < 3 {
+		t.Errorf("GitHub's owner character set cites %d GitHub sentences and %d AWS ones; the ruling cites GitHub's and one of AWS's",
+			github, aws)
+	}
+	if n := gh.NamesUniqueRegardlessOfCase; n.Value != "unverified" || len(n.LookedIn) == 0 {
+		t.Errorf("GitHub names_unique_regardless_of_case = %q, looked in %d pages; no GitHub page states it", n.Value, len(n.LookedIn))
+	}
+	never := map[string]bool{}
+	for _, np := range gh.SubjectForms.NeverPin {
+		never[np.LeadingLiteral] = true
+	}
+	if !never["job_workflow_ref:"] {
+		t.Error("GitHub: job_workflow_ref: is not recorded as a leading literal that never pins")
+	}
+	notTenancy := map[string]bool{}
+	for _, c := range gh.NotTenancy.Claims {
+		notTenancy[c.Claim] = true
+	}
+	for _, c := range []string{"actor", "actor_id", "job_workflow_ref", "job_workflow_sha", "environment", "ref",
+		"event_name", "runner_environment", "repository_visibility", "workflow_ref"} {
+		if !notTenancy[c] {
+			t.Errorf("GitHub: %s is not recorded in not_tenancy (A3)", c)
+		}
+	}
+}
+
+// The four providers STS accepts with no provider in the account (ruling
+// 10.2, 10.7 item 5), and the discrepancy between AWS's pages about them.
+func TestTheBuiltInProvidersAreRecorded(t *testing.T) {
+	for _, name := range []string{"Amazon Cognito identity pools", "Login with Amazon", "Facebook", "Google (accounts.google.com)"} {
+		e := byName(t, name, "")
+		if e.BuiltIn.Value != "yes" {
+			t.Errorf("%s: not recorded as a built-in provider", name)
+		}
+		if got, _, ok := Match(e.Issuer); !ok || got.Name != name {
+			t.Errorf("%s: its issuer %q does not match its own entry", name, e.Issuer)
+		}
+	}
+	if lwa := byName(t, "Login with Amazon", ""); len(lwa.BuiltIn.Discrepancy) < 2 || lwa.BuiltIn.Note == "" {
+		t.Errorf("Login with Amazon: the census records %d pages naming three built-ins; AWS has two", len(lwa.BuiltIn.Discrepancy))
+	}
+	if c := byName(t, "Amazon Cognito identity pools", ""); c.AnonymousTokens.Value != "yes" {
+		t.Errorf("Cognito anonymous_tokens %q, want yes", c.AnonymousTokens.Value)
+	}
+	if l := byName(t, "Login with Amazon", ""); l.AnonymousTokens.Value != "no" || l.AnonymousTokens.Basis != "" {
+		t.Errorf("Login with Amazon anonymous_tokens %q, basis %q; the research gives no, on its sentences", l.AnonymousTokens.Value, l.AnonymousTokens.Basis)
+	}
+	if f := byName(t, "Facebook", ""); f.AnonymousTokens.Value != "unverified" || len(f.AnonymousTokens.LookedIn) == 0 ||
+		f.AnonymousTokens.WhyUnverified == "" || len(f.AnonymousTokens.Evidence) != 0 {
+		t.Errorf("Facebook anonymous_tokens %+v; the research found it unverified and says why", f.AnonymousTokens)
+	}
+	for _, e := range All() {
+		if e.BuiltIn.Value == "yes" && !slices.Contains([]string{"Amazon Cognito identity pools", "Login with Amazon", "Facebook", "Google (accounts.google.com)"}, e.Name) {
+			t.Errorf("%s is recorded as built in; AWS names four providers", e.Name)
+		}
+	}
+}
+
+// Ruling 10.10 item 4 and W21: Cognito's aud is the identity pool, which pins
+// the pool and never who can get into it, so it is recorded as not tenancy
+// and no Cognito claim names a tenant.
+func TestCognitosAudienceNamesThePoolNotATenant(t *testing.T) {
+	c := byName(t, "Amazon Cognito identity pools", "")
+	if c.TenancyClaims.Value != "unverified" || len(c.TenancyClaims.Claims) != 0 {
+		t.Errorf("Cognito tenancy claims %+v; none is recorded", c.TenancyClaims)
+	}
+	found := false
+	for _, x := range c.NotTenancy.Claims {
+		if x.Claim == "aud" {
+			found = true
+			if !strings.Contains(x.Why, "pool") || !strings.Contains(x.Evidence.Quote, "identity pool ID") {
+				t.Errorf("Cognito aud is not tenancy for the wrong reason: %+v", x)
+			}
+		}
+	}
+	if !found {
+		t.Error("Cognito's aud is not recorded as not tenancy")
+	}
+	if tc := c.Tenancy().TenancyClaims; tc != nil {
+		t.Errorf("Cognito's projection carries tenancy claims %+v", tc)
+	}
+}
+
+// Ruling 10.10 item 2: GitLab.com, HCP Terraform and Buildkite are researched
+// for anonymous_tokens only. The research recorded who can open an account,
+// not that tokens need one, so the value is unverified and says why, and
+// every other tenancy field is unverified too.
+func TestGitLabHCPTerraformAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
+	for _, name := range []string{"GitLab.com", "HCP Terraform (Terraform Cloud)", "Buildkite"} {
+		e := byName(t, name, "")
+		if e.Researched != "in_release" || e.AnonymousTokens.Value != "unverified" || e.AnonymousTokens.WhyUnverified == "" {
+			t.Errorf("%s: researched %q, anonymous_tokens %+v", name, e.Researched, e.AnonymousTokens)
+		}
+		if anonymous, known := e.Tenancy().IssuesAnonymousTokens(); !anonymous || known {
+			t.Errorf("%s: IssuesAnonymousTokens() = %v, %v; unverified reads as may", name, anonymous, known)
+		}
+		for field, v := range map[string]string{"tenancy_claims": e.TenancyClaims.Value, "not_tenancy": e.NotTenancy.Value,
+			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value, "match": e.Match.Value,
+			"tenant_membership": e.TenantMembership.Value, "names_unique_regardless_of_case": e.NamesUniqueRegardlessOfCase.Value,
+			"built_in": e.BuiltIn.Value} {
+			if v != "unverified" {
+				t.Errorf("%s: %s is %q; only anonymous_tokens was researched", name, field, v)
+			}
+		}
+	}
+}
+
+// Ruling 10.10 item 3: a no that rests on a chain of sentences says so. That
+// covers GitHub, the enterprise path, Google and the per-tenant patterns, and
+// nothing else.
+func TestAChainedValueIsMarked(t *testing.T) {
+	want := append([]string{"GitHub Actions", "Google (accounts.google.com)"}, perTenant...)
+	var got []string
+	for _, e := range All() {
+		if e.AnonymousTokens.Basis == "chain" {
+			got = append(got, e.Name)
+			if e.AnonymousTokens.Value != "no" || len(e.AnonymousTokens.Chain) == 0 {
+				t.Errorf("%s: basis chain on %q with %d links", e.Name, e.AnonymousTokens.Value, len(e.AnonymousTokens.Chain))
+			}
+		}
+	}
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Errorf("chained values on %q\nthe ruling's list %q", got, want)
+	}
+	if gh := byName(t, "GitHub Actions", ""); len(gh.AnonymousTokens.Chain) != 5 {
+		t.Errorf("GitHub's chain has %d links; the research recorded five", len(gh.AnonymousTokens.Chain))
+	}
+}
+
+// Ruling 10.10 item 5: GitHub's enterprise slug is verified recyclable; every
+// other researched tenant's recyclability is unverified, which reads as
+// recyclable.
+func TestTheEnterpriseSlugIsRecyclable(t *testing.T) {
+	ent := byName(t, "GitHub Actions (enterprise issuer path)", "")
+	if ent.Match.TenantRecyclable != "yes" || len(ent.Match.TenantRecyclableEvidence) == 0 ||
+		!strings.Contains(ent.Match.TenantRecyclableEvidence[0].Quote, "slug") {
+		t.Errorf("GitHub's enterprise path: tenant_recyclable %q with %+v", ent.Match.TenantRecyclable, ent.Match.TenantRecyclableEvidence)
+	}
+	for _, name := range perTenant[1:] {
+		if r := byName(t, name, "").Match.TenantRecyclable; r != "unverified" {
+			t.Errorf("%s: tenant_recyclable %q; no sentence in the research settles it", name, r)
+		}
+	}
+}
+
+// Ruling 10.8 item 2: no fact a vendor contradicts survives the release.
+func TestTheCorrectionsTheVendorsForce(t *testing.T) {
+	if e := byName(t, "Microsoft (Azure DevOps)", ""); e.Issuer != "unverified" || e.TenancyModel != "unverified" || strings.Contains(e.Notes, "nothing to scope on") {
+		t.Errorf("Azure DevOps: issuer %q, tenancy_model %q, notes %q", e.Issuer, e.TenancyModel, e.Notes)
+	}
+	if e := byName(t, "env0", ""); strings.Contains(e.Notes, "WRONG") || strings.Contains(e.Notes, "not a deployment-token issuer") {
+		t.Errorf("env0: the contradicted caution survives: %q", e.Notes)
+	}
+	if e := byName(t, "Codeberg (Forgejo)", ""); e.Issuer != "unverified" {
+		t.Errorf("Codeberg: issuer %q, want unverified", e.Issuer)
+	}
+	if e := byName(t, "Cursor", "https://api2.cursor.sh/cloud-agent/identity"); strings.Contains(e.Notes, "exploitable") {
+		t.Errorf("Cursor's legacy entry: the contradicted note survives: %q", e.Notes)
+	}
+	for _, name := range []string{"GitLab.com", "GitLab self-managed"} {
+		if e := byName(t, name, ""); e.AudDefault != "unverified" {
+			t.Errorf("%s: aud_default %q, want unverified", name, e.AudDefault)
+		}
+	}
+	e := byName(t, "Bitbucket Pipelines", "")
+	if e.AudControlledBy != "workload" || !strings.Contains(e.AudEvidence, "To customize your audiences") ||
+		strings.Contains(e.AudEvidence, "I found no documented way") || strings.Contains(e.VendorExampleNote, "workspace-pinned anyway") {
+		t.Errorf("Bitbucket: aud_controlled_by %q, aud_evidence %q, vendor_example_note %q", e.AudControlledBy, e.AudEvidence, e.VendorExampleNote)
+	}
+	if e := byName(t, "Chainguard", ""); e.TenancyClaim != "unverified" {
+		t.Errorf("Chainguard: tenancy_claim %q, want unverified", e.TenancyClaim)
+	}
+}
+
+// v0.1.0's field is kept for the callers that read it.
+func TestTheV010TenancyClaimIsKept(t *testing.T) {
+	kept := map[string]string{"Depot": "org_id", "Namespace": "tenant_id", "Modal": "workspace_id", "Cognition": "org_id", "Warp": "teams"}
+	examined := 0
+	for _, e := range All() {
+		if want, ok := kept[e.Name]; ok {
+			examined++
+			if e.TenancyClaim != want {
+				t.Errorf("%s: tenancy_claim %q, want v0.1.0's %q", e.Name, e.TenancyClaim, want)
+			}
+		}
+		if strings.EqualFold(e.TenancyClaim, "unverified") && e.TenancyClaim != "unverified" {
+			t.Errorf("%s: tenancy_claim %q is not the census's spelling of unverified", e.Name, e.TenancyClaim)
+		}
+	}
+	if examined != len(kept) {
+		t.Fatalf("examined %d of the %d entries whose tenancy_claim v0.1.0 recorded", examined, len(kept))
+	}
+}
+
+// Several entries may share a host (A7). A lookup by host alone returns the
+// entry whose issuer is that host, as it did before the enterprise path had
+// an entry of its own.
+func TestGetResolvesASharedHostToTheHostsOwnIssuer(t *testing.T) {
+	for _, q := range []string{"token.actions.githubusercontent.com", "https://token.actions.githubusercontent.com/octocorp"} {
+		if e, ok := Get(q); !ok || e.Name != "GitHub Actions" {
+			t.Errorf("Get(%q) = %q, %v; want GitHub Actions", q, e.Name, ok)
+		}
+	}
+}
+
+// The issuer field of a few entries carries a note ("unverified", "not an
+// OIDC issuer") rather than an issuer. A note is not a host.
+func TestACensusNoteIsNotAHost(t *testing.T) {
+	notes := 0
+	for _, e := range All() {
+		if e.Issuer == "unverified" || e.Issuer == "not an OIDC issuer" {
+			notes++
+			if e.IssuerPattern == "" && e.Host() != "" {
+				t.Errorf("%s: Host() = %q for the note %q", e.Name, e.Host(), e.Issuer)
+			}
+		}
+	}
+	if notes < 4 {
+		t.Fatalf("examined %d entries whose issuer is a note; the census has at least 4", notes)
+	}
+	for _, q := range []string{"unverified", "not an OIDC issuer", "https://unverified"} {
+		if e, ok := Get(q); ok {
+			t.Errorf("Get(%q) = %s; a note is not a host", q, e.Name)
+		}
+	}
+	for _, h := range MultiTenantHosts() {
+		if !strings.Contains(h, ".") || strings.ContainsAny(h, " \t") {
+			t.Errorf("MultiTenantHosts includes %q, which is not a hostname", h)
+		}
+	}
+}
+
+var update = flag.Bool("update", false, "rewrite tenancy/testdata/answers.json from this package's answers")
+
+// answers is what every reader says about every census entry: the Go side of
+// tenancy/testdata/answers.json. The Python package's tests compute the same
+// answers from the same census and compare them with the file, so the two
+// packages agree entry by entry, not only on the cases someone thought of.
+type answers struct {
+	About   string        `json:"about"`
+	Probes  probes        `json:"probes"`
+	Entries []entryAnswer `json:"entries"`
+}
+
+type probes struct {
+	Characters string   `json:"characters"`
+	Tenants    []string `json:"tenants"`
+}
+
+type entryAnswer struct {
+	Name   string `json:"name"`
+	Issuer string `json:"issuer"`
+	// Instance is an issuer URL made from the entry's own issuer, with every
+	// placeholder filled; Match is what Match(Instance) returns.
+	Instance                string             `json:"instance"`
+	Match                   *matchAnswer       `json:"match"`
+	AnonymousTokens         [2]bool            `json:"anonymous_tokens"`
+	NamesCompareWithoutCase [2]bool            `json:"names_compare_without_case"`
+	TenantIsRecyclable      [2]bool            `json:"tenant_is_recyclable"`
+	ControlledTenant        map[string][2]bool `json:"controlled_tenant"`
+	// OwnerNameMayContain holds 1 or 0 for each probe character, in order.
+	OwnerNameMayContain string         `json:"owner_name_may_contain"`
+	Tenancy             tenancy.Issuer `json:"tenancy"`
+}
+
+type matchAnswer struct {
+	Entry  string `json:"entry"`
+	Tenant string `json:"tenant"`
+}
+
+const personalMSA = "9188040d-6c67-4c5b-b112-36a304b66dad"
+
+var placeholderRE = regexp.MustCompile(`<[A-Za-z0-9_-]+>`)
+
+// instanceOf fills every placeholder of an entry's issuer with a value built
+// for it, a GUID where the tenant has one's syntax.
+func instanceOf(e Issuer) string {
+	issuer := e.Issuer
+	if e.Match.Value == "verified" {
+		issuer = e.Match.IssuerPattern
+	} else if issuer == "" {
+		issuer = e.IssuerPattern
+	}
+	n := 0
+	return placeholderRE.ReplaceAllStringFunc(issuer, func(p string) string {
+		n++
+		if p == e.Match.TenantPlaceholder && e.Match.TenantSyntax == "guid" {
+			return "0123abcd-4567-89ef-0123-456789abcdef"
+		}
+		// Lower case and dashes only, so the value fits a host label as well
+		// as a path segment.
+		return fmt.Sprintf("p%d-%s", n, strings.ReplaceAll(strings.Trim(strings.ToLower(p), "<>"), "_", "-"))
+	})
+}
+
+func pair(a, b bool) [2]bool { return [2]bool{a, b} }
+
+func goAnswers() answers {
+	out := answers{
+		About: "What every reader of the census answers about every entry, written by the Go tests " +
+			"(go test . -run TestGoAndPythonAgree -update) and checked by the Go and the Python tests alike. " +
+			"scripts/build.py copies it to python/tests/answers.json.",
+		Probes: probes{Characters: "/@:-_.%aZ09 é", Tenants: []string{"acme", personalMSA}},
+	}
+	for _, e := range All() {
+		t := e.Tenancy()
+		a := entryAnswer{Name: e.Name, Issuer: e.Issuer, Instance: instanceOf(e), Tenancy: t,
+			ControlledTenant: map[string][2]bool{}}
+		tenants := slices.Clone(out.Probes.Tenants)
+		if got, tenant, ok := Match(a.Instance); ok {
+			a.Match = &matchAnswer{Entry: got.Name, Tenant: tenant}
+			if tenant != "" {
+				tenants = append(tenants, tenant)
+			}
+		}
+		a.AnonymousTokens = pair(t.IssuesAnonymousTokens())
+		a.NamesCompareWithoutCase = pair(t.NamesCompareWithoutCase())
+		a.TenantIsRecyclable = pair(t.TenantIsRecyclable())
+		for _, tenant := range tenants {
+			a.ControlledTenant[tenant] = pair(t.ControlledTenant(tenant))
+		}
+		var b strings.Builder
+		for _, r := range out.Probes.Characters {
+			if t.OwnerNameMayContain(r) {
+				b.WriteByte('1')
+			} else {
+				b.WriteByte('0')
+			}
+		}
+		a.OwnerNameMayContain = b.String()
+		out.Entries = append(out.Entries, a)
+	}
+	return out
+}
+
+// Every reader, on every entry, answers as the shared file says. The Python
+// tests hold the Python package to the same file.
+func TestGoAndPythonAgree(t *testing.T) {
+	const path = "tenancy/testdata/answers.json"
+	got := goAnswers()
+	b, err := json.MarshalIndent(got, "", " ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b = append(b, '\n')
+	if *update {
+		if err := os.WriteFile(path, b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var want answers
+	readJSON(t, path, &want)
+	if len(want.Entries) != len(got.Entries) {
+		t.Fatalf("%s holds %d entries; the census has %d. Run go test . -run TestGoAndPythonAgree -update", path, len(want.Entries), len(got.Entries))
+	}
+	matched, differ := 0, 0
+	for i := range got.Entries {
+		if got.Entries[i].Match != nil {
+			matched++
+		}
+		if !reflect.DeepEqual(got.Entries[i], want.Entries[i]) {
+			differ++
+			t.Errorf("%s: the Go packages answer\n  %+v\n%s says\n  %+v", got.Entries[i].Name, got.Entries[i], path, want.Entries[i])
+		}
+	}
+	if differ == 0 && !bytes.Equal(b, mustRead(t, path)) {
+		t.Errorf("%s differs from the Go answers in form: run go test . -run TestGoAndPythonAgree -update", path)
+	}
+	if matched < 29 {
+		t.Fatalf("%d entries' own issuers matched; the census has at least 29 an issuer can match", matched)
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }

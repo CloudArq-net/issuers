@@ -1,0 +1,176 @@
+{
+  "about": "Match cases shared by the Go root package, the tenancy sub-package and the Python package, so the three read issuers the same way. In \"census\", entry is the census string the issuer matched (an exact issuer or an issuer pattern), or null for no match; tenant is the tenant the issuer names, empty for an exact issuer. \"synthetic\" holds small invented censuses for the rules the real one cannot exercise: which of two matching patterns wins, and how a tenant is spelled. scripts/build.py copies this file to python/tests/match_cases.json so the Python source distribution carries its own copy.",
+  "census": [
+    {"issuer": "https://token.actions.githubusercontent.com", "entry": "https://token.actions.githubusercontent.com", "tenant": ""},
+    {"issuer": "https://token.actions.githubusercontent.com/", "entry": "https://token.actions.githubusercontent.com", "tenant": "", "why": "a trailing slash is not part of the issuer"},
+    {"issuer": "https://TOKEN.Actions.GitHubUserContent.com", "entry": "https://token.actions.githubusercontent.com", "tenant": "", "why": "hosts compare without case"},
+    {"issuer": "HTTPS://token.actions.githubusercontent.com", "entry": "https://token.actions.githubusercontent.com", "tenant": "", "why": "a scheme compares without case"},
+    {"issuer": "token.actions.githubusercontent.com", "entry": "https://token.actions.githubusercontent.com", "tenant": "", "why": "AWS writes a provider URL without its scheme"},
+    {"issuer": "https://token.actions.githubusercontent.com/octocorp", "entry": "https://token.actions.githubusercontent.com/<enterpriseSlug>", "tenant": "octocorp", "why": "the enterprise path has its own entry beside the shared one"},
+    {"issuer": "https://token.actions.githubusercontent.com/octocorp/extra", "entry": null, "why": "a placeholder is one path segment"},
+    {"issuer": "https://token.actions.githubusercontent.com/octo.corp", "entry": null, "why": "a path placeholder holds letters, digits, dashes and underscores only"},
+    {"issuer": "http://token.actions.githubusercontent.com", "entry": null, "why": "only https, or no scheme at all, names a census issuer"},
+    {"issuer": "oidc://token.actions.githubusercontent.com", "entry": null},
+    {"issuer": " https://token.actions.githubusercontent.com", "entry": null, "why": "an issuer is not trimmed"},
+    {"issuer": "https://token.actions.githubusercontent.com ", "entry": null},
+    {"issuer": "https://token.actİons.githubusercontent.com", "entry": null, "why": "only ASCII letters fold: U+0130 is not an i"},
+    {"issuer": "https://agent.buildKite.com", "entry": null, "why": "only ASCII letters fold: the Kelvin sign is not a k"},
+    {"issuer": "https://token.actions.githubusercontent.com.evil.example", "entry": null},
+    {"issuer": "https://evil.example/token.actions.githubusercontent.com", "entry": null},
+    {"issuer": "https://token.actions.githubusercontent.com:443", "entry": null, "why": "a port is not part of a census issuer"},
+
+    {"issuer": "https://oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": "https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>", "tenant": "EXAMPLED539D4633E53DE1B71EXAMPLE", "why": "the issuer names the cluster"},
+    {"issuer": "oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": "https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>", "tenant": "EXAMPLED539D4633E53DE1B71EXAMPLE"},
+    {"issuer": "https://oidc.eks.us-east-1.amazonaws.com/id/", "entry": null, "why": "an empty placeholder names no tenant"},
+    {"issuer": "https://oidc.eks.us-east-1.amazonaws.com", "entry": null},
+    {"issuer": "https://oidc.eks.us.east.1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": null, "why": "a placeholder in a host is one label"},
+    {"issuer": "https://oidc.eks.us_east_1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": null, "why": "a host placeholder holds letters, digits and dashes only"},
+
+    {"issuer": "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/00000000-0000-0000-0000-000000000000/", "entry": "https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/", "tenant": "00000000-0000-0000-0000-000000000000"},
+    {"issuer": "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/", "entry": null},
+
+    {"issuer": "https://container.googleapis.com/v1/projects/taahm-gke-dev/locations/us-central1-c/clusters/mesh-certs-test2", "entry": "https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>", "tenant": "taahm-gke-dev/us-central1-c/mesh-certs-test2", "why": "a tenant spelled from three placeholders"},
+    {"issuer": "https://container.googleapis.com/v1/projects/taahm-gke-dev/locations/us-central1-c/clusters/", "entry": null},
+
+    {"issuer": "https://login.microsoftonline.com/11111111-2222-3333-4444-555555555555/v2.0", "entry": "https://login.microsoftonline.com/<tenant_id>/v2.0", "tenant": "11111111-2222-3333-4444-555555555555"},
+    {"issuer": "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0", "entry": "https://login.microsoftonline.com/<tenant_id>/v2.0", "tenant": "9188040d-6c67-4c5b-b112-36a304b66dad", "why": "the personal-account tenant matches; that it is not a controlled tenant is a separate question"},
+    {"issuer": "https://login.microsoftonline.com/9188040D-6C67-4C5B-B112-36A304B66DAD/v2.0", "entry": "https://login.microsoftonline.com/<tenant_id>/v2.0", "tenant": "9188040D-6C67-4C5B-B112-36A304B66DAD", "why": "a path keeps its case"},
+    {"issuer": "https://login.microsoftonline.com/common/v2.0", "entry": null, "why": "common is not a tenant id"},
+    {"issuer": "https://login.microsoftonline.com/organizations/v2.0", "entry": null},
+    {"issuer": "https://login.microsoftonline.com/consumers/v2.0", "entry": null},
+    {"issuer": "https://login.microsoftonline.com/11111111-2222-3333-4444-55555555555/v2.0", "entry": null, "why": "not a GUID"},
+    {"issuer": "https://login.microsoftonline.com/11111111-2222-3333-4444-555555555555", "entry": null},
+
+    {"issuer": "https://demo.app.spacelift.io", "entry": "https://<account>.app.spacelift.io", "tenant": "demo"},
+    {"issuer": "https://Demo.App.Spacelift.io/", "entry": "https://<account>.app.spacelift.io", "tenant": "demo", "why": "a tenant read from a host is lower-cased with it"},
+    {"issuer": "https://app.spacelift.io", "entry": null},
+    {"issuer": "https://a.b.app.spacelift.io", "entry": null, "why": "a placeholder in a host is one label"},
+    {"issuer": "https://demo.app.spacelift.io.evil.example", "entry": null},
+
+    {"issuer": "https://oidc.circleci.com/org/11111111-2222-3333-4444-555555555555", "entry": "https://oidc.circleci.com/org/<organization_id>", "tenant": "11111111-2222-3333-4444-555555555555"},
+    {"issuer": "https://oidc.circleci.com", "entry": null, "why": "the host alone names no organisation"},
+    {"issuer": "https://oidc.circleci.com/org/", "entry": null},
+    {"issuer": "https://oidc.circleci.com/org/a/b", "entry": null},
+    {"issuer": "https://oidc.circleci.com/org//11111111-2222-3333-4444-555555555555", "entry": null, "why": "an empty path segment is not skipped"},
+
+    {"issuer": "https://api.bitbucket.org/2.0/workspaces/bbcitest/pipelines-config/identity/oidc", "entry": "https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc", "tenant": "bbcitest"},
+    {"issuer": "https://api.bitbucket.org/2.0/workspaces/pipelines-config/identity/oidc", "entry": null},
+
+    {"issuer": "https://11111111-2222-3333-4444-555555555555.tokens.sts.global.api.aws", "entry": "https://<tenant_uuid>.tokens.sts.global.api.aws", "tenant": "11111111-2222-3333-4444-555555555555"},
+    {"issuer": "https://tokens.sts.global.api.aws", "entry": null},
+
+    {"issuer": "https://agent.buildkite.com", "entry": "https://agent.buildkite.com", "tenant": ""},
+    {"issuer": "https://oidc.codefresh.io", "entry": "https://oidc.codefresh.io", "tenant": ""},
+    {"issuer": "https://identity.depot.dev", "entry": "https://identity.depot.dev", "tenant": ""},
+    {"issuer": "https://gitlab.com", "entry": "https://gitlab.com", "tenant": ""},
+    {"issuer": "https://gitlab.com/acme", "entry": null, "why": "an exact issuer matches only itself"},
+    {"issuer": "https://federation.namespaceapis.com", "entry": "https://federation.namespaceapis.com", "tenant": ""},
+    {"issuer": "https://app.terraform.io", "entry": "https://app.terraform.io", "tenant": ""},
+    {"issuer": "https://api.pulumi.com/oidc", "entry": "https://api.pulumi.com/oidc", "tenant": ""},
+    {"issuer": "api.pulumi.com/oidc", "entry": "https://api.pulumi.com/oidc", "tenant": ""},
+    {"issuer": "https://api.pulumi.com", "entry": null},
+    {"issuer": "https://scalr.io", "entry": "https://scalr.io", "tenant": ""},
+    {"issuer": "https://login.app.env0.com/", "entry": "https://login.app.env0.com/", "tenant": ""},
+    {"issuer": "https://login.app.env0.com", "entry": "https://login.app.env0.com/", "tenant": ""},
+    {"issuer": "https://oidc.modal.com", "entry": "https://oidc.modal.com", "tenant": ""},
+    {"issuer": "https://accounts.google.com", "entry": "https://accounts.google.com", "tenant": ""},
+    {"issuer": "https://app.devin.ai", "entry": "https://app.devin.ai", "tenant": ""},
+    {"issuer": "https://api.cursor.com", "entry": "https://api.cursor.com", "tenant": ""},
+    {"issuer": "https://api2.cursor.sh/cloud-agent/identity", "entry": "https://api2.cursor.sh/cloud-agent/identity", "tenant": ""},
+    {"issuer": "https://api2.cursor.sh/Cloud-Agent/identity", "entry": null, "why": "a path keeps its case"},
+    {"issuer": "https://app.warp.dev", "entry": "https://app.warp.dev", "tenant": ""},
+    {"issuer": "https://issuer.enforce.dev", "entry": "https://issuer.enforce.dev", "tenant": ""},
+    {"issuer": "cognito-identity.amazonaws.com", "entry": "cognito-identity.amazonaws.com", "tenant": "", "why": "a built-in provider as a trust policy names it"},
+    {"issuer": "https://cognito-identity.amazonaws.com", "entry": "cognito-identity.amazonaws.com", "tenant": ""},
+    {"issuer": "www.amazon.com", "entry": "www.amazon.com", "tenant": ""},
+    {"issuer": "graph.facebook.com", "entry": "graph.facebook.com", "tenant": ""},
+
+    {"issuer": "https://vstoken.dev.azure.com", "entry": null, "why": "the census records Azure DevOps' issuer as unverified"},
+    {"issuer": "https://vstoken.dev.azure.com/11111111-2222-3333-4444-555555555555", "entry": null},
+    {"issuer": "https://codeberg.org", "entry": null, "why": "the census records Codeberg's issuer as unverified"},
+    {"issuer": "https://gitlab.example.com", "entry": null, "why": "a pattern the census has not verified is never matched"},
+    {"issuer": "https://acme.semaphoreci.com", "entry": null},
+    {"issuer": "https://example.invalid", "entry": null},
+    {"issuer": "unverified", "entry": null, "why": "a note in the issuer field is not an issuer"},
+    {"issuer": "not an OIDC issuer", "entry": null},
+    {"issuer": "", "entry": null}
+  ],
+  "synthetic": [
+    {
+      "why": "an exact issuer beats a pattern that also matches it",
+      "census": [
+        {"name": "pattern", "issuer": "https://<tenant>.example.com/x", "tenant_placeholder": "<tenant>", "tenant_kind": "name"},
+        {"name": "exact", "issuer": "https://acme.example.com/x"}
+      ],
+      "cases": [
+        {"issuer": "https://acme.example.com/x", "entry": "https://acme.example.com/x", "tenant": ""},
+        {"issuer": "https://other.example.com/x", "entry": "https://<tenant>.example.com/x", "tenant": "other"}
+      ]
+    },
+    {
+      "why": "of two patterns that match, the one with more literal characters wins, whatever the order",
+      "census": [
+        {"name": "wide", "issuer": "https://<a>.example.com/<b>/<c>", "tenant_placeholder": "<a>", "tenant_kind": "name"},
+        {"name": "narrow", "issuer": "https://<a>.example.com/org/<b>", "tenant_placeholder": "<b>", "tenant_kind": "id"}
+      ],
+      "cases": [
+        {"issuer": "https://h.example.com/org/y", "entry": "https://<a>.example.com/org/<b>", "tenant": "y"},
+        {"issuer": "https://h.example.com/team/y", "entry": "https://<a>.example.com/<b>/<c>", "tenant": "h"}
+      ]
+    },
+    {
+      "why": "two patterns with as many literal characters: the first in census order wins",
+      "census": [
+        {"name": "first", "issuer": "https://<a>.example.com/<b>/x", "tenant_placeholder": "<b>", "tenant_kind": "name"},
+        {"name": "second", "issuer": "https://<a>.example.com/y/<b>", "tenant_placeholder": "<a>", "tenant_kind": "name"}
+      ],
+      "cases": [
+        {"issuer": "https://h.example.com/y/x", "entry": "https://<a>.example.com/<b>/x", "tenant": "y"}
+      ]
+    },
+    {
+      "why": "the same two patterns in the other order",
+      "census": [
+        {"name": "second", "issuer": "https://<a>.example.com/y/<b>", "tenant_placeholder": "<a>", "tenant_kind": "name"},
+        {"name": "first", "issuer": "https://<a>.example.com/<b>/x", "tenant_placeholder": "<b>", "tenant_kind": "name"}
+      ],
+      "cases": [
+        {"issuer": "https://h.example.com/y/x", "entry": "https://<a>.example.com/y/<b>", "tenant": "h"}
+      ]
+    },
+    {
+      "why": "a tenant with a GUID syntax refuses a value that is not one",
+      "census": [
+        {"name": "guid", "issuer": "https://login.example.com/<tid>/v2.0", "tenant_placeholder": "<tid>", "tenant_kind": "id", "tenant_syntax": "guid"}
+      ],
+      "cases": [
+        {"issuer": "https://login.example.com/aBcDeF01-2345-6789-abcd-ef0123456789/v2.0", "entry": "https://login.example.com/<tid>/v2.0", "tenant": "aBcDeF01-2345-6789-abcd-ef0123456789"},
+        {"issuer": "https://login.example.com/common/v2.0", "entry": null},
+        {"issuer": "https://login.example.com/abcdef01-2345-6789-abcd-ef012345678g/v2.0", "entry": null},
+        {"issuer": "https://login.example.com/abcdef0123456789abcdef0123456789/v2.0", "entry": null},
+        {"issuer": "https://login.example.com/{abcdef01-2345-6789-abcd-ef0123456789}/v2.0", "entry": null}
+      ]
+    },
+    {
+      "why": "placeholders outside the tenant must match but are not part of it",
+      "census": [
+        {"name": "composite", "issuer": "https://<region>.example.com/p/<project>/c/<cluster>", "tenant_placeholder": "<project>/<cluster>", "tenant_kind": "name"}
+      ],
+      "cases": [
+        {"issuer": "https://eu-1.example.com/p/alpha/c/beta", "entry": "https://<region>.example.com/p/<project>/c/<cluster>", "tenant": "alpha/beta"},
+        {"issuer": "https://eu-1.example.com/p/alpha/c/beta%2Fgamma", "entry": null, "why": "a placeholder holds letters, digits, dashes and underscores only"},
+        {"issuer": "https://eu-1.example.com/p/al.pha/c/beta", "entry": null},
+        {"issuer": "https://eu_1.example.com/p/alpha/c/beta", "entry": null, "why": "a placeholder in a host holds letters, digits and dashes only"}
+      ]
+    },
+    {
+      "why": "a tenant is spelled in its template's order, not the pattern's",
+      "census": [
+        {"name": "reversed", "issuer": "https://x.example.com/<outer>/<inner>", "tenant_placeholder": "<inner>@<outer>", "tenant_kind": "name"}
+      ],
+      "cases": [
+        {"issuer": "https://x.example.com/one/two", "entry": "https://x.example.com/<outer>/<inner>", "tenant": "two@one"}
+      ]
+    }
+  ]
+}

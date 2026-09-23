@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cloudarq-issuers"
-version = "0.1.0"
+version = "0.2.0"
 description = "A census of the OIDC issuers clouds federate to for workload identity, with tenancy, subject grammar, claim vocabulary and who controls the audience."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -31,6 +31,8 @@ packages = ["src/cloudarq_issuers"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/", "tests/", "README.md", "LICENSE"]
+# The repository's own checks need the repository around them.
+exclude = ["tests/test_build.py", "tests/test_workflows.py"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/cloudarq_issuers/issuers.json" = "cloudarq_issuers/issuers.json"

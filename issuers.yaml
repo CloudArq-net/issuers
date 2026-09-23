@@ -34,7 +34,48 @@
 #   jwks_status             ok | error | unverified
 #   category                ci | iac | runtime | cloud | ai-agent-platform | platform
 #
-schema_version: 2
+# Tenancy, added in v0.2.0: who can hold a token an issuer mints.
+#
+#   researched              in_release | not_in_this_release. An entry this release researched
+#                           says so. Every other entry carries none of the fields below here, and
+#                           the build writes each of them unverified.
+#   unverified              in the fields below means exactly: no vendor sentence establishes the
+#                           value in this release, whatever the reason. Read it the cautious way.
+#   anonymous_tokens        value: yes | no | unverified. Whether the issuer mints tokens to people
+#                           with no account anywhere. `basis: chain` marks a value no single sentence
+#                           states: it follows from the sentences in `chain`, read in order.
+#   tenancy_claims          the claims whose value names a tenant, each with kind (name | id),
+#                           scope (owner | repository | enterprise), multi_valued and immutable
+#                           (yes | no | unverified). multi_valued is `no` when the claim's own
+#                           sentence describes one value; a claim that lists several pins nothing.
+#                           A claim not listed names no tenant.
+#   not_tenancy             claims that look as if they name a tenant and do not, each with why.
+#   subject_forms           every documented form of `sub` with a tenant at its head: a leading
+#                           literal, then the owner parts in order, each with its kind and the
+#                           delimiter after it. never_pin lists leading literals whose subjects name
+#                           no tenant of the token's. A subject led by a literal the entry does not
+#                           list names no tenant.
+#   owner_charset           the characters an owner name can hold, as single characters and ranges
+#                           such as a-z. A delimiter outside the set ends the owner.
+#   names_unique_regardless_of_case
+#                           value: yes | no | unverified.
+#   match                   for an issuer whose URL names its tenant: issuer_pattern, the
+#                           tenant_placeholder the tenant is spelled from, tenant_kind (name | id),
+#                           tenant_recyclable (yes | no | unverified; unverified reads as
+#                           recyclable) and not_a_controlled_tenant, the tenants anyone can join.
+#                           An entry without a verified match is matched by its exact issuer only.
+#   tenant_membership       value: controlled | unverified. Whether a tenant's owner decides who
+#                           obtains tokens naming it.
+#   built_in                value: yes | unverified. A provider STS accepts with no identity
+#                           provider in the role's account.
+#   research                the rest of what the research read beside the values.
+#
+# A list-valued field reads {value: verified, ...} or {value: unverified}. A fact is the vendor's
+# sentence, verbatim, as {source, quote, verified_at}, with a role where a value cites several; an
+# observation of a live endpoint is {observed, method, at, result}. scripts/build.py refuses a fact
+# with no source or no quote.
+#
+schema_version: 3
 census_date: '2026-09-13'
 issuers:
 - name: Bitbucket Pipelines
@@ -55,18 +96,19 @@ issuers:
   - environment_uuid
   - step_uuid
   - workspace_uuid
-  aud_controlled_by: issuer
+  # v0.2.0: corrected; v0.1.0 recorded issuer, which the sentence below contradicts.
+  aud_controlled_by: workload
   aud_default: ari:cloud:bitbucket::workspace/<workspace_uuid>
-  aud_evidence: Atlassian docs give the audience as "ari:cloud:bitbucket::workspace/{UUID}" - derived
-    from the workspace, not chosen by the pipeline. I found no documented way for a pipeline step to override
-    it.
+  aud_evidence: 'Atlassian (https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/,
+    read 2026-09-23): "To customize your audiences, declare them under the (step or global) → oidc → audiences
+    list, as shown in the example below:" A pipeline declares the audiences in its own configuration, per
+    step or globally, so the workload chooses aud.'
   vendor_example_verdict: admits_any_repo
   vendor_example: "\"Condition\": {\n  \"StringLike\": {\n    \"api.bitbucket.org/2.0/workspaces/{WORKSPACE}/pipelines-config/identity/oidc:sub\"\
     : \"{REPO_UUID}:{*}\"\n  }\n}\n"
   vendor_example_note: Atlassian labels this "A basic trust relationship allowing any repository in your
     workspace". It pins a repo UUID and wildcards the rest, so it admits any step and any deployment environment
-    of that repo. No aud condition is present in the quoted example, though the audience is workspace-pinned
-    anyway.
+    of that repo. No aud condition is present in the quoted example.
   self_hosted_variant: n/a - Bitbucket Cloud only. Bitbucket Data Center OIDC not verified.
   docs_url: https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
   verified_at: '2026-09-13'
@@ -80,6 +122,56 @@ issuers:
   issuer_pattern: https://api.bitbucket.org/2.0/workspaces/<ws>/pipelines-config/identity/oidc
   control_test: PASSED — bogus workspace returns HTTP 404
   control_test_result: passed
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+      quote: You must be using Pipelines in your repository to integrate OpenID Connect.
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc
+    tenant_placeholder: <workspace>
+    tenant_kind: name
+    tenant_recyclable: unverified
+    evidence:
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
+      quote: '"iss": "https://api.bitbucket.org/2.0/workspaces/bbcitest/pipelines-config/identity/oidc"'
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+      quote: You must be using Pipelines in your repository to integrate OpenID Connect.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
+      quote: Your workspace ID can only contain lowercase letters with no spaces or special characters.
+      verified_at: '2026-09-23'
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
+      quote: For example, if you rename your workspace ID from johnc to jcitizen, the repository previously
+        available at http://bitbucket.org/johnc/repo is accessed as http://bitbucket.org/jcitizen/repo after
+        renaming.
+      verified_at: '2026-09-23'
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+      quote: 'To customize your audiences, declare them under the (step or global) → oidc → audiences list,
+        as shown in the example below:'
+      verified_at: '2026-09-23'
+    unverified:
+    - whether a released workspace ID can be claimed by another workspace, which would hand it the issuer
+      URL
+    looked_in:
+    - https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
+    - https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+    - https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
+  research:
+    population: the pipelines of one workspace's repositories
+    sources:
+    - https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
+    - https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+    - https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
 - name: Buildkite
   category: ci
   issuer: https://agent.buildkite.com
@@ -169,6 +261,11 @@ issuers:
   - step_key
   - sub
   claims_advertised_fetched_at: '2026-09-13'
+  researched: in_release
+  anonymous_tokens:
+    value: unverified
+    why_unverified: The research recorded who can open an account on this platform, not whether its tokens
+      are minted only for account holders; no vendor sentence in this release establishes the value.
 - name: CircleCI
   category: ci
   issuer: https://oidc.circleci.com/org/<organization_id>
@@ -234,9 +331,48 @@ issuers:
     is a reflector, like GitHub. Per-tenancy is a documented architectural property, NOT verifiable by
     probing.
   control_test_result: failed
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
+      quote: CircleCI provides OpenID Connect ID (OIDC) tokens in environment variables.
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://oidc.circleci.com/org/<organization_id>
+    tenant_placeholder: <organization_id>
+    tenant_kind: id
+    tenant_recyclable: unverified
+    evidence:
+    - source: https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
+      quote: The OpenID Provider URL is `https://oidc.circleci.com/org/<organization_id>`, where `organization_id`
+        is your unique organization identifier.
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
+      quote: CircleCI provides OpenID Connect ID (OIDC) tokens in environment variables. Jobs can be configured
+        to use these OIDC tokens to access compatible cloud services without long-lived credentials being
+        stored in CircleCI.
+      verified_at: '2026-09-23'
+    - source: https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
+      quote: OIDC tokens will only be generated for forked builds if the Pass secrets to builds from forked
+        pull requests setting is enabled.
+      verified_at: '2026-09-23'
+    notes:
+    - the census's control test found the per-organisation path is a naming convention over one shared key;
+      that concerns whether a tenant exists, not who is in it
+    - the census docs_url https://circleci.com/docs/openid-connect-tokens/ returned HTTP 404 on 2026-09-23
+  research:
+    population: the jobs of one organisation, and forked builds only when the owner enables them
+    sources:
+    - https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
 - name: Codeberg (Forgejo)
   category: ci
-  issuer: https://codeberg.org
+  issuer: unverified
   tenancy_model: shared
   discovery_url: https://codeberg.org/.well-known/openid-configuration
   discovery_status: ok
@@ -491,6 +627,706 @@ issuers:
   - workflow_ref
   - workflow_sha
   claims_advertised_fetched_at: '2026-09-13'
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://docs.github.com/en/actions/concepts/security/openid-connect
+      quote: Each job requests an OIDC token from GitHub's OIDC provider, which responds with an automatically
+        generated JSON web token (JWT) that is unique for each workflow job where it is generated.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows
+      quote: Workflows are defined by a YAML file checked in to your repository and will run when triggered
+        by an event in your repository, or they can be triggered manually, or at a defined schedule.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/actions/reference/security/oidc
+      quote: The repository from where the workflow is running.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/repositories/creating-and-managing-repositories/about-repositories
+      quote: You can own repositories individually, or you can share ownership of repositories with other
+        people in an organization.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+      quote: Every person who uses GitHub signs in to a user account.
+      verified_at: '2026-09-23'
+    note: no single sentence says only; the chain names whom a token is minted for, a repository's owner,
+      which is an account
+  tenancy_claims:
+    value: verified
+    claims:
+    - claim: repository_owner
+      kind: name
+      scope: owner
+      multi_valued: 'no'
+      immutable: 'no'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The name of the organization in which the `repository` is stored.
+        verified_at: '2026-09-23'
+      immutable_evidence:
+      - source: https://docs.github.com/en/account-and-profile/concepts/username-changes
+        quote: After changing your username, your old username becomes available for anyone else to claim.
+        verified_at: '2026-09-23'
+      - source: https://docs.github.com/en/organizations/managing-organization-settings/renaming-an-organization
+        quote: After changing your organization's name, your old organization name becomes available for
+          someone else to claim.
+        verified_at: '2026-09-23'
+    - claim: repository_owner_id
+      kind: id
+      scope: owner
+      multi_valued: 'no'
+      immutable: 'yes'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The ID of the organization in which the `repository` is stored.
+        verified_at: '2026-09-23'
+      immutable_evidence:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: For repositories using immutable subject claims, the `sub` format includes immutable owner
+          and repository IDs (not available on GitHub Enterprise Server).
+        verified_at: '2026-09-23'
+    - claim: repository
+      kind: name
+      scope: repository
+      multi_valued: 'no'
+      immutable: 'no'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The repository from where the workflow is running.
+        verified_at: '2026-09-23'
+      immutable_evidence:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: This example template enables predictable OIDC claims with system-generated GUIDs that do
+          not change between renames of entities (such as renaming a repository).
+        verified_at: '2026-09-23'
+      note: 'owner/repo: it carries the owner name as its first segment'
+    - claim: repository_id
+      kind: id
+      scope: repository
+      multi_valued: 'no'
+      immutable: 'yes'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The ID of the repository from where the workflow is running.
+        verified_at: '2026-09-23'
+      immutable_evidence:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: For repositories using immutable subject claims, the `sub` format includes immutable owner
+          and repository IDs (not available on GitHub Enterprise Server).
+        verified_at: '2026-09-23'
+    - claim: enterprise
+      kind: name
+      scope: enterprise
+      multi_valued: 'no'
+      immutable: unverified
+      evidence:
+        source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+        quote: The name of the enterprise that contains the repository from where the workflow is running.
+        verified_at: '2026-09-23'
+      context:
+      - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+        quote: Your old enterprise slug will immediately become available for another customer to use.
+        verified_at: '2026-09-23'
+      note: GitHub does not say whether this claim carries the enterprise slug; slugs change and are released
+        to other customers
+      looked_in:
+      - https://docs.github.com/en/actions/reference/security/oidc
+      - https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      - https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+    - claim: enterprise_id
+      kind: id
+      scope: enterprise
+      multi_valued: 'no'
+      immutable: unverified
+      evidence:
+        source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+        quote: The ID of the enterprise that contains the repository from where the workflow is running.
+        verified_at: '2026-09-23'
+      context:
+      - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+        quote: The enterprise ID, which can be used as an alternative to the slug in many cases, is not
+          affected by a slug change.
+        verified_at: '2026-09-23'
+      note: stable across a slug change, which is less than immutable
+      looked_in:
+      - https://docs.github.com/en/actions/reference/security/oidc
+      - https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      - https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+  not_tenancy:
+    value: verified
+    claims:
+    - claim: actor
+      why: the person who started the run, not a tenant
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The personal account that initiated the workflow run.
+        verified_at: '2026-09-23'
+    - claim: actor_id
+      why: the person who started the run, by id
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The ID of personal account that initiated the workflow run.
+        verified_at: '2026-09-23'
+    - claim: job_workflow_ref
+      why: names the called reusable workflow; the token carries the caller's repository
+      evidence:
+        source: https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-with-reusable-workflows
+        quote: If that job is part of a reusable workflow, the token will include the standard claims that
+          contain information about the calling workflow, and will also include a custom claim called `job_workflow_ref`
+          that contains information about the called workflow.
+        verified_at: '2026-09-23'
+      context:
+      - source: https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations
+        quote: The called workflow is stored in a public repository, and your organization allows you to
+          use public reusable workflows.
+        verified_at: '2026-09-23'
+        role: who can call a reusable workflow kept in a public repository
+    - claim: job_workflow_sha
+      why: the called workflow's commit
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: For jobs using a reusable workflow, the commit SHA for the reusable workflow file.
+        verified_at: '2026-09-23'
+    - claim: workflow_ref
+      why: 'unverified as a tenant claim: GitHub does not say which repository it names for a ruleset workflow
+        kept in a source repository'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The ref path to the workflow. For example, `octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch`.
+        verified_at: '2026-09-23'
+      context:
+      - source: https://docs.github.com/en/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+        quote: When you add this rule to a ruleset, in your organization settings, you specify the source
+          repository and the workflow you want to enforce.
+        verified_at: '2026-09-23'
+        role: a ruleset runs a workflow kept in another repository
+    - claim: environment
+      why: a name the repository chooses
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The name of the environment used by the job.
+        verified_at: '2026-09-23'
+    - claim: ref
+      why: the git ref
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The git ref that triggered the workflow run.
+        verified_at: '2026-09-23'
+    - claim: event_name
+      why: the triggering event
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The name of the event that triggered the workflow run.
+        verified_at: '2026-09-23'
+    - claim: runner_environment
+      why: where the job ran
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'The type of runner used by the job. Accepts the following values: `github-hosted` or `self-hosted`.'
+        verified_at: '2026-09-23'
+    - claim: repository_visibility
+      why: a property of the repository
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'The visibility of the repository where the workflow is running. Accepts the following values:
+          `internal`, `private`, or `public`.'
+        verified_at: '2026-09-23'
+    - claim: workflow
+      why: a name
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The name of the workflow.
+        verified_at: '2026-09-23'
+    - claim: head_ref
+      why: a branch
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The source branch of the pull request in a workflow run.
+        verified_at: '2026-09-23'
+    - claim: base_ref
+      why: a branch
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: The target branch of the pull request in a workflow run.
+        verified_at: '2026-09-23'
+    - claim: repo_property_*
+      why: values each organisation or enterprise sets for its own repositories
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: Organization and enterprise admins can select repository custom properties to include as
+          claims in GitHub Actions OIDC tokens.
+        verified_at: '2026-09-23'
+    - claim: aud
+      why: the workflow chooses it
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'By default, this is the URL of the repository owner, such as the organization that owns
+          the repository. You can set a custom audience with a toolkit command:'
+        verified_at: '2026-09-23'
+    - claim: issuer_scope
+      why: 'undocumented: in the live claims_supported and on no GitHub page read'
+      evidence:
+        observed: https://token.actions.githubusercontent.com/.well-known/openid-configuration
+        method: curl
+        at: '2026-09-23'
+        result: claims_supported includes issuer_scope
+  subject_forms:
+    value: verified
+    customisable: 'yes'
+    chosen_by:
+    - source: https://docs.github.com/en/actions/reference/security/oidc
+      quote: Customizing the claims results in a new format for the entire `sub` claim, which replaces the
+        default predefined `sub` format in the token described in
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/rest/actions/oidc
+      quote: Sets the customization template and opt-in or opt-out flag for an OpenID Connect (OIDC) subject
+        claim for a repository.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/actions/reference/security/oidc
+      quote: For repositories using immutable subject claims (not available on GitHub Enterprise Server),
+        `owner_id` and `repo_id` are always included in the `repo` segment of the `sub` claim, even when
+        you customize claims with `include_claim_keys`.
+      verified_at: '2026-09-23'
+    forms:
+    - form: legacy default
+      leading_literal: 'repo:'
+      shape: repo:<owner>/<repo>:<context>
+      owner_parts:
+      - kind: name
+        delimiter_after: /
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'Syntax: `repo:ORG-NAME/REPO-NAME:ref:refs/heads/BRANCH-NAME`'
+        verified_at: '2026-09-23'
+      issued_for:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: Repositories created before July 15, 2026 keep the previous format unless you opt in to immutable
+          subject claims.
+        verified_at: '2026-09-23'
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: This rollout does not include GitHub Enterprise Server.
+        verified_at: '2026-09-23'
+    - form: immutable default
+      leading_literal: 'repo:'
+      shape: repo:<owner>@<owner_id>/<repo>@<repo_id>:<context>
+      owner_parts:
+      - kind: name
+        delimiter_after: '@'
+      - kind: id
+        delimiter_after: /
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'Syntax: `repo:OWNER@OWNER-ID/REPO@REPO-ID:ref:refs/heads/BRANCH`'
+        verified_at: '2026-09-23'
+      issued_for:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: To help prevent this scenario, repositories created after July 15, 2026 now use an immutable
+          default subject format that includes both the owner ID and repository ID.
+        verified_at: '2026-09-23'
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: Repository renames and transfers after July 15, 2026 also move to the immutable subject format.
+        verified_at: '2026-09-23'
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: You can opt in at the organization or repository level by using the OIDC settings UI or REST
+          API.
+        verified_at: '2026-09-23'
+      - source: https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/
+        quote: 'July 15, 2026: GitHub will automatically enforce the new format for all new repositories
+          and renames.'
+        verified_at: '2026-09-23'
+    - form: customised, led by the owner
+      leading_literal: 'repository_owner:'
+      shape: repository_owner:<owner>[:<key>:<value>...]
+      owner_parts:
+      - kind: name
+        delimiter_after: ':'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'For example: `"sub": "repository_owner:monalisa"`'
+        verified_at: '2026-09-23'
+    - form: customised, led by the owner id
+      leading_literal: 'repository_owner_id:'
+      shape: repository_owner_id:<id>[:<key>:<value>...]
+      owner_parts:
+      - kind: id
+        delimiter_after: ':'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: In your cloud provider's OIDC configuration, configure the `sub` condition to require a `repository_owner_id`
+          claim that matches the required value.
+        verified_at: '2026-09-23'
+      note: GitHub prints no literal repository_owner_id subject; the shape follows the repository_owner:monalisa
+        example and the key:value joining of environment:production%3Aeastus:repository_owner:octo-org
+    - form: customised, led by the repository id
+      leading_literal: 'repository_id:'
+      shape: repository_id:<id>[:<key>:<value>...]
+      repository_parts:
+      - kind: id
+        delimiter_after: ':'
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: In your cloud provider's OIDC configuration, configure the `sub` condition to require a `repository_id`
+          claim that matches the required value.
+        verified_at: '2026-09-23'
+      note: names one repository by id and no owner
+    never_pin:
+    - leading_literal: 'job_workflow_ref:'
+      why: the subject leads with job_workflow_ref, which names the called workflow, not the repository
+        the token was minted for (see not_tenancy)
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'For example: `"sub": "job_workflow_ref:octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main"`'
+        verified_at: '2026-09-23'
+    - leading_literal: repo_property_
+      why: each organisation sets its own property values
+      evidence:
+        source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: Organization and enterprise admins can select repository custom properties to include as
+          claims in GitHub Actions OIDC tokens.
+        verified_at: '2026-09-23'
+  owner_charset:
+    value: verified
+    description: letters, digits and dashes, plus the underscore of managed users
+    characters:
+    - A-Z
+    - a-z
+    - 0-9
+    - '-'
+    - _
+    evidence:
+    - source: https://docs.github.com/en/actions/reference/security/oidc
+      quote: The `@` separator is used between names and IDs because `@` cannot appear in GitHub usernames
+        or repository names.
+      verified_at: '2026-09-23'
+      role: GitHub, the OIDC reference
+    - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication
+      quote: Usernames for user accounts on GitHub can only contain alphanumeric characters and dashes (`-`).
+      verified_at: '2026-09-23'
+      role: GitHub, the general username sentence on the Enterprise Managed Users page
+    - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication
+      quote: On GitHub.com, GitHub also adds an underscore and your enterprise's shortcode to the end of
+        each username.
+      verified_at: '2026-09-23'
+      role: 'GitHub, the same page: the underscore added to managed users'' names'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+      quote: The GitHub organization name is required and must be alphanumeric including dashes (-).
+      verified_at: '2026-09-23'
+      role: 'AWS''s sentence, not GitHub''s: no GitHub page read states a character set for organisation
+        names'
+    - source: https://docs.github.com/en/actions/reference/security/oidc
+      quote: Any `:` within the metadata values will be replaced with `%3A` in the subject claim.
+      verified_at: '2026-09-23'
+      role: 'GitHub, the OIDC reference: a colon inside a value is encoded in the subject'
+    context:
+    - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication
+      quote: This article only applies to Enterprise Managed Users. If you use GitHub Enterprise Cloud without
+        Enterprise Managed Users, usernames are created by users, not GitHub.
+      verified_at: '2026-09-23'
+      role: 'GitHub, the same page''s scope: Enterprise Managed Users'
+    - source: https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
+      quote: The repository name must not exceed 100 characters, and can only contain ASCII letters, digits,
+        and the characters `.`, `-`, and `_`.
+      verified_at: '2026-09-23'
+      role: 'GitHub: repository names, which follow the owner in the repo: forms'
+  names_unique_regardless_of_case:
+    value: unverified
+    context:
+    - source: https://docs.github.com/en/rest/actions/oidc
+      quote: The organization name. The name is not case sensitive.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/rest/actions/oidc
+      quote: The account owner of the repository. The name is not case sensitive.
+      verified_at: '2026-09-23'
+    note: the REST sentences describe a path parameter the API resolves; they say nothing about the namespace.
+    looked_in:
+    - https://docs.github.com/en/rest/actions/oidc
+    - https://docs.github.com/en/actions/reference/security/oidc
+    - https://docs.github.com/en/enterprise-cloud@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication
+    - https://docs.github.com/en/account-and-profile/concepts/username-changes
+    - https://docs.github.com/en/organizations/managing-organization-settings/renaming-an-organization
+    - https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
+  research:
+    population: 'anyone with a GitHub account: Actions is free for public repositories and on self-hosted
+      runners'
+    population_evidence:
+      source: https://docs.github.com/en/billing/concepts/product-billing/github-actions
+      quote: GitHub Actions usage is free for self-hosted runners and for public repositories that use standard
+        GitHub-hosted runners.
+      verified_at: '2026-09-23'
+    aws:
+      shared_issuer_row:
+        source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+        quote: '| [GitHub actions](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
+          | https://token.actions.githubusercontent.com | sub | token.actions.githubusercontent.com:sub
+          |'
+        verified_at: '2026-09-23'
+      save_time_check:
+        source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+        quote: When GitHub's OIDC IdP is the trusted Principal for your role, IAM checks the role trust
+          policy condition to verify that the condition key `token.actions.githubusercontent.com:sub` is
+          present and that its value is not solely a wildcard character (* and ?) or null.
+        verified_at: '2026-09-23'
+      not_for_existing_roles:
+        source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+        quote: Identity-provider controls will not be evaluated by IAM for existing OIDC role trust policies.
+        verified_at: '2026-09-23'
+      condition_keys:
+      - actor
+      - actor_id
+      - job_workflow_ref
+      - repository
+      - repository_id
+      - repository_owner_id
+      - workflow
+      - ref
+      - environment
+      - enterprise_id
+      - (default) amr
+      - (default) aud
+      - (default) email
+      - (default) oaud
+      - (default) sub
+      condition_keys_evidence:
+        source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+        quote: This tab explains how GitHub Actions maps OIDC claims to AWS STS condition context keys in
+          AWS.
+        verified_at: '2026-09-23'
+      note: AWS's GitHub tab has no repository_owner, enterprise or workflow_ref key
+    context_can_contain:
+      branch_slash:
+        source: https://git-scm.com/docs/git-check-ref-format
+        quote: They can include slash / for hierarchical (directory) grouping
+        verified_at: '2026-09-23'
+      branch_at_rules:
+      - source: https://git-scm.com/docs/git-check-ref-format
+        quote: They cannot contain a sequence @{.
+        verified_at: '2026-09-23'
+      - source: https://git-scm.com/docs/git-check-ref-format
+        quote: They cannot be the single character @.
+        verified_at: '2026-09-23'
+      branch_colon_forbidden:
+        source: https://git-scm.com/docs/git-check-ref-format
+        quote: 'They cannot have ASCII control characters (i.e. bytes whose values are lower than \040,
+          or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.'
+        verified_at: '2026-09-23'
+      github_branch_restrictions:
+      - source: https://docs.github.com/en/get-started/using-git/dealing-with-special-characters-in-branch-and-tag-names
+        quote: No names which look like Git object IDs (40 characters containing only 0-9 and A-F), to prevent
+          confusion with actual Git object IDs.
+        verified_at: '2026-09-23'
+      - source: https://docs.github.com/en/get-started/using-git/dealing-with-special-characters-in-branch-and-tag-names
+        quote: No names beginning with `refs/`, to prevent confusion with the full name of Git refs.
+        verified_at: '2026-09-23'
+      environment_slash:
+        source: https://docs.github.com/en/rest/deployments/environments
+        quote: The name of the environment. The name must be URL encoded. For example, any slashes in the
+          name must be replaced with %2F.
+        verified_at: '2026-09-23'
+      environment_created_by:
+        source: https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
+        quote: Anyone that can edit workflows in the repository can create environments via a workflow file,
+          but only repository admins can configure the environment.
+        verified_at: '2026-09-23'
+      environment_at: unverified
+      environment_at_looked_in:
+      - https://docs.github.com/en/rest/deployments/environments
+      - https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
+      - https://docs.github.com/en/actions/reference/security/oidc
+      observed:
+        observed: git check-ref-format 'refs/heads/feature@123456/x' and 'refs/heads/a:b'
+        method: local git 2.54.0
+        at: '2026-09-23'
+        result: the first is accepted, the second rejected
+    immutable_subject:
+      issued_for:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: To help prevent this scenario, repositories created after July 15, 2026 now use an immutable
+          default subject format that includes both the owner ID and repository ID.
+        verified_at: '2026-09-23'
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: Repository renames and transfers after July 15, 2026 also move to the immutable subject format.
+        verified_at: '2026-09-23'
+      - source: https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/
+        quote: All repositories created after July 15, 2026 will automatically use the new immutable subject
+          claim format.
+        verified_at: '2026-09-23'
+      - source: https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/
+        quote: Existing repositories won’t be affected unless you explicitly opt in.
+        verified_at: '2026-09-23'
+      opt_in:
+      - source: https://docs.github.com/en/rest/actions/oidc
+        quote: Whether to opt in to the immutable OIDC subject claim format for this repository. When true,
+          OIDC tokens will use a stable, repository-ID-based sub claim.
+        verified_at: '2026-09-23'
+      - source: https://docs.github.com/en/rest/actions/oidc
+        quote: Whether to opt in to the immutable OIDC subject claim format for the organization. When true,
+          new OIDC tokens will use a stable, repository-ID-based sub claim instead of the name-based format.
+        verified_at: '2026-09-23'
+      opt_in_visibility:
+      - observed: GET https://api.github.com/repos/octocat/Hello-World/actions/oidc/customization/sub
+        method: curl, no credentials
+        at: 2026-09-23T00:12Z
+        result: 'HTTP 200 {"use_default": true, "use_immutable_subject": false, "sub_claim_prefix": "repo:octocat/Hello-World"}'
+      - observed: GET https://api.github.com/orgs/github/actions/oidc/customization/sub
+        method: curl, no credentials
+        at: 2026-09-23T00:12Z
+        result: 'HTTP 401 {"message": "Requires authentication"}'
+      unverified:
+      - which form a repository created on 15 July 2026 itself carries
+      - 'whether use_immutable_subject: false returns a repository created after 15 July to the name form'
+      - how an organisation-level opt-in combines with a repository that uses its own template
+      - whether renaming the owner account moves that owner's older repositories to the immutable form
+      - the environment and pull_request context shapes after an immutable repo segment (GitHub shows only
+        ref:)
+      unverified_looked_in:
+      - https://docs.github.com/en/actions/reference/security/oidc
+      - https://docs.github.com/en/rest/actions/oidc
+      - https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/
+    issuer_variants:
+    - issuer: https://token.actions.githubusercontent.com/<enterpriseSlug>
+      entry: GitHub Actions (enterprise issuer path)
+    - issuer: https://token.actions.<subdomain>.ghe.com
+      evidence:
+        source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+        quote: The value of `iss` in your OIDC token would be `https://token.actions.octocorp.ghe.com`.
+        verified_at: '2026-09-23'
+    fork_pull_requests:
+    - source: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+      quote: Finally, if the workflow was triggered by a pull request event other than `pull_request_target`
+        from a forked repository, and the Send write tokens to workflows from pull requests setting is not
+        selected, the permissions are adjusted to change any write permissions to read only.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+      quote: 'Fetch an OpenID Connect (OIDC) token. This requires `id-token: write`.'
+      verified_at: '2026-09-23'
+    sources:
+    - https://docs.github.com/en/actions/reference/security/oidc
+    - https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+    - https://docs.github.com/en/actions/concepts/security/openid-connect
+    - https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-with-reusable-workflows
+    - https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations
+    - https://docs.github.com/en/rest/actions/oidc
+    - https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/
+    - https://docs.github.com/en/enterprise-cloud@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication
+    - https://docs.github.com/en/account-and-profile/concepts/username-changes
+    - https://docs.github.com/en/organizations/managing-organization-settings/renaming-an-organization
+    - https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
+    - https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+    - https://docs.github.com/en/repositories/creating-and-managing-repositories/about-repositories
+    - https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows
+    - https://docs.github.com/en/get-started/using-git/dealing-with-special-characters-in-branch-and-tag-names
+    - https://docs.github.com/en/rest/deployments/environments
+    - https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
+    - https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+    - https://docs.github.com/en/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+    - https://docs.github.com/en/billing/concepts/product-billing/github-actions
+    - https://git-scm.com/docs/git-check-ref-format
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+- name: GitHub Actions (enterprise issuer path)
+  category: ci
+  issuer: https://token.actions.githubusercontent.com/<enterpriseSlug>
+  tenancy_model: per_tenant_path
+  discovery_status: unverified
+  jwks_status: unverified
+  aud_controlled_by: unverified
+  vendor_example_verdict: unverified
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    evidence:
+    - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      quote: By default, the JWT is issued by GitHub's OIDC provider at `https://token.actions.githubusercontent.com`.
+        This path is presented to your cloud provider using the `iss` value in the JWT.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      quote: After this setting is applied, the JWT will contain the updated `iss` value.
+      verified_at: '2026-09-23'
+    chain:
+    - source: https://docs.github.com/en/actions/concepts/security/openid-connect
+      quote: Each job requests an OIDC token from GitHub's OIDC provider, which responds with an automatically
+        generated JSON web token (JWT) that is unique for each workflow job where it is generated.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows
+      quote: Workflows are defined by a YAML file checked in to your repository and will run when triggered
+        by an event in your repository, or they can be triggered manually, or at a defined schedule.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/actions/reference/security/oidc
+      quote: The repository from where the workflow is running.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/repositories/creating-and-managing-repositories/about-repositories
+      quote: You can own repositories individually, or you can share ownership of repositories with other
+        people in an organization.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+      quote: Every person who uses GitHub signs in to a user account.
+      verified_at: '2026-09-23'
+    note: the same tokens as GitHub Actions with the updated iss, so GitHub Actions' chain applies
+  match:
+    value: verified
+    issuer_pattern: https://token.actions.githubusercontent.com/<enterpriseSlug>
+    tenant_placeholder: <enterpriseSlug>
+    tenant_kind: name
+    tenant_recyclable: 'yes'
+    tenant_recyclable_evidence:
+    - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+      quote: When you change the slug, GitHub does not set up any redirects from the old URL. Your old enterprise
+        slug will immediately become available for another customer to use.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+      quote: If you use OpenID Connect (OIDC) in GitHub Actions workflows, and have configured your cloud
+        provider to only accept tokens from a unique URL that includes your enterprise slug, you will need
+        to update the settings in your cloud provider.
+      verified_at: '2026-09-23'
+    - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+      quote: If your company pays for GitHub Enterprise Cloud by credit card or PayPal, you can change the
+        slug in the settings for your enterprise.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      quote: Your provider's expected claim must substitute `githubusercontent.com` with `SUBDOMAIN.ghe.com`,
+        where SUBDOMAIN is your enterprise's subdomain on GHE.com.
+      verified_at: '2026-09-23'
+      role: 'GHE.com: the host carries the enterprise instead'
+    - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      quote: The enterprise can receive tokens at `https://token.actions.octocorp.ghe.com/octocorp`, and
+        the REST API endpoint for customizing the `issuer` value would be `/enterprises/octocorp/actions/oidc/customization/issuer`.
+      verified_at: '2026-09-23'
+      role: 'GHE.com: the host carries the enterprise instead'
+    - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+      quote: For enterprises hosted on GHE.com, changing the enterprise slug is not currently supported.
+      verified_at: '2026-09-23'
+      role: 'GHE.com: the host carries the enterprise instead'
+    evidence:
+    - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      quote: To security harden their OIDC configuration, enterprise administrators can configure their
+        enterprise to receive tokens from a unique URL at `https://token.actions.githubusercontent.com/<enterpriseSlug>`,
+        replacing `<enterpriseSlug>` with the slug value of the enterprise.
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      quote: This configuration means that your enterprise will receive the OIDC token from a unique URL,
+        and you can then configure your cloud provider to only accept tokens from that URL. This helps ensure
+        that only the enterprise's repositories can access your cloud resources using OIDC.
+      verified_at: '2026-09-23'
+    notes:
+    - 'derived, not tested: after a slug change, a customer who takes the old slug and turns the path on
+      receives tokens whose iss is the old path, so a trust that still names the old path can admit them.'
+  research:
+    population: the repositories of the enterprise that set the path
+    sources:
+    - https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+    - https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+    - https://docs.github.com/en/actions/concepts/security/openid-connect
+    - https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows
+    - https://docs.github.com/en/actions/reference/security/oidc
+    - https://docs.github.com/en/repositories/creating-and-managing-repositories/about-repositories
+    - https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
 - name: GitHub Enterprise Server (self-hosted)
   category: ci
   issuer: https://<hostname>/_services/token
@@ -531,7 +1367,8 @@ issuers:
   - namespace_id
   - user_id
   aud_controlled_by: workload
-  aud_default: none - required in .gitlab-ci.yml
+  # v0.2.0: the v0.1.0 value is contradicted by the vendor's documentation (research of 2026-09-23); this release does not carry the vendor's sentence, so it reads unverified.
+  aud_default: unverified
   aud_evidence: Same id_tokens mechanism as gitlab.com.
   vendor_example_verdict: unverified
   self_hosted_variant: This IS the self-hosted variant.
@@ -592,7 +1429,8 @@ issuers:
   - job_id
   - runner_id
   aud_controlled_by: workload
-  aud_default: none - `aud` is required in the id_tokens block of .gitlab-ci.yml
+  # v0.2.0: the v0.1.0 value is contradicted by the vendor's documentation (research of 2026-09-23); this release does not carry the vendor's sentence, so it reads unverified.
+  aud_default: unverified
   aud_evidence: "GitLab docs: aud is \"Intended audience for the token... Specified in the ID tokens configuration.\"\
     \ The .gitlab-ci.yml author writes it:\n  job_with_id_tokens:\n    id_tokens:\n      FIRST_ID_TOKEN:\n\
     \        aud: https://first.service.com\nAny project on gitlab.com can name any audience."
@@ -638,6 +1476,11 @@ issuers:
   - sub_legacy
   - website
   claims_advertised_fetched_at: '2026-09-13'
+  researched: in_release
+  anonymous_tokens:
+    value: unverified
+    why_unverified: The research recorded who can open an account on this platform, not whether its tokens
+      are minted only for account holders; no vendor sentence in this release establishes the value.
 - name: Gitea / Forgejo Actions
   category: ci
   issuer: https://<instance-host>
@@ -764,8 +1607,10 @@ issuers:
 - name: Microsoft (Azure DevOps)
   vendor: Microsoft (Azure DevOps)
   category: ci
-  issuer: https://vstoken.dev.azure.com
-  tenancy_model: shared
+  # v0.2.0: the v0.1.0 value is contradicted by the vendor's documentation (research of 2026-09-23); this release does not carry the vendor's sentence, so it reads unverified.
+  issuer: unverified
+  # v0.2.0: the v0.1.0 value is contradicted by the vendor's documentation (research of 2026-09-23); this release does not carry the vendor's sentence, so it reads unverified.
+  tenancy_model: unverified
   tenancy_claim: null
   discovery_url: https://vstoken.dev.azure.com/.well-known/openid-configuration
   discovery_status: ok
@@ -791,7 +1636,6 @@ issuers:
   on_aws_shared_idp_registry: false
   docs_url: https://learn.microsoft.com/en-us/azure/devops/pipelines/library/connect-to-azure?view=azure-devops
   verified_at: 2026-09-12
-  notes: worst-case entry -- nothing to scope on beyond sub
   source: both
   claims_advertised:
   - aud
@@ -926,6 +1770,11 @@ issuers:
   - terraform_workspace_id
   - terraform_workspace_name
   claims_advertised_fetched_at: '2026-09-13'
+  researched: in_release
+  anonymous_tokens:
+    value: unverified
+    why_unverified: The research recorded who can open an account on this platform, not whether its tokens
+      are minted only for account holders; no vendor sentence in this release establishes the value.
 - name: Pulumi Cloud
   category: iac
   issuer: https://api.pulumi.com/oidc
@@ -1110,6 +1959,46 @@ issuers:
   - spacePath
   - sub
   claims_advertised_fetched_at: '2026-09-13'
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://docs.spacelift.io/integrations/cloud-providers/oidc
+      quote: The token is valid for an hour and is available to every run in any paid Spacelift account.
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://<account>.app.spacelift.io
+    tenant_placeholder: <account>
+    tenant_kind: name
+    tenant_recyclable: unverified
+    evidence:
+    - source: https://docs.spacelift.io/integrations/cloud-providers/oidc
+      quote: 'iss: The issuer of the token. This is the URL of your Spacelift account, for example https://demo.app.spacelift.io,
+        and is unique for each Spacelift account.'
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://docs.spacelift.io/integrations/cloud-providers/oidc
+      quote: The token is valid for an hour and is available to every run in any paid Spacelift account.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://docs.spacelift.io/integrations/cloud-providers/oidc
+      quote: This feature is only available to paid Spacelift accounts.
+      verified_at: '2026-09-23'
+    unverified:
+    - who can cause a run in an account, for example a pull request from a fork
+    - whether an account name can be released and re-registered
+    looked_in:
+    - https://docs.spacelift.io/integrations/cloud-providers/oidc
+    - https://docs.spacelift.io/concepts/run/proposed
+    - https://docs.spacelift.io/integrations/source-control/github
+  research:
+    population: the runs of one paid Spacelift account
+    sources:
+    - https://docs.spacelift.io/integrations/cloud-providers/oidc
 - name: Terraform Enterprise (self-hosted)
   category: iac
   issuer: https://<tfe-hostname>
@@ -1155,11 +2044,6 @@ issuers:
   self_hosted_variant: unverified
   docs_url: unverified
   verified_at: '2026-09-13'
-  notes: CAUTION - this is probably the WRONG issuer for workload identity federation. login.app.env0.com
-    is an Auth0 tenant serving env0's human login (issuer has a trailing slash, advertises authorization_endpoint/mfa_challenge_endpoint/registration_endpoint).
-    That is a user-SSO provider, not a deployment-token issuer. I did not find and verify env0's workload-identity
-    issuer. Listed as unverified rather than publishing the Auth0 endpoint as if it were the federation
-    issuer.
   source: wif census 2026-09-13
   claims_advertised:
   - aud
@@ -1222,6 +2106,51 @@ issuers:
     token does carry kubernetes.io.serviceaccount.uid, but AWS trust policies cannot condition on nested
     claims, so in practice every IRSA trust policy is name-based and recyclable.'
   source: wif census 2026-09-13
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
+      quote: This feature is an OIDC JSON web token that also contains the service account identity and
+        supports a configurable audience.
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>
+    tenant_placeholder: <cluster_oidc_id>
+    tenant_kind: id
+    tenant_recyclable: unverified
+    evidence:
+    - source: https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
+      quote: Your cluster has an OpenID Connect (OIDC) issuer URL associated with it.
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
+      quote: Amazon EKS hosts a public OIDC discovery endpoint for each cluster that contains the signing
+        keys for the `ProjectedServiceAccountToken` JSON web tokens so external systems, such as IAM, can
+        validate and accept the OIDC tokens that are issued by Kubernetes.
+      verified_at: '2026-09-23'
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
+        in a Kubernetes cluster.
+      verified_at: '2026-09-23'
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: Service accounts exist as ServiceAccount objects in the API server.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: Application Pods, system components, and entities inside and outside the cluster can use a
+        specific ServiceAccount's credentials to identify as that ServiceAccount.
+      verified_at: '2026-09-23'
+  research:
+    population: the cluster's service accounts, as the cluster creates them
+    sources:
+    - https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
+    - https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
+    - https://kubernetes.io/docs/concepts/security/service-accounts/
 - name: Azure Kubernetes Service (AKS workload identity)
   category: runtime
   issuer: https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/
@@ -1251,6 +2180,57 @@ issuers:
     Issuer shape not confirmed against a positive fetch, so discovery_status is unverified. Same name-based
     `sub` problem as EKS.
   source: wif census 2026-09-13
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
+        in a Kubernetes cluster.
+      verified_at: '2026-09-23'
+    - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+      quote: Projected service account tokens are required for Kubernetes version 1.30 or later clusters.
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/
+    tenant_placeholder: <cluster_uuid>
+    tenant_kind: id
+    tenant_recyclable: unverified
+    evidence:
+    - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+      quote: By default, the issuer uses the base URL https://{region}.oic.prod-aks.azure.com, where the
+        value for {region} matches the location where you deployed the AKS cluster.
+      verified_at: '2026-09-23'
+    - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+      quote: '"issuer": "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/00000000-0000-0000-0000-000000000000/"'
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+      quote: You can enable the OIDC issuer on your AKS clusters, which allows Microsoft Entra ID (or another
+        cloud provider's identity and access management platform) to discover the API server's public signing
+        keys.
+      verified_at: '2026-09-23'
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
+        in a Kubernetes cluster.
+      verified_at: '2026-09-23'
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: Service accounts exist as ServiceAccount objects in the API server.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: Application Pods, system components, and entities inside and outside the cluster can use a
+        specific ServiceAccount's credentials to identify as that ServiceAccount.
+      verified_at: '2026-09-23'
+  research:
+    population: the cluster's service accounts, as the cluster creates them
+    sources:
+    - https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+    - https://kubernetes.io/docs/concepts/security/service-accounts/
 - name: Cloudflare Access
   category: runtime
   issuer: https://<team-name>.cloudflareaccess.com
@@ -1302,6 +2282,78 @@ issuers:
     without an explicit OIDC provider; the container.googleapis.com issuer matters mainly for federating
     a GKE cluster into AWS or Azure. Not verified positively.
   source: wif census 2026-09-13
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
+        in a Kubernetes cluster.
+      verified_at: '2026-09-23'
+    - source: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/service-accounts
+      quote: The short-lived bearer token is a JSON web token (JWT) that's signed by the API server, which
+        is an OpenID Connect (OIDC) provider.
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>
+    tenant_placeholder: <project>/<location>/<cluster>
+    tenant_kind: name
+    tenant_recyclable: unverified
+    context:
+    - source: https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects
+      quote: After project creation, the project ID is permanent.
+      verified_at: '2026-09-23'
+      role: 'Google: a project id never changes'
+    - source: https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects
+      quote: It cannot be in use or previously used; this includes deleted projects.
+      verified_at: '2026-09-23'
+      role: 'Google: a project id is never used twice'
+    note: the project part of the path cannot pass to another project, so the issuer URL cannot pass to
+      another project's owner; within one project the cluster name is the open question
+    evidence:
+    - source: https://cloud.google.com/blog/products/containers-kubernetes/kubernetes-bound-service-account-tokens
+      quote: '"iss": "https://container.googleapis.com/v1/projects/taahm-gke-dev/locations/us-central1-c/clusters/mesh-certs-test2"'
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/blog/products/containers-kubernetes/kubernetes-bound-service-account-tokens
+      quote: Not all implementations of Kubernetes surface this claim, but for those that do (including
+        GKE), it points to a valid OIDC Discovery endpoint for the tokens issued by the cluster.
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/service-accounts
+      quote: The short-lived bearer token is a JSON web token (JWT) that's signed by the API server, which
+        is an OpenID Connect (OIDC) provider.
+      verified_at: '2026-09-23'
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
+        in a Kubernetes cluster.
+      verified_at: '2026-09-23'
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: Service accounts exist as ServiceAccount objects in the API server.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://kubernetes.io/docs/concepts/security/service-accounts/
+      quote: Application Pods, system components, and entities inside and outside the cluster can use a
+        specific ServiceAccount's credentials to identify as that ServiceAccount.
+      verified_at: '2026-09-23'
+    unverified:
+    - whether a deleted cluster's name can be reused in the same project and location, which would put a
+      new cluster of the same project behind the same issuer URL
+    looked_in:
+    - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster
+    - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/service-accounts
+    - https://cloud.google.com/blog/products/containers-kubernetes/kubernetes-bound-service-account-tokens
+  research:
+    population: the cluster's service accounts, as the cluster creates them
+    sources:
+    - https://cloud.google.com/blog/products/containers-kubernetes/kubernetes-bound-service-account-tokens
+    - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/service-accounts
+    - https://kubernetes.io/docs/concepts/security/service-accounts/
+    - https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects
+    - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster
 - name: HashiCorp Vault (as an OIDC provider)
   category: runtime
   issuer: https://<vault-addr>/v1/identity/oidc/provider/<provider_name>
@@ -1445,6 +2497,41 @@ issuers:
     is not a valid UUID and is rejected by the live service with "Invalid tenant ID. Expected a valid
     UUID". `sub` is the role ARN, which contains the account ID (immutable) but a role NAME that is recyclable.'
   source: wif census 2026-09-13
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_outbound_token_claims.html
+      quote: AWS Security Token Service returns a signed JSON Web Token (JWT) that contains a set of claims
+        that represent the identity of the IAM principal.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_outbound_token_claims.html
+      quote: '| sub | Subject | The ARN of the IAM principal that requested the token. |'
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://<tenant_uuid>.tokens.sts.global.api.aws
+    tenant_placeholder: <tenant_uuid>
+    tenant_kind: id
+    tenant_recyclable: unverified
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_outbound_token_claims.html
+      quote: '| iss | Issuer | Your account-specific issuer URL. External services validate this claim to
+        ensure it matches their trusted issuer. |'
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_outbound.html
+      quote: You can control access to token generation and enforce token properties such as signing algorithms,
+        permitted audiences and duration using IAM policies.
+      verified_at: '2026-09-23'
+  research:
+    population: the IAM principals of one AWS account that IAM policy allows to request tokens
+    sources:
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_outbound.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_outbound_token_claims.html
 - name: AWS STS (sts.amazonaws.com)
   category: cloud
   issuer: not an OIDC issuer
@@ -1535,6 +2622,352 @@ issuers:
   - picture
   - sub
   claims_advertised_fetched_at: '2026-09-13'
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: 'Google Cloud supports multiple different types of identity tokens, and they all have the following
+        in common:'
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: They authenticate a principal, which can be a user or a workload.
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: The following table lists the different types of identity tokens.
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: User ID tokens are JSON Web Tokens (JWTs) that authenticate a user. Clients can obtain a user
+        ID Token by initiating an OIDC authentication flow.
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: The issuer of the token. Always set to https://accounts.google.com.
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: Service account ID tokens are JSON Web Tokens (JWTs) that authenticate a service account.
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: The issuer of the token, always set to https://accounts.google.com.
+      verified_at: '2026-09-23'
+    - source: https://cloud.google.com/docs/authentication/token-types
+      quote: The issuer of the token, which is the agent identity pool of the organization or project that
+        contains the agent.
+      verified_at: '2026-09-23'
+    - source: https://developers.google.com/identity/openid-connect/openid-connect
+      quote: An identifier for the user, unique among all Google Accounts and never reused.
+      verified_at: '2026-09-23'
+    note: Google's table of identity-token types names as principals users, service accounts, agent identities
+      and workforce identity pool principals. The two kinds issued as https://accounts.google.com authenticate
+      a user or a service account; agent identity ID tokens carry their pool as issuer. No single sentence
+      says only.
+  built_in:
+    value: 'yes'
+    principal: '{"Federated": "accounts.google.com"}'
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+      quote: 'An OIDC federated principal can represent an OIDC IDP in your AWS account, or the 4 built
+        in identity providers: Login with Amazon, Google, Facebook, and Amazon Cognito.'
+      verified_at: '2026-09-23'
+    discrepancy:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
+      quote: If you are using an OIDC identity provider from either Google, Facebook, or Amazon Cognito,
+        do not create a separate IAM identity provider using this procedure. These OIDC identity providers
+        are already built-in to AWS and are available for your use.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+      quote: If you are using an OIDC IdP from Google, Facebook, or Amazon Cognito, don't create a separate
+        IAM IdP in the AWS Management Console. These OIDC identity providers are already built into AWS
+        and are available for you to use.
+      verified_at: '2026-09-23'
+    note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
+      Amazon
+  research:
+    sources:
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+    - https://cloud.google.com/docs/authentication/token-types
+    - https://developers.google.com/identity/openid-connect/openid-connect
+- name: Amazon Cognito identity pools
+  issuer: cognito-identity.amazonaws.com
+  tenancy_model: unverified
+  discovery_status: unverified
+  jwks_status: unverified
+  aud_controlled_by: unverified
+  vendor_example_verdict: unverified
+  researched: in_release
+  anonymous_tokens:
+    value: 'yes'
+    evidence:
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/identity-pools.html
+      quote: Amazon Cognito identity pools guest access (unauthenticated identities) provides a unique identifier
+        and AWS credentials for users who do not authenticate with an identity provider.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/authentication-flow.html
+      quote: Amazon Cognito can grant unauthenticated guest access in your applications. If this feature
+        is enabled in your identity pool, users can request a new identity ID at any time via the `GetId`
+        API.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/authentication-flow.html
+      quote: To obtain a token for an unauthenticated identity, you only need the identity ID itself.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetId.html
+      quote: This is a public API. You do not need any credentials to call this API.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetOpenIdToken.html
+      quote: This is a public API. You do not need any credentials to call this API.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+      quote: Remember that unauthenticated identities are assumed by users who do not log in to your app.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/identity-pools.html
+      quote: In an identity pool that doesn't currently support guest access, Status is Inactive.
+      verified_at: '2026-09-23'
+      role: guest access is set per pool
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: If the user is unauthenticated, the key contains only `unauthenticated`.
+      verified_at: '2026-09-23'
+      role: how a trust policy names guests
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+      quote: '"ForAnyValue:StringLike": {"cognito-identity.amazonaws.com:amr": "unauthenticated"}'
+      verified_at: '2026-09-23'
+      role: how a trust policy names guests
+  not_tenancy:
+    value: verified
+    claims:
+    - claim: amr
+      why: the authentication state (authenticated or unauthenticated), not a tenant
+      evidence:
+        source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: Restricts the role to either `authenticated` or `unauthenticated` (guest) users. Amazon Cognito
+          indicates the authentication state in the `amr` claim in the identity pool token.
+        verified_at: '2026-09-23'
+    - claim: aud
+      why: 'names the identity pool: a pool id pins the pool, never who can get into it'
+      evidence:
+        source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: The identity pool token contains an `aud` claim that is the identity pool ID.
+        verified_at: '2026-09-23'
+      context:
+      - source: https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetId.html
+        quote: An identity pool ID in the format REGION:GUID.
+        verified_at: '2026-09-23'
+        role: the identity pool id
+      - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: The token that an identity pool issues for an identity contains information about the originating
+          AWS account of the identity pool.
+        verified_at: '2026-09-23'
+        role: a pool belongs to an AWS account
+  subject_forms:
+    value: verified
+    forms: []
+    customisable: unverified
+    evidence:
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+      quote: You can use the `sub` condition to restrict actions to Amazon Cognito identity IDs in your
+        access policies.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetId.html
+      quote: A unique identifier in the format REGION:GUID.
+      verified_at: '2026-09-23'
+    note: sub is the identity ID, REGION:GUID, which names one identity and no pool; the pool is in aud
+    looked_in:
+    - https://docs.aws.amazon.com/cognito/latest/developerguide/identity-pools.html
+    - https://docs.aws.amazon.com/cognito/latest/developerguide/authentication-flow.html
+    - https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+    - https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetId.html
+    - https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetOpenIdToken.html
+  built_in:
+    value: 'yes'
+    principal: '{"Federated": "cognito-identity.amazonaws.com"}'
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+      quote: 'An OIDC federated principal can represent an OIDC IDP in your AWS account, or the 4 built
+        in identity providers: Login with Amazon, Google, Facebook, and Amazon Cognito.'
+      verified_at: '2026-09-23'
+    discrepancy:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
+      quote: If you are using an OIDC identity provider from either Google, Facebook, or Amazon Cognito,
+        do not create a separate IAM identity provider using this procedure. These OIDC identity providers
+        are already built-in to AWS and are available for your use.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+      quote: If you are using an OIDC IdP from Google, Facebook, or Amazon Cognito, don't create a separate
+        IAM IdP in the AWS Management Console. These OIDC identity providers are already built into AWS
+        and are available for you to use.
+      verified_at: '2026-09-23'
+    note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
+      Amazon
+  research:
+    aws:
+      shared_issuer_row:
+        source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+        quote: '| [Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html)
+          | `cognito-identity.amazonaws.com` | aud | `cognito-identity.amazonaws.com:aud` |'
+        verified_at: '2026-09-23'
+      refused_on_save:
+      - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: Where the `Principal` of an IAM role trust policy is an identity pools service principal
+          like `cognito-identity.amazonaws.com`, you can't create or modify role trust policies such that
+          they permit any identity pool to assume the role.
+        verified_at: '2026-09-23'
+      - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: Other condition keys are available, but `aud` is required. If you attempt to save a role
+          trust policy without a condition of this type, IAM returns an error.
+        verified_at: '2026-09-23'
+      legacy_roles:
+        source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: After the enforcement of this requirement, AWS STS permits web identities to assume roles
+          that are not secured with conditions, but those roles can't be modified without introducing those
+          conditions.
+        verified_at: '2026-09-23'
+      enforced_at_assume_time_only_cross_account:
+        source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: If AWS STS determines that the request is cross-account, it checks to see if the role trust
+          policy has an `aud` condition. The assume-role call fails if no such condition is present in the
+          role trust policy. If the request is not cross-account, AWS STS doesn’t enforce this restriction.
+        verified_at: '2026-09-23'
+      condition_keys:
+      - amr
+      - aud
+      - oaud
+      - sub
+      condition_keys_evidence:
+        source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+        quote: This tab explains how Amazon Cognito maps OIDC claims to AWS STS condition context keys in
+          AWS.
+        verified_at: '2026-09-23'
+    population: anyone who can call GetId on a pool with guest access active, with no credential; otherwise
+      the pool's signed-in users
+    sources:
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+    - https://docs.aws.amazon.com/cognito/latest/developerguide/identity-pools.html
+    - https://docs.aws.amazon.com/cognito/latest/developerguide/authentication-flow.html
+    - https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetId.html
+    - https://docs.aws.amazon.com/cognitoidentity/latest/APIReference/API_GetOpenIdToken.html
+    - https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+- name: Login with Amazon
+  issuer: www.amazon.com
+  tenancy_model: unverified
+  discovery_status: unverified
+  jwks_status: unverified
+  aud_controlled_by: unverified
+  vendor_example_verdict: unverified
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    evidence:
+    - source: https://developer.amazon.com/docs/login-with-amazon/access-token.html
+      quote: After users log in, they are returned to your website or mobile app. At this point, your client
+        can obtain an access token by calling the Login with Amazon authorization service
+      verified_at: '2026-09-23'
+    - source: https://developer.amazon.com/docs/login-with-amazon/access-token.html
+      quote: Access tokens are only valid for sixty minutes and are specific to the user logging in and
+        the data the app requested when it triggered the login.
+      verified_at: '2026-09-23'
+    - source: https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html
+      quote: Login with Amazon lets you protect your customer information by leveraging the user authentication
+        system used by Amazon.com.
+      verified_at: '2026-09-23'
+  built_in:
+    value: 'yes'
+    principal: '{"Federated": "www.amazon.com"}'
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+      quote: 'An OIDC federated principal can represent an OIDC IDP in your AWS account, or the 4 built
+        in identity providers: Login with Amazon, Google, Facebook, and Amazon Cognito.'
+      verified_at: '2026-09-23'
+    discrepancy:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
+      quote: If you are using an OIDC identity provider from either Google, Facebook, or Amazon Cognito,
+        do not create a separate IAM identity provider using this procedure. These OIDC identity providers
+        are already built-in to AWS and are available for your use.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+      quote: If you are using an OIDC IdP from Google, Facebook, or Amazon Cognito, don't create a separate
+        IAM IdP in the AWS Management Console. These OIDC identity providers are already built into AWS
+        and are available for you to use.
+      verified_at: '2026-09-23'
+    note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
+      Amazon
+  research:
+    token_kind:
+      source: https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
+      quote: Currently `www.amazon.com` and `graph.facebook.com` are the only supported identity providers
+        for OAuth 2.0 access tokens.
+      verified_at: '2026-09-23'
+    sources:
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+    - https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
+    - https://developer.amazon.com/docs/login-with-amazon/access-token.html
+    - https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html
+- name: Facebook
+  issuer: graph.facebook.com
+  tenancy_model: unverified
+  discovery_status: unverified
+  jwks_status: unverified
+  aud_controlled_by: unverified
+  vendor_example_verdict: unverified
+  researched: in_release
+  anonymous_tokens:
+    value: unverified
+    context:
+    - source: https://developers.facebook.com/docs/facebook-login/guides/access-tokens
+      quote: User access tokens let your app take actions in real time based on input from the user. You
+        need a User access token any time your app reads, modifies, or writes a person’s Facebook data on
+        their behalf. Obtain one via a login dialog that requires the person to grant your app permission.
+      verified_at: '2026-09-23'
+    - source: https://developers.facebook.com/docs/facebook-login/guides/access-tokens
+      quote: App access tokens let you read and modify app settings. Generate one using your Meta app secret
+        via a server-to-server call.
+      verified_at: '2026-09-23'
+    - source: https://developers.facebook.com/docs/facebook-login/guides/access-tokens
+      quote: Client tokens identify your app when calling app-level APIs from native or desktop apps. Because
+        client tokens are embedded in apps, they are not secret.
+      verified_at: '2026-09-23'
+    why_unverified: Facebook issues several token kinds, one of them public; which kinds STS accepts as
+      a graph.facebook.com OAuth 2.0 access token is not documented
+    note: the Facebook page was rendered with headless Chrome at 2026-09-23T00:50Z; plain fetches returned
+      HTTP 400
+    looked_in:
+    - https://developers.facebook.com/docs/facebook-login/guides/access-tokens
+    - https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+  built_in:
+    value: 'yes'
+    principal: '{"Federated": "graph.facebook.com"}'
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+      quote: 'An OIDC federated principal can represent an OIDC IDP in your AWS account, or the 4 built
+        in identity providers: Login with Amazon, Google, Facebook, and Amazon Cognito.'
+      verified_at: '2026-09-23'
+    discrepancy:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
+      quote: If you are using an OIDC identity provider from either Google, Facebook, or Amazon Cognito,
+        do not create a separate IAM identity provider using this procedure. These OIDC identity providers
+        are already built-in to AWS and are available for your use.
+      verified_at: '2026-09-23'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+      quote: If you are using an OIDC IdP from Google, Facebook, or Amazon Cognito, don't create a separate
+        IAM IdP in the AWS Management Console. These OIDC identity providers are already built into AWS
+        and are available for you to use.
+      verified_at: '2026-09-23'
+    note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
+      Amazon
+  research:
+    token_kind:
+      source: https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
+      quote: Currently `www.amazon.com` and `graph.facebook.com` are the only supported identity providers
+        for OAuth 2.0 access tokens.
+      verified_at: '2026-09-23'
+    sources:
+    - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+    - https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
+    - https://developers.facebook.com/docs/facebook-login/guides/access-tokens
 - name: Microsoft Entra ID
   category: cloud
   issuer: https://login.microsoftonline.com/<tenant_id>/v2.0
@@ -1580,6 +3013,65 @@ issuers:
     /common and /organizations endpoints return issuer literally as "https://login.microsoftonline.com/{tenantid}/v2.0"
     - a TEMPLATE string, not a usable issuer. Claims list is the WIF-relevant subset, not exhaustive.'
   source: wif census 2026-09-13
+  researched: in_release
+  anonymous_tokens:
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of
+        the authenticated user.
+      verified_at: '2026-09-23'
+  match:
+    value: verified
+    issuer_pattern: https://login.microsoftonline.com/<tenant_id>/v2.0
+    tenant_placeholder: <tenant_id>
+    tenant_kind: id
+    tenant_syntax: guid
+    tenant_syntax_evidence:
+    - &id001
+      source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: For work and school accounts, the GUID is the immutable tenant ID of the organization that
+        the user is signing in to. For sign-ins to the personal Microsoft account tenant (services like
+        Xbox, Teams for Life, or Outlook), the value is 9188040d-6c67-4c5b-b112-36a304b66dad.
+      verified_at: '2026-09-23'
+    tenant_immutable: 'yes'
+    tenant_immutable_evidence:
+    - *id001
+    tenant_recyclable: unverified
+    not_a_controlled_tenant:
+    - tenant: 9188040d-6c67-4c5b-b112-36a304b66dad
+      why: the personal Microsoft account tenant, which anyone with a Microsoft account signs in to
+      evidence: *id001
+    evidence:
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of
+        the authenticated user. If the token issued is a v2.0 token (see the ver claim), the URI ends in
+        /v2.0.
+      verified_at: '2026-09-23'
+  tenant_membership:
+    value: controlled
+    evidence:
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals
+      quote: A service principal must be created in each tenant where the application is used, enabling
+        it to establish an identity for sign-in and/or access to resources being secured by the tenant.
+      verified_at: '2026-09-23'
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals
+      quote: A multitenant application also has a service principal created in each tenant where a user
+        from that tenant has consented to its use.
+      verified_at: '2026-09-23'
+    context:
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: For work and school accounts, the GUID is the immutable tenant ID of the organization that
+        the user is signing in to. For sign-ins to the personal Microsoft account tenant (services like
+        Xbox, Teams for Life, or Outlook), the value is 9188040d-6c67-4c5b-b112-36a304b66dad.
+      verified_at: '2026-09-23'
+  research:
+    population: the tenant's principals, including other tenants' multitenant applications a user of the
+      tenant consented to
+    sources:
+    - https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+    - https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals
 - name: Cognition
   vendor: Cognition
   category: ai-agent-platform
@@ -1638,7 +3130,7 @@ issuers:
   vendor_example_verdict: unverified
   on_aws_shared_idp_registry: false
   verified_at: 2026-09-12
-  notes: legacy endpoint, still live; a trust policy pinned here remains exploitable
+  notes: legacy endpoint, still live
   source: ai-agent census 2026-09-12
 - name: Warp
   vendor: Warp
@@ -1663,7 +3155,7 @@ issuers:
   category: platform
   issuer: https://issuer.enforce.dev
   tenancy_model: shared
-  tenancy_claim: UNVERIFIED
+  tenancy_claim: unverified
   discovery_status: unverified
   jwks_status: unverified
   aud_controlled_by: unverified
