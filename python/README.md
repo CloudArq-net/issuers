@@ -74,9 +74,15 @@ the page, the sentence verbatim, and the date it was read.
 - `owner_charset` and `names_unique_regardless_of_case`: the characters an owner name can
   hold, and whether names that differ only in case are one owner.
 - `match` and `tenant_membership`: for an issuer whose URL names its tenant, how to read it,
-  and whether the tenant's owner controls who obtains its tokens. Seven of the nine patterns
-  record that it does; Spacelift's and Bitbucket Pipelines' read `unverified`.
+  and whether the tenant's owner controls who obtains its tokens. Six of the nine patterns
+  record that it does, the three clusters on a chain of Kubernetes' and each platform's
+  sentences; Spacelift's, Bitbucket Pipelines' and Microsoft Entra ID's read `unverified`.
 - `built_in`: the providers AWS STS accepts with no identity provider in the account.
+- `aws_condition_keys`: the condition keys AWS documents for the issuer, each with the claim
+  AWS's table says it carries. A condition on any other key tests a key AWS does not put in
+  the request context: GitHub's tab has `repository_owner_id` and no `repository_owner`.
+- `accounts`: the platform whose accounts hold the issuer's tenants, as the vendor names it,
+  and, for GitHub Actions, the namespace a consumer declares its owners under, `github`.
 - `researched`: whether this release researched the entry at all.
 
 ## `unverified` never means absent
@@ -116,6 +122,10 @@ anonymous, known = ci.issues_anonymous_tokens(entry)
 controlled, known = ci.controlled_tenant(entry, tenant)
 recyclable, known = ci.tenant_is_recyclable(entry)
 without_case, known = ci.names_compare_without_case(entry)
+
+gh = ci.get("token.actions.githubusercontent.com")
+ci.claim_is_recyclable(gh, "enterprise_id")        # (True, False): no sentence says it cannot pass on
+ci.aws_maps_condition_key(gh, "repository_owner")  # (False, True): AWS's GitHub tab has no such key
 ci.owner_name_may_contain(entry, "/")                         # True when nothing is recorded
 ```
 

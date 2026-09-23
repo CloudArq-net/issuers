@@ -220,11 +220,11 @@ anonymous, known := e.Tenancy().IssuesAnonymousTokens()
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 4,428 bytes of
-data against the root package's 160,498. Built with go1.27.1 for `js/wasm`, a small program
-that matches an issuer through `tenancy` came out 194,948 bytes smaller (39,316 after
-`gzip -9`) than one doing the same through the root package, and it does not contain the
-root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
+instead. It carries the values a classifier reads and none of the sentences: 5,917 bytes of
+data against the root package's 198,284. Built with go1.27.1 for `js/wasm`, a small program
+that matches the issuer given on its command line through `tenancy` and prints the entry's
+name came out 226,755 bytes smaller (42,989 after `gzip -9`) than the same program through
+the root package, and it does not contain the root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
 fails when it is out of step.
 
 The raw data is [`issuers.yaml`](issuers.yaml) (source of truth, with comments) and
