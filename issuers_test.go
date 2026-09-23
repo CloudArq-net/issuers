@@ -661,7 +661,7 @@ var recorded = map[string]struct {
 		[]string{"sources", "token_kind"}},
 	"Facebook": {map[string]int{"anonymous_tokens": 3, "built_in": 3, "research": 1},
 		[]string{"sources", "token_kind"}},
-	"Microsoft Entra ID": {map[string]int{"anonymous_tokens": 1, "match": 7, "tenant_membership": 3},
+	"Microsoft Entra ID": {map[string]int{"anonymous_tokens": 1, "match": 7, "tenant_membership": 7},
 		[]string{"population", "sources"}},
 }
 
@@ -839,11 +839,12 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 			t.Errorf("%s: built_in with no evidence or no principal", n)
 		}
 	}
-	// Nine patterns, and seven tenants whose owner the vendor says controls
-	// who obtains tokens: no sentence in this release says who can cause a
-	// Spacelift run or a Bitbucket pipeline.
-	if patterns != 9 || controlled != 7 {
-		t.Fatalf("examined %d verified patterns and %d controlled memberships; the census records 9 and 7", patterns, controlled)
+	// Nine patterns, and six tenants whose owner the vendor says controls who
+	// obtains tokens: no sentence in this release says who can cause a
+	// Spacelift run or a Bitbucket pipeline, and Microsoft's defaults let any
+	// user of a work tenant invite guests and consent to applications.
+	if patterns != 9 || controlled != 6 {
+		t.Fatalf("examined %d verified patterns and %d controlled memberships; the census records 9 and 6", patterns, controlled)
 	}
 }
 
@@ -1124,6 +1125,7 @@ func TestEachValueRestsOnASentenceThatSaysIt(t *testing.T) {
 	for name, why := range map[string]string{
 		"Spacelift":           "who can cause a run in an account",
 		"Bitbucket Pipelines": "who can run a pipeline in a workspace's repositories",
+		"Microsoft Entra ID":  "who obtains tokens naming a work tenant",
 	} {
 		m := byName(t, name, "").TenantMembership
 		if m.Value != "unverified" || len(m.Evidence) != 0 || !slices.ContainsFunc(m.Unverified, func(u string) bool {
@@ -1134,6 +1136,20 @@ func TestEachValueRestsOnASentenceThatSaysIt(t *testing.T) {
 	}
 	if m := byName(t, "Spacelift", "").TenantMembership; !strings.Contains(quotes(m.Context...), "available to every run in any paid Spacelift account") {
 		t.Error("Spacelift: the sentence that was read stays beside the value as context")
+	}
+	// Entra's sentences say a service principal is created where an
+	// application is used, and that a user's consent creates one: neither says
+	// the tenant's owner decides. Microsoft's defaults say the opposite, and
+	// they stay beside the value.
+	membership := quotes(byName(t, "Microsoft Entra ID", "").TenantMembership.Context...)
+	for _, s := range []string{
+		"By default, all users in your organization, including B2B collaboration guest users, can invite external users to B2B collaboration.",
+		"By default, all users are allowed to consent to applications for permissions that don't require administrator consent.",
+		"A multitenant application also has a service principal created in each tenant where a user from that tenant has consented to its use.",
+	} {
+		if !strings.Contains(membership, s) {
+			t.Errorf("Entra: the membership's context does not carry %q", s)
+		}
 	}
 
 	circle := byName(t, "CircleCI", "")

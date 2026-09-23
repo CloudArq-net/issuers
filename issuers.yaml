@@ -3124,29 +3124,66 @@ issuers:
         the authenticated user. If the token issued is a v2.0 token (see the ver claim), the URI ends in
         /v2.0.
       verified_at: '2026-09-23'
+  # The service-principal sentences below do not say the tenant's owner decides who obtains tokens naming
+  # it, and Microsoft's defaults let any user admit outsiders, so a work tenant is not known controlled.
+  # The personal-account tenant is known open on its own sentence, under match.
   tenant_membership:
-    value: controlled
-    evidence:
+    value: unverified
+    context:
     - source: https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals
       quote: A service principal must be created in each tenant where the application is used, enabling
         it to establish an identity for sign-in and/or access to resources being secured by the tenant.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: an application needs a service principal in a tenant; the sentence does not say who decides
+        that it gets one
     - source: https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals
       quote: A multitenant application also has a service principal created in each tenant where a user
         from that tenant has consented to its use.
-      verified_at: '2026-09-23'
-    context:
+      verified_at: '2026-09-24'
+      role: a user's consent, not the owner's decision, gives another tenant's application an identity in
+        this one
+    - source: https://learn.microsoft.com/en-us/entra/external-id/external-collaboration-settings-configure
+      quote: By default, all users in your organization, including B2B collaboration guest users, can invite
+        external users to B2B collaboration.
+      verified_at: '2026-09-24'
+      role: by default any user, a guest included, can bring an outsider into the tenant
+    - source: https://learn.microsoft.com/en-us/entra/external-id/external-collaboration-settings-configure
+      quote: If you want to limit the ability to send invitations, you can turn invitations on or off for
+        everyone, or limit invitations to certain roles.
+      verified_at: '2026-09-24'
+      role: an owner can narrow who invites; whether a given tenant has is that tenant's setting
+    - source: https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/configure-user-consent
+      quote: By default, all users are allowed to consent to applications for permissions that don't require
+        administrator consent.
+      verified_at: '2026-09-24'
+      role: by default any user can consent to an application
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: This value is identical to the value of the Issuer claim unless the user account isn't in the
+        same tenant as the issuer, such as guests.
+      verified_at: '2026-09-24'
+      role: 'the idp claim''s description: a guest signs in to the tenant that invited it, which is the
+        issuer'
     - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
       quote: For work and school accounts, the GUID is the immutable tenant ID of the organization that
         the user is signing in to. For sign-ins to the personal Microsoft account tenant (services like
         Xbox, Teams for Life, or Outlook), the value is 9188040d-6c67-4c5b-b112-36a304b66dad.
       verified_at: '2026-09-23'
+    unverified:
+    - 'who obtains tokens naming a work tenant: by default every user, guests included, can invite external
+      users and consent to applications, and no sentence here says the tenant''s owner decides'
+    looked_in:
+    - https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals
+    - https://learn.microsoft.com/en-us/entra/external-id/external-collaboration-settings-configure
+    - https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/configure-user-consent
+    - https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
   research:
-    population: the tenant's principals, including other tenants' multitenant applications a user of the
-      tenant consented to
+    population: the tenant's principals, including guests any user may invite and other tenants' multitenant
+      applications a user of the tenant consented to
     sources:
     - https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
     - https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals
+    - https://learn.microsoft.com/en-us/entra/external-id/external-collaboration-settings-configure
+    - https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/configure-user-consent
 - name: Cognition
   vendor: Cognition
   category: ai-agent-platform

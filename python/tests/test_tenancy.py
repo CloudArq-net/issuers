@@ -214,7 +214,9 @@ def test_an_answer_refuses_to_be_read_as_true_or_false():
 
 def test_controlled_tenant():
     entra = by_key(ENTRA)
-    assert ci.controlled_tenant(entra, "11111111-2222-3333-4444-555555555555") == (True, True)
+    # No sentence says a work tenant's owner decides who obtains its tokens;
+    # by default every user can invite guests.
+    assert ci.controlled_tenant(entra, "11111111-2222-3333-4444-555555555555") == (False, False)
     assert ci.controlled_tenant(entra, PERSONAL_MSA) == (False, True)
     assert ci.controlled_tenant(entra, PERSONAL_MSA.upper()) == (False, True)
     assert ci.controlled_tenant(entra, "") == (False, False)
@@ -223,6 +225,17 @@ def test_controlled_tenant():
     assert others
     for e in others:
         assert ci.controlled_tenant(e, "acme") == (False, False), e["name"]
+
+
+def test_an_open_tenant_stays_open_under_an_unverified_membership():
+    """A tenant listed as open is open on its own sentence, which an
+    unverified membership does not unsettle."""
+    entry = {"name": "x", "match": {"value": "verified", "issuer_pattern": "https://example.com/<t>",
+                                    "tenant_placeholder": "<t>", "tenant_kind": "id",
+                                    "not_a_controlled_tenant": [{"tenant": PERSONAL_MSA}]},
+             "tenant_membership": {"value": "unverified"}}
+    assert ci.controlled_tenant(entry, PERSONAL_MSA) == (False, True)
+    assert ci.controlled_tenant(entry, "11111111-2222-3333-4444-555555555555") == (False, False)
 
 
 def test_issues_anonymous_tokens():
@@ -331,8 +344,8 @@ def test_the_researched_facts_are_the_census_s():
         "https://<tenant_uuid>.tokens.sts.global.api.aws": ("<tenant_uuid>", "id", "unverified"),
     }
     # No sentence in this release says who can cause a Spacelift run or a
-    # Bitbucket pipeline.
-    uncontrolled = {"Spacelift", "Bitbucket Pipelines"}
+    # Bitbucket pipeline, or that a work tenant's owner decides who is in it.
+    uncontrolled = {"Spacelift", "Bitbucket Pipelines", "Microsoft Entra ID"}
     for key, (tenant, kind, recyclable) in per_tenant.items():
         e = by_key(key)
         m = e["match"]

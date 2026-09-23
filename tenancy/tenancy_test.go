@@ -239,15 +239,18 @@ const (
 	personalMSA = "9188040d-6c67-4c5b-b112-36a304b66dad"
 )
 
-// A tenant the census lists as open to anyone is known not to be controlled;
-// a controlled membership is known controlled; an unverified one is not known.
+// A tenant the census lists as open to anyone is known not to be controlled,
+// whatever the issuer's membership; a controlled membership is known
+// controlled; an unverified one is not known.
 func TestControlledTenant(t *testing.T) {
 	e := find(t, entra)
 	for _, c := range []struct {
 		tenant            string
 		controlled, known bool
 	}{
-		{"11111111-2222-3333-4444-555555555555", true, true},
+		// No sentence says a work tenant's owner decides who obtains its
+		// tokens; by default every user can invite guests.
+		{"11111111-2222-3333-4444-555555555555", false, false},
 		{personalMSA, false, true},
 		{strings.ToUpper(personalMSA), false, true},
 		{"", false, false},
@@ -259,6 +262,15 @@ func TestControlledTenant(t *testing.T) {
 	}
 	if controlled, known := find(t, githubEnt).ControlledTenant("octocorp"); !controlled || !known {
 		t.Errorf("GitHub's enterprise path: ControlledTenant(octocorp) = %v, %v; the census records controlled", controlled, known)
+	}
+	// A tenant listed as open is open on its own sentence, which an
+	// unverified membership does not unsettle.
+	open := Issuer{NotAControlledTenant: []string{personalMSA}}
+	if controlled, known := open.ControlledTenant(personalMSA); controlled || !known {
+		t.Errorf("an open tenant under an unverified membership reads %v, %v; want false, true", controlled, known)
+	}
+	if controlled, known := open.ControlledTenant("11111111-2222-3333-4444-555555555555"); controlled || known {
+		t.Errorf("an unlisted tenant under an unverified membership reads %v, %v; want false, false", controlled, known)
 	}
 	examined := 0
 	for _, e := range All() {
@@ -431,10 +443,11 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 		"https://<tenant_uuid>.tokens.sts.global.api.aws":                                     {"<tenant_uuid>", "id"},
 	}
 	// No sentence in this release says who can cause a Spacelift run or a
-	// Bitbucket pipeline, so neither tenant is known to control who holds its
-	// tokens.
+	// Bitbucket pipeline, or that a work tenant's owner decides who is in it,
+	// so none of those tenants is known to control who holds its tokens.
 	uncontrolled := map[string]bool{"https://<account>.app.spacelift.io": true,
-		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc": true}
+		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc": true,
+		entra: true}
 	for issuer, want := range perTenant {
 		e := find(t, issuer)
 		if e.TenantPlaceholder != want[0] || e.TenantKind != want[1] {

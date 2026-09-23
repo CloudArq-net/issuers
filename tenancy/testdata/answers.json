@@ -1509,16 +1509,16 @@
    ],
    "controlled_tenant": {
     "0123abcd-4567-89ef-0123-456789abcdef": [
-     true,
-     true
+     false,
+     false
     ],
     "9188040d-6c67-4c5b-b112-36a304b66dad": [
      false,
      true
     ],
     "acme": [
-     true,
-     true
+     false,
+     false
     ]
    },
    "owner_name_may_contain": "1111111111111",
@@ -1528,7 +1528,6 @@
     "tenant_placeholder": "\u003ctenant_id\u003e",
     "tenant_kind": "id",
     "tenant_syntax": "guid",
-    "tenant_membership": "controlled",
     "not_a_controlled_tenant": [
      "9188040d-6c67-4c5b-b112-36a304b66dad"
     ],

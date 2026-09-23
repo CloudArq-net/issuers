@@ -117,10 +117,11 @@ func (i Issuer) IssuesAnonymousTokens() (anonymous, known bool) {
 
 // ControlledTenant reports whether the owner of tenant, as Match names it,
 // controls who obtains tokens naming it. It is known and false for a tenant
-// the census lists as open to anyone, and not known when the census has not
-// verified the issuer's membership.
+// the census lists as open to anyone, which its own sentence settles whatever
+// the issuer's membership, and not known for any other tenant when the census
+// has not verified the issuer's membership.
 func (i Issuer) ControlledTenant(tenant string) (controlled, known bool) {
-	if i.TenantMembership != "controlled" || tenant == "" {
+	if tenant == "" {
 		return false, false
 	}
 	for _, open := range i.NotAControlledTenant {
@@ -129,6 +130,9 @@ func (i Issuer) ControlledTenant(tenant string) (controlled, known bool) {
 		if equalFoldASCII(open, tenant) {
 			return false, true
 		}
+	}
+	if i.TenantMembership != "controlled" {
+		return false, false
 	}
 	return true, true
 }

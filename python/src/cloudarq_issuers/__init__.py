@@ -261,16 +261,19 @@ def issues_anonymous_tokens(entry: Mapping[str, Any]) -> Answer:
 def controlled_tenant(entry: Mapping[str, Any], tenant: str) -> Answer:
     """Whether the owner of ``tenant``, as ``match`` names it, controls who
     obtains tokens naming it. Known and false for a tenant the census lists as
-    open to anyone; not known when the census has not verified the issuer's
-    membership."""
+    open to anyone, which its own sentence settles whatever the issuer's
+    membership; not known for any other tenant when the census has not
+    verified the issuer's membership."""
     t = tenancy(entry)
-    if t.get("tenant_membership") != "controlled" or not tenant:
+    if not tenant:
         return Answer(False, False)
     for open_tenant in t.get("not_a_controlled_tenant", []):
         # The listed tenants are GUIDs, whose letters are hex digits that name
         # the same tenant in either case.
         if _tenancy.lower_ascii(open_tenant) == _tenancy.lower_ascii(tenant):
             return Answer(False, True)
+    if t.get("tenant_membership") != "controlled":
+        return Answer(False, False)
     return Answer(True, True)
 
 
