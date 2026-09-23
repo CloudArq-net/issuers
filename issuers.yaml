@@ -151,8 +151,13 @@ issuers:
       quote: '"iss": "https://api.bitbucket.org/2.0/workspaces/bbcitest/pipelines-config/identity/oidc"'
       verified_at: '2026-09-23'
       role: the issuer names that workspace
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/create-your-workspace/
+      quote: To join or create a workspace, you need an individual Bitbucket account.
+      verified_at: '2026-09-24'
+      role: a workspace is made and joined by Bitbucket accounts
     note: no single sentence says only; read in order, the links say a token is minted for the pipelines
-      of a repository in the workspace the issuer names
+      of a repository in the workspace the issuer names, and a workspace is created and joined by Bitbucket
+      accounts
   match:
     value: verified
     issuer_pattern: https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc
@@ -196,6 +201,7 @@ issuers:
     - https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
     - https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
     - https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
+    - https://support.atlassian.com/bitbucket-cloud/docs/create-your-workspace/
 - name: Buildkite
   category: ci
   issuer: https://agent.buildkite.com
@@ -371,8 +377,13 @@ issuers:
         is your unique organization identifier.
       verified_at: '2026-09-23'
       role: the provider that issues it is one organization's
+    - source: https://circleci.com/docs/guides/permissions-authentication/users-organizations-and-integrations-guide/
+      quote: An organization in CircleCI is a top-level account that serves as a container for your team's
+        projects, settings, permissions, and billing.
+      verified_at: '2026-09-24'
+      role: an organization is itself an account
     note: no single sentence says only; read in order, the links say a token is provided to a job, by the
-      provider of one organization
+      provider of one organization, which is an account
   match:
     value: verified
     issuer_pattern: https://oidc.circleci.com/org/<organization_id>
@@ -403,6 +414,7 @@ issuers:
     population: the jobs of one organisation, and forked builds only when the owner enables them
     sources:
     - https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
+    - https://circleci.com/docs/guides/permissions-authentication/users-organizations-and-integrations-guide/
 - name: Codeberg (Forgejo)
   category: ci
   issuer: unverified

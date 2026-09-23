@@ -359,6 +359,18 @@ def test_the_researched_facts_are_the_census_s():
     assert [x["tenant"] for x in entra["not_a_controlled_tenant"]] == [PERSONAL_MSA]
 
 
+def test_a_chain_to_no_ends_on_the_tenant_being_an_account():
+    """A token is minted for a tenant, never for whoever caused the run, so a
+    no rests on the tenant being an account, in the vendor's own words."""
+    for name, (docs, says) in {
+        "Bitbucket Pipelines": ("https://support.atlassian.com/bitbucket-cloud/",
+                                "To join or create a workspace, you need an individual Bitbucket account."),
+        "CircleCI": ("https://circleci.com/docs/", "An organization in CircleCI is a top-level account"),
+    }.items():
+        last = by_name(name)["anonymous_tokens"]["chain"][-1]
+        assert last["source"].startswith(docs) and says in last["quote"], (name, last)
+
+
 def test_the_eks_pattern_is_shown_by_aws_s_example():
     """EKS's pattern is the provider AWS prints in its own trust-policy
     example; a sentence that each cluster has an issuer URL says nothing of

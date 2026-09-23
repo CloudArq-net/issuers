@@ -635,10 +635,10 @@ var recorded = map[string]struct {
 	facts    map[string]int
 	research []string
 }{
-	"Bitbucket Pipelines": {map[string]int{"anonymous_tokens": 3, "match": 1, "tenant_membership": 4},
+	"Bitbucket Pipelines": {map[string]int{"anonymous_tokens": 4, "match": 1, "tenant_membership": 4},
 		[]string{"population", "sources"}},
 	"Buildkite": {map[string]int{}, nil},
-	"CircleCI": {map[string]int{"anonymous_tokens": 2, "match": 1, "tenant_membership": 2},
+	"CircleCI": {map[string]int{"anonymous_tokens": 3, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"GitHub Actions": {map[string]int{"anonymous_tokens": 5, "names_unique_regardless_of_case": 2, "not_tenancy": 20,
 		"owner_charset": 7, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
@@ -1282,6 +1282,22 @@ func TestEachValueRestsOnASentenceThatSaysIt(t *testing.T) {
 	if chain := quotes(bitbucket.AnonymousTokens.Chain...); !strings.Contains(chain, "rename your workspace ID") ||
 		!strings.Contains(chain, "workspaces/bbcitest") {
 		t.Errorf("Bitbucket: the chain does not tie the repository to the workspace the issuer names: %q", chain)
+	}
+
+	// A token is minted for a tenant, never for whoever caused the run, so a
+	// no rests on the tenant being an account: each chain ends by saying so,
+	// in the vendor's own words.
+	for name, account := range map[string]struct{ docs, says string }{
+		"Bitbucket Pipelines": {"https://support.atlassian.com/bitbucket-cloud/",
+			"To join or create a workspace, you need an individual Bitbucket account."},
+		"CircleCI": {"https://circleci.com/docs/",
+			"An organization in CircleCI is a top-level account"},
+	} {
+		chain := byName(t, name, "").AnonymousTokens.Chain
+		if len(chain) == 0 || !strings.HasPrefix(chain[len(chain)-1].Source, account.docs) ||
+			!strings.Contains(chain[len(chain)-1].Quote, account.says) {
+			t.Errorf("%s: the chain does not end on the vendor's sentence that its tenant is an account: %q", name, quotes(chain...))
+		}
 	}
 
 	const iss = "Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of the authenticated user."
