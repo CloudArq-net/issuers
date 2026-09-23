@@ -471,7 +471,10 @@ func facts(e Issuer) map[string][]Fact {
 	}
 	s := e.SubjectForms
 	for _, f := range s.Forms {
-		add("subject_forms."+f.Form, f.Evidence)
+		if f.Evidence != (Fact{}) {
+			add("subject_forms."+f.Form, f.Evidence)
+		}
+		add("subject_forms."+f.Form+".chain", f.Chain...)
 		add("subject_forms."+f.Form+".issued_for", f.IssuedFor...)
 	}
 	for _, n := range s.NeverPin {
@@ -638,7 +641,7 @@ var recorded = map[string]struct {
 	"CircleCI": {map[string]int{"anonymous_tokens": 2, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"GitHub Actions": {map[string]int{"anonymous_tokens": 5, "names_unique_regardless_of_case": 2, "not_tenancy": 20,
-		"owner_charset": 7, "research": 25, "subject_forms": 16, "tenancy_claims": 11},
+		"owner_charset": 7, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
 		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
 			"population_evidence", "sources"}},
 	"GitHub Actions (enterprise issuer path)": {map[string]int{"anonymous_tokens": 7, "match": 7, "tenant_membership": 1},
@@ -1060,6 +1063,45 @@ func TestAChainedValueIsMarked(t *testing.T) {
 	}
 	if gh := byName(t, "GitHub Actions", ""); len(gh.AnonymousTokens.Chain) != 5 {
 		t.Errorf("GitHub's chain has %d links; the research recorded five", len(gh.AnonymousTokens.Chain))
+	}
+}
+
+// GitHub prints no subject led by repository_owner_id or repository_id. It
+// instructs relying parties to require one, prints the subjects of other
+// customised templates as each key, a colon and its value in the template's
+// order, and encodes a colon inside a value. The two forms rest on those
+// sentences, marked as a chain; every other form rests on a subject GitHub
+// prints.
+func TestTheIDLedFormsRestOnAChain(t *testing.T) {
+	gh := byName(t, "GitHub Actions", "")
+	chained := 0
+	for _, f := range gh.SubjectForms.Forms {
+		key := strings.TrimSuffix(f.LeadingLiteral, ":")
+		if f.LeadingLiteral != "repository_owner_id:" && f.LeadingLiteral != "repository_id:" {
+			if f.Basis != "" || f.Evidence.Quote == "" {
+				t.Errorf("GitHub form %q: basis %q, evidence %q; it rests on a subject GitHub prints", f.Form, f.Basis, f.Evidence.Quote)
+			}
+			continue
+		}
+		chained++
+		if f.Basis != "chain" || f.Evidence != (Fact{}) || !strings.Contains(f.Note, "prints no literal") {
+			t.Errorf("GitHub form %q: basis %q, evidence %+v, note %q; it rests on a chain and says GitHub prints none",
+				f.Form, f.Basis, f.Evidence, f.Note)
+		}
+		instruction, printed, encoded := false, false, false
+		for _, l := range f.Chain {
+			instruction = instruction || strings.Contains(l.Quote, "configure the `sub` condition to require a `"+key+"` claim") &&
+				strings.Contains(l.Role, "instruction")
+			printed = printed || strings.Contains(l.Quote, "\"sub\": \"repository_owner:monalisa")
+			encoded = encoded || strings.Contains(l.Quote, "will be replaced with `%3A`")
+		}
+		if !instruction || !printed || !encoded {
+			t.Errorf("GitHub form %q: instruction %v, printed subject %v, colon encoding %v; the chain needs all three",
+				f.Form, instruction, printed, encoded)
+		}
+	}
+	if chained != 2 {
+		t.Fatalf("examined %d forms led by an id claim; GitHub's census records 2", chained)
 	}
 }
 

@@ -359,6 +359,26 @@ def test_the_researched_facts_are_the_census_s():
     assert [x["tenant"] for x in entra["not_a_controlled_tenant"]] == [PERSONAL_MSA]
 
 
+def test_the_id_led_forms_rest_on_a_chain():
+    """GitHub prints no subject led by repository_owner_id or repository_id:
+    it instructs relying parties to require one, prints other customised
+    subjects as key, colon and value in the template's order, and encodes a
+    colon inside a value. Every other form rests on a printed subject."""
+    chained = 0
+    for f in by_name("GitHub Actions")["subject_forms"]["forms"]:
+        key = f["leading_literal"].removesuffix(":")
+        if key not in ("repository_owner_id", "repository_id"):
+            assert "basis" not in f and f["evidence"]["quote"], f["form"]
+            continue
+        chained += 1
+        assert f.get("basis") == "chain" and "evidence" not in f and "prints no literal" in f["note"], f["form"]
+        assert any(f"configure the `sub` condition to require a `{key}` claim" in l["quote"] and "instruction" in l["role"]
+                   for l in f["chain"]), f["form"]
+        assert any('"sub": "repository_owner:monalisa' in l["quote"] for l in f["chain"]), f["form"]
+        assert any("will be replaced with `%3A`" in l["quote"] for l in f["chain"]), f["form"]
+    assert chained == 2
+
+
 def test_a_cluster_is_controlled_on_a_chain():
     """A cluster issues a service account's token to whoever its authorization
     lets create one, or lets create a workload that runs as the account, and

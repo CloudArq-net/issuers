@@ -257,9 +257,14 @@ type SubjectForm struct {
 	Shape           string        `json:"shape,omitempty"`
 	OwnerParts      []SubjectPart `json:"owner_parts,omitempty"`
 	RepositoryParts []SubjectPart `json:"repository_parts,omitempty"`
-	Evidence        Fact          `json:"evidence"`
-	IssuedFor       []Fact        `json:"issued_for,omitempty"`
-	Note            string        `json:"note,omitempty"`
+	// Evidence is a subject the vendor prints in this form. Where the vendor
+	// prints none, Evidence is the zero Fact, Basis is "chain" and the form
+	// follows from the sentences in Chain, read in order.
+	Evidence  Fact   `json:"evidence,omitzero"`
+	Basis     string `json:"basis,omitempty"`
+	Chain     []Fact `json:"chain,omitempty"`
+	IssuedFor []Fact `json:"issued_for,omitempty"`
+	Note      string `json:"note,omitempty"`
 }
 
 // SubjectPart is one part of a subject form's tenant.

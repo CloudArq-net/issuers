@@ -293,6 +293,14 @@ REFUSALS = {
     "a tenancy claim with no evidence": (drop(f"{SHARED}.tenancy_claims.claims.0", "evidence"), "missing 'evidence'"),
     "a subject form with no leading literal": (drop(f"{SHARED}.subject_forms.forms.0", "leading_literal"),
                                                "missing 'leading_literal'"),
+    "a subject form with nothing behind it": (drop(f"{SHARED}.subject_forms.forms.0", "evidence"),
+                                              "with no evidence and no chain"),
+    "a chained subject form with no links": (put(f"{SHARED}.subject_forms.forms.0", "basis", "chain"),
+                                             "basis: chain with no chain"),
+    "an observation in a subject form's chain": (put(f"{SHARED}.subject_forms.forms.0", "chain", [OBSERVATION]),
+                                                 SETTLES_NOTHING),
+    "a subject form's chain with no basis": (put(f"{SHARED}.subject_forms.forms.0", "chain", [fact()]),
+                                             "a chain with no basis"),
     "a literal that never pins, with no why": (drop(f"{SHARED}.subject_forms.never_pin.0", "why"), "missing 'why'"),
     "a claim that is not tenancy, with no why": (drop(f"{SHARED}.not_tenancy.claims.0", "why"), "missing 'why'"),
     "anonymous_tokens with no value": (drop(f"{SHARED}.anonymous_tokens", "value"), "missing 'value'"),
@@ -344,6 +352,20 @@ def test_the_build_refuses_a_key_given_twice(tmp_path, name):
     assert status == 1 and "given twice" in err, f"{name}: exit {status}\n{err}"
     assert "Traceback" not in err, err
     assert not (tree / "issuers.json").exists(), f"{name}: the build wrote a census it refused"
+
+
+def test_a_subject_form_may_rest_on_a_chain(tmp_path):
+    """A form no subject the vendor prints shows may rest on a chain of its
+    sentences, read in order and marked as one."""
+    doc = valid_census()
+    form = doc["issuers"][0]["subject_forms"]["forms"][0]
+    del form["evidence"]
+    form["basis"], form["chain"] = "chain", [fact(), fact()]
+    status, err, tree = build(tmp_path, doc)
+    assert status == 0, err
+    sub = json.loads((tree / "tenancy" / "tenancy.json").read_text(encoding="utf-8"))
+    assert sub["issuers"][0]["subject_forms"] == [
+        {"leading_literal": "org:", "owner_parts": [{"kind": "name", "delimiter_after": ":"}]}]
 
 
 def test_a_membership_may_rest_on_a_chain(tmp_path):

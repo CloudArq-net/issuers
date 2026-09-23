@@ -88,11 +88,14 @@ share.
 
 **`subject_forms`** — every documented form of `sub` with a tenant at its head: a leading
 literal, then the owner's parts in order, each with its kind and the delimiter after it.
-GitHub's `sub` has four such forms: two defaults, `repo:<owner>/…` and, since 15 July
-2026, `repo:<owner>@<owner_id>/…`, and two a repository can choose, led by
-`repository_owner:` and `repository_owner_id:`. `never_pin` lists leading literals whose
-subjects name no tenant of the token's, `job_workflow_ref:` first. A subject led by a
-literal the entry does not list names no tenant.
+GitHub's `sub` has five such forms: two defaults, `repo:<owner>/…` and, since 15 July
+2026, `repo:<owner>@<owner_id>/…`, and three a repository can choose, led by
+`repository_owner:`, `repository_owner_id:` and `repository_id:`. GitHub prints no subject
+led by either id, so those two rest on a chain marked `basis: chain`: GitHub's instruction
+to require one, the key-colon-value subjects it prints for other templates, and its
+encoding of a colon inside a value. `never_pin` lists leading literals whose subjects name
+no tenant of the token's, `job_workflow_ref:` first. A subject led by a literal the entry
+does not list names no tenant.
 
 **`owner_charset`** — the characters an owner name can hold. A delimiter outside the set
 cannot occur inside a name, which is what lets a `sub` prefix pin an owner. GitHub's is

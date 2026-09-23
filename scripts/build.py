@@ -419,12 +419,24 @@ def check_subject_forms(c, s):
     for i, f in enumerate(forms):
         w = f"subject_forms.forms[{i}]"
         if not c.keys(w, f, {'form', 'leading_literal', 'shape', 'owner_parts', 'repository_parts', 'evidence',
-                             'issued_for', 'note'}, ['form', 'leading_literal', 'evidence']):
+                             'basis', 'chain', 'issued_for', 'note'}, ['form', 'leading_literal']):
             continue
         c.text(f"{w}.form", f['form'])
         c.text(f"{w}.leading_literal", f['leading_literal'])
         literals.add(f['leading_literal'])
-        c.fact(f"{w}.evidence", f['evidence'])
+        # A form rests on a subject the vendor prints, or, where it prints
+        # none, on a chain of its sentences marked as one.
+        if 'evidence' in f:
+            c.fact(f"{w}.evidence", f['evidence'])
+        c.facts(f"{w}.chain", f.get('chain'))
+        if 'evidence' not in f and not f.get('chain'):
+            c.fail(w, "a form with no evidence and no chain")
+        if 'basis' in f:
+            c.one_of(f"{w}.basis", f['basis'], {'chain'})
+            if not f.get('chain'):
+                c.fail(w, "basis: chain with no chain")
+        elif f.get('chain'):
+            c.fail(w, "a chain with no basis: chain to say the form rests on it")
         c.facts(f"{w}.issued_for", f.get('issued_for'))
         total = 0
         for side in ('owner_parts', 'repository_parts'):

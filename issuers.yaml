@@ -976,31 +976,68 @@ issuers:
         source: https://docs.github.com/en/actions/reference/security/oidc
         quote: 'For example: `"sub": "repository_owner:monalisa"`'
         verified_at: '2026-09-23'
+    # GitHub prints no subject led by either id claim, so these two forms rest on a chain. A wrong
+    # spelling could only leave the pinned owner or repository with no token that matches it.
     - form: customised, led by the owner id
       leading_literal: 'repository_owner_id:'
       shape: repository_owner_id:<id>[:<key>:<value>...]
       owner_parts:
       - kind: id
         delimiter_after: ':'
-      evidence:
-        source: https://docs.github.com/en/actions/reference/security/oidc
+      basis: chain
+      chain:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
         quote: In your cloud provider's OIDC configuration, configure the `sub` condition to require a `repository_owner_id`
           claim that matches the required value.
-        verified_at: '2026-09-23'
-      note: GitHub prints no literal repository_owner_id subject; the shape follows the repository_owner:monalisa
-        example and the key:value joining of environment:production%3Aeastus:repository_owner:octo-org
+        verified_at: '2026-09-24'
+        role: GitHub's instruction to relying parties for a template of repository_owner_id alone, not a subject
+          GitHub prints
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'This example template allows the `sub` claim to have a new format, using `repository_owner`
+          and `repository_visibility`:'
+        verified_at: '2026-09-24'
+        role: a customised template names its claim keys in order
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'For example: `"sub": "repository_owner:monalisa:repository_visibility:private"`.'
+        verified_at: '2026-09-24'
+        role: the subject GitHub prints for that template, each key, a colon and its value, in the template's
+          order, led by its first key
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: Any `:` within the metadata values will be replaced with `%3A` in the subject claim.
+        verified_at: '2026-09-24'
+        role: a colon inside a value is encoded, so the first colon after the value ends it
+      note: GitHub prints no literal subject led by repository_owner_id; the shape follows the key:value
+        composition GitHub prints for its other customised templates
     - form: customised, led by the repository id
       leading_literal: 'repository_id:'
       shape: repository_id:<id>[:<key>:<value>...]
       repository_parts:
       - kind: id
         delimiter_after: ':'
-      evidence:
-        source: https://docs.github.com/en/actions/reference/security/oidc
+      basis: chain
+      chain:
+      - source: https://docs.github.com/en/actions/reference/security/oidc
         quote: In your cloud provider's OIDC configuration, configure the `sub` condition to require a `repository_id`
           claim that matches the required value.
-        verified_at: '2026-09-23'
-      note: names one repository by id and no owner
+        verified_at: '2026-09-24'
+        role: GitHub's instruction to relying parties for a template of repository_id alone, not a subject GitHub
+          prints
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'This example template allows the `sub` claim to have a new format, using `repository_owner`
+          and `repository_visibility`:'
+        verified_at: '2026-09-24'
+        role: a customised template names its claim keys in order
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: 'For example: `"sub": "repository_owner:monalisa:repository_visibility:private"`.'
+        verified_at: '2026-09-24'
+        role: the subject GitHub prints for that template, each key, a colon and its value, in the template's
+          order, led by its first key
+      - source: https://docs.github.com/en/actions/reference/security/oidc
+        quote: Any `:` within the metadata values will be replaced with `%3A` in the subject claim.
+        verified_at: '2026-09-24'
+        role: a colon inside a value is encoded, so the first colon after the value ends it
+      note: GitHub prints no literal subject led by repository_id; the shape follows the key:value composition
+        GitHub prints for its other customised templates. It names one repository by id and no owner.
     never_pin:
     - leading_literal: 'job_workflow_ref:'
       why: the subject leads with job_workflow_ref, which names the called workflow, not the repository
