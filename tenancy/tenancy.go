@@ -94,6 +94,20 @@ type Claim struct {
 	Immutable string `json:"immutable,omitempty"`
 }
 
+// ValueIsRecyclable reports whether a value of this claim can be released and
+// pass to someone else, which would put their tokens behind a trust that
+// names it. known is false when no vendor sentence settles it, and the answer
+// beside it is then the cautious one, true, whatever the claim's kind.
+func (c Claim) ValueIsRecyclable() (recyclable, known bool) {
+	switch c.Immutable {
+	case "yes":
+		return false, true
+	case "no":
+		return true, true
+	}
+	return true, false
+}
+
 // SubjectForm is one way an issuer spells sub with a tenant at its head.
 type SubjectForm struct {
 	LeadingLiteral  string `json:"leading_literal"`

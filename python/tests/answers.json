@@ -42,6 +42,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Bitbucket Pipelines",
@@ -81,6 +82,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Buildkite",
@@ -121,6 +123,7 @@
      true
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "CircleCI",
@@ -158,6 +161,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Codeberg (Forgejo)",
@@ -194,6 +198,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Codefresh",
@@ -230,6 +235,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Depot",
@@ -264,6 +270,28 @@
     "acme": [
      false,
      false
+    ]
+   },
+   "claim_is_recyclable": {
+    "enterprise_id": [
+     true,
+     false
+    ],
+    "repository": [
+     true,
+     true
+    ],
+    "repository_id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     true,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
     ]
    },
    "owner_name_may_contain": "0001100111100",
@@ -419,6 +447,7 @@
      true
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitHub Actions (enterprise issuer path)",
@@ -457,6 +486,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitHub Enterprise Server (self-hosted)",
@@ -490,6 +520,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitLab self-managed",
@@ -526,6 +557,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitLab.com",
@@ -559,6 +591,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Gitea / Forgejo Actions",
@@ -592,6 +625,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Harness",
@@ -625,6 +659,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Harness",
@@ -658,6 +693,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Jenkins (OpenID Connect Provider plugin)",
@@ -691,6 +727,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Microsoft (Azure DevOps)",
@@ -727,6 +764,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Namespace",
@@ -760,6 +798,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Semaphore",
@@ -796,6 +835,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "HCP Terraform (Terraform Cloud)",
@@ -832,6 +872,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Pulumi Cloud",
@@ -868,6 +909,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Scalr",
@@ -908,6 +950,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Spacelift",
@@ -944,6 +987,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Terraform Enterprise (self-hosted)",
@@ -980,6 +1024,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "env0",
@@ -1020,6 +1065,7 @@
      true
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon EKS (Kubernetes service account issuer / IRSA)",
@@ -1064,6 +1110,7 @@
      true
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Azure Kubernetes Service (AKS workload identity)",
@@ -1101,6 +1148,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cloudflare Access",
@@ -1141,6 +1189,7 @@
      true
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Google Kubernetes Engine (GKE)",
@@ -1178,6 +1227,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "HashiCorp Vault (as an OIDC provider)",
@@ -1214,6 +1264,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Modal",
@@ -1247,6 +1298,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "SPIFFE / SPIRE (OIDC Discovery Provider)",
@@ -1280,6 +1332,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Teleport",
@@ -1320,6 +1373,7 @@
      true
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "AWS (outbound identity federation)",
@@ -1357,6 +1411,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "AWS STS (sts.amazonaws.com)",
@@ -1393,6 +1448,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Google (accounts.google.com)",
@@ -1430,6 +1486,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon Cognito identity pools",
@@ -1471,6 +1528,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Login with Amazon",
@@ -1508,6 +1566,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Facebook",
@@ -1548,6 +1607,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Microsoft Entra ID",
@@ -1591,6 +1651,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cognition",
@@ -1627,6 +1688,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cursor",
@@ -1663,6 +1725,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cursor",
@@ -1699,6 +1762,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Warp",
@@ -1735,6 +1799,7 @@
      false
     ]
    },
+   "claim_is_recyclable": {},
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Chainguard",

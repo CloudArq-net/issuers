@@ -184,8 +184,10 @@ without ASCII case and no other, in `get` and `Get` as in `match`, so a look-ali
 with the Kelvin sign is not a census host. Every entry either package hands out is the
 caller's own copy: edit it however deep and the next answer is still the census's. The readers
 (`issues_anonymous_tokens`, `controlled_tenant`, `tenant_is_recyclable`,
-`names_compare_without_case`) return an `Answer`, a `(value, known)` pair; when `known`
-is false the value is the cautious one. An `Answer` refuses to be read as true or false,
+`claim_is_recyclable`, `names_compare_without_case`) return an `Answer`, a `(value, known)`
+pair; when `known` is false the value is the cautious one. A claim's value is recyclable
+unless a vendor sentence says it cannot pass to someone else, whatever its kind: GitHub's
+`enterprise_id` is an id, and no sentence settles it. An `Answer` refuses to be read as true or false,
 so an unknown cannot pass for an answer by accident.
 
 ```go

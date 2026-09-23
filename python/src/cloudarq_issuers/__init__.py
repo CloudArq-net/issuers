@@ -64,6 +64,7 @@ __all__ = [
     "issues_anonymous_tokens",
     "controlled_tenant",
     "tenant_is_recyclable",
+    "claim_is_recyclable",
     "owner_name_may_contain",
     "names_compare_without_case",
     "host_of",
@@ -283,6 +284,22 @@ def tenant_is_recyclable(entry: Mapping[str, Any]) -> Answer:
     the same issuer. Not known when no vendor sentence settles it, and the
     answer beside it is then the cautious one, ``True``."""
     return _yes_no(tenancy(entry).get("tenant_recyclable"), True)
+
+
+def claim_is_recyclable(entry: Mapping[str, Any], claim: str) -> Answer:
+    """Whether a value of ``claim`` can be released and pass to someone else,
+    which would put their tokens behind a trust that names it. Not known when
+    no vendor sentence settles it, or when the entry does not list the claim
+    as naming a tenant, and the answer beside it is then the cautious one,
+    ``True``, whatever the claim's kind."""
+    for c in tenancy(entry).get("tenancy_claims", []):
+        if c["claim"] == claim:
+            if c.get("immutable") == "yes":
+                return Answer(False, True)
+            if c.get("immutable") == "no":
+                return Answer(True, True)
+            break
+    return Answer(True, False)
 
 
 def names_compare_without_case(entry: Mapping[str, Any]) -> Answer:

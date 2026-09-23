@@ -256,6 +256,21 @@ def test_tenant_is_recyclable():
     assert ci.tenant_is_recyclable({"name": "x", "match": {"value": "unverified", "tenant_recyclable": "no"}}) == (True, False)
 
 
+def test_a_claim_s_value_is_recyclable_unless_recorded_immutable():
+    """Unless a vendor sentence says a claim's value cannot pass to someone
+    else, it may, whatever the claim's kind."""
+    gh = by_name("GitHub Actions")
+    assert {c: tuple(ci.claim_is_recyclable(gh, c)) for c in
+            ("repository_owner", "repository_owner_id", "repository", "repository_id", "enterprise_id")} == {
+        "repository_owner": (True, True), "repository_owner_id": (False, True), "repository": (True, True),
+        "repository_id": (False, True), "enterprise_id": (True, False)}
+    assert ci.claim_is_recyclable(gh, "actor") == (True, False)
+    for value, want in (("yes", (False, True)), ("no", (True, True)), ("unverified", (True, False))):
+        entry = {"name": "x", "tenancy_claims": {"value": "verified", "claims": [
+            {"claim": "c", "kind": "id", "scope": "owner", "multi_valued": "no", "immutable": value}]}}
+        assert ci.claim_is_recyclable(entry, "c") == want, value
+
+
 def test_owner_name_may_contain():
     gh = by_name("GitHub Actions")
     for ch in "/@:%.~ é":
@@ -576,6 +591,8 @@ def test_go_and_python_agree(n):
     assert list(ci.names_compare_without_case(entry)) == want["names_compare_without_case"]
     assert list(ci.tenant_is_recyclable(entry)) == want["tenant_is_recyclable"]
     assert {t: list(ci.controlled_tenant(entry, t)) for t in want["controlled_tenant"]} == want["controlled_tenant"]
+    assert {c["claim"]: list(ci.claim_is_recyclable(entry, c["claim"]))
+            for c in ci.tenancy(entry).get("tenancy_claims", [])} == want["claim_is_recyclable"]
     chars = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
     assert chars == want["owner_name_may_contain"]
     assert ci.tenancy(entry) == want["tenancy"]

@@ -365,6 +365,33 @@ func TestTenantIsRecyclable(t *testing.T) {
 	}
 }
 
+// A claim's value can pass to someone else unless a vendor sentence says it
+// cannot. GitHub's enterprise_id is an id whose immutability no sentence
+// settles, so it reads recyclable and not known, whatever its kind.
+func TestAClaimsValueIsRecyclableUnlessRecordedImmutable(t *testing.T) {
+	want := map[string][2]bool{
+		"repository_owner": {true, true}, "repository_owner_id": {false, true},
+		"repository": {true, true}, "repository_id": {false, true},
+		"enterprise_id": {true, false},
+	}
+	claims := find(t, github).TenancyClaims
+	if len(claims) != len(want) {
+		t.Fatalf("GitHub carries %d tenancy claims; want %d", len(claims), len(want))
+	}
+	for _, c := range claims {
+		recyclable, known := c.ValueIsRecyclable()
+		if w := want[c.Claim]; recyclable != w[0] || known != w[1] {
+			t.Errorf("GitHub %s ValueIsRecyclable() = %v, %v; want %v, %v", c.Claim, recyclable, known, w[0], w[1])
+		}
+	}
+	for v, w := range map[string][2]bool{"yes": {false, true}, "no": {true, true}, "": {true, false}, "maybe": {true, false}} {
+		recyclable, known := (Claim{Kind: "id", Immutable: v}).ValueIsRecyclable()
+		if recyclable != w[0] || known != w[1] {
+			t.Errorf("an id claim with immutable %q reads %v, %v; want %v, %v", v, recyclable, known, w[0], w[1])
+		}
+	}
+}
+
 // The classifier's facts, pinned. A generator that drops or misnames a field
 // fails here rather than in a ring.
 func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {

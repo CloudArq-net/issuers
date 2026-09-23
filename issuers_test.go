@@ -1458,6 +1458,8 @@ type entryAnswer struct {
 	NamesCompareWithoutCase [2]bool            `json:"names_compare_without_case"`
 	TenantIsRecyclable      [2]bool            `json:"tenant_is_recyclable"`
 	ControlledTenant        map[string][2]bool `json:"controlled_tenant"`
+	// ClaimIsRecyclable is what each tenancy claim's ValueIsRecyclable says.
+	ClaimIsRecyclable map[string][2]bool `json:"claim_is_recyclable"`
 	// OwnerNameMayContain holds 1 or 0 for each probe character, in order.
 	OwnerNameMayContain string         `json:"owner_name_may_contain"`
 	Tenancy             tenancy.Issuer `json:"tenancy"`
@@ -1505,7 +1507,10 @@ func goAnswers() answers {
 	for _, e := range All() {
 		t := e.Tenancy()
 		a := entryAnswer{Name: e.Name, Issuer: e.Issuer, Instance: instanceOf(e), Tenancy: t,
-			ControlledTenant: map[string][2]bool{}}
+			ControlledTenant: map[string][2]bool{}, ClaimIsRecyclable: map[string][2]bool{}}
+		for _, c := range t.TenancyClaims {
+			a.ClaimIsRecyclable[c.Claim] = pair(c.ValueIsRecyclable())
+		}
 		tenants := slices.Clone(out.Probes.Tenants)
 		if got, tenant, ok := Match(a.Instance); ok {
 			a.Match = &matchAnswer{Entry: got.Name, Tenant: tenant}
