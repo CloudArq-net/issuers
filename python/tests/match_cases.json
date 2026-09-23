@@ -35,7 +35,7 @@
     {"issuer": "https://oidc.eks.us.east.1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": null, "why": "a placeholder in a host is one label"},
     {"issuer": "https://oidc.eks.us_east_1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": null, "why": "a host placeholder holds letters, digits and dashes only"},
 
-    {"issuer": "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/00000000-0000-0000-0000-000000000000/", "entry": "https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/", "tenant": "00000000-0000-0000-0000-000000000000"},
+    {"issuer": "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/00000000-0000-0000-0000-000000000000/", "entry": "https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/", "tenant": "eastus/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/00000000-0000-0000-0000-000000000000", "why": "no sentence says which GUID is the cluster, so the tenant is everything the issuer carries"},
     {"issuer": "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/", "entry": null},
 
     {"issuer": "https://container.googleapis.com/v1/projects/taahm-gke-dev/locations/us-central1-c/clusters/mesh-certs-test2", "entry": "https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>", "tenant": "taahm-gke-dev/us-central1-c/mesh-certs-test2", "why": "a tenant spelled from three placeholders"},

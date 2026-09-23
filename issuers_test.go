@@ -491,6 +491,7 @@ func facts(e Issuer) map[string][]Fact {
 	add("match.tenant_recyclable_evidence", m.TenantRecyclableEvidence...)
 	for _, x := range m.NotAControlledTenant {
 		add("match.not_a_controlled_tenant."+x.Tenant, x.Evidence)
+		add("match.not_a_controlled_tenant."+x.Tenant+".context", x.Context...)
 	}
 	add("tenant_membership.evidence", e.TenantMembership.Evidence...)
 	add("tenant_membership.context", e.TenantMembership.Context...)
@@ -706,7 +707,7 @@ func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 // A value other than unverified is a claim about a vendor, and a claim with
 // nothing behind it is not a fact.
 func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
-	verified := 0
+	controlled, patterns := 0, 0
 	for _, e := range All() {
 		n := e.Name
 		a := e.AnonymousTokens
@@ -720,7 +721,7 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 			t.Errorf("%s: researched, and anonymous_tokens unverified with no why", n)
 		}
 		if e.TenantMembership.Value == "controlled" {
-			verified++
+			controlled++
 			if len(e.TenantMembership.Evidence) == 0 || e.Match.Value != "verified" {
 				t.Errorf("%s: a controlled tenant needs its evidence and a verified pattern", n)
 			}
@@ -740,7 +741,7 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 			t.Errorf("%s: names_unique_regardless_of_case %q with no evidence", n, v)
 		}
 		if m := e.Match; m.Value == "verified" {
-			verified++
+			patterns++
 			if m.IssuerPattern == "" || m.TenantPlaceholder == "" || len(m.Evidence) == 0 {
 				t.Errorf("%s: a verified pattern needs its pattern, its tenant and its evidence", n)
 			}
@@ -758,8 +759,11 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 			t.Errorf("%s: built_in with no evidence or no principal", n)
 		}
 	}
-	if verified < 18 {
-		t.Fatalf("examined %d verified patterns and memberships; the research recorded 18", verified)
+	// Nine patterns, and seven tenants whose owner the vendor says controls
+	// who obtains tokens: no sentence in this release says who can cause a
+	// Spacelift run or a Bitbucket pipeline.
+	if patterns != 9 || controlled != 7 {
+		t.Fatalf("examined %d verified patterns and %d controlled memberships; the census records 9 and 7", patterns, controlled)
 	}
 }
 
@@ -863,7 +867,7 @@ func TestGitHubsOwnerCharacterSetNamesItsSources(t *testing.T) {
 		notTenancy[c.Claim] = true
 	}
 	for _, c := range []string{"actor", "actor_id", "job_workflow_ref", "job_workflow_sha", "environment", "ref",
-		"event_name", "runner_environment", "repository_visibility", "workflow_ref"} {
+		"event_name", "runner_environment", "repository_visibility", "workflow_ref", "enterprise"} {
 		if !notTenancy[c] {
 			t.Errorf("GitHub: %s is not recorded in not_tenancy: it names no owner, repository or enterprise", c)
 		}
@@ -1015,6 +1019,101 @@ func TestTheCorrectionsTheVendorsForce(t *testing.T) {
 	}
 	if e := byName(t, "Chainguard", ""); e.TenancyClaim != "unverified" {
 		t.Errorf("Chainguard: tenancy_claim %q, want unverified", e.TenancyClaim)
+	}
+	if e := byName(t, "Microsoft (Azure DevOps)", ""); e.SubjectFormat != "unverified" {
+		t.Errorf("Azure DevOps: subject_format %q; the vendor documents three forms and the census carries none of their sentences", e.SubjectFormat)
+	}
+	if strings.Contains(e.Notes, "name-recyclable") {
+		t.Errorf("Bitbucket: the note that no trust policy is name-recyclable survives, although the issuer carries the workspace ID, a name Atlassian lets a workspace change: %q", e.Notes)
+	}
+}
+
+// quotes are the quotes of facts, joined, for a test to look a sentence up.
+func quotes(fs ...Fact) string {
+	var b strings.Builder
+	for _, f := range fs {
+		b.WriteString(f.Quote)
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+// What the facts QA found, each value put back on a sentence that says it,
+// or written unverified where no sentence in this release does.
+func TestEachValueRestsOnASentenceThatSaysIt(t *testing.T) {
+	for name, why := range map[string]string{
+		"Spacelift":           "who can cause a run in an account",
+		"Bitbucket Pipelines": "who can run a pipeline in a workspace's repositories",
+	} {
+		m := byName(t, name, "").TenantMembership
+		if m.Value != "unverified" || len(m.Evidence) != 0 || !slices.ContainsFunc(m.Unverified, func(u string) bool {
+			return strings.Contains(u, why)
+		}) {
+			t.Errorf("%s: membership %+v; no sentence here says %s, so it is unverified and says so", name, m, why)
+		}
+	}
+	if m := byName(t, "Spacelift", "").TenantMembership; !strings.Contains(quotes(m.Context...), "available to every run in any paid Spacelift account") {
+		t.Error("Spacelift: the sentence that was read stays beside the value as context")
+	}
+
+	circle := byName(t, "CircleCI", "")
+	if chain := quotes(circle.AnonymousTokens.Chain...); !strings.Contains(chain, "Jobs can be configured to use these OIDC tokens") ||
+		!strings.Contains(chain, "OpenID Provider URL") {
+		t.Errorf("CircleCI: the chain does not name whom a token is minted for: %q", chain)
+	}
+	for _, note := range circle.TenantMembership.Notes {
+		if strings.Contains(note, "404") {
+			t.Errorf("CircleCI: a note says the v0.1.0 docs URL returned 404; it redirects to the page cited: %q", note)
+		}
+	}
+
+	aks := byName(t, "Azure Kubernetes Service (AKS workload identity)", "")
+	if aks.Match.TenantPlaceholder != "<region>/<tenant_id>/<cluster_uuid>" {
+		t.Errorf("AKS: tenant %q; no sentence says which GUID is the cluster, so the tenant is the whole issuer", aks.Match.TenantPlaceholder)
+	}
+	if !strings.Contains(quotes(aks.AnonymousTokens.Chain...), "discover the API server's public signing keys") {
+		t.Error("AKS: the chain does not tie the issuer to the cluster's API server")
+	}
+
+	bitbucket := byName(t, "Bitbucket Pipelines", "")
+	if chain := quotes(bitbucket.AnonymousTokens.Chain...); !strings.Contains(chain, "rename your workspace ID") ||
+		!strings.Contains(chain, "workspaces/bbcitest") {
+		t.Errorf("Bitbucket: the chain does not tie the repository to the workspace the issuer names: %q", chain)
+	}
+
+	const iss = "Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of the authenticated user."
+	entra := byName(t, "Microsoft Entra ID", "").Match
+	for field, fs := range map[string][]Fact{"tenant_syntax_evidence": entra.TenantSyntaxEvidence,
+		"tenant_immutable_evidence": entra.TenantImmutableEvidence,
+		"not_a_controlled_tenant":   append([]Fact{entra.NotAControlledTenant[0].Evidence}, entra.NotAControlledTenant[0].Context...)} {
+		if !strings.Contains(quotes(fs...), iss) {
+			t.Errorf("Entra %s: the iss claim's sentence is not beside the tid claim's", field)
+		}
+		for _, f := range fs {
+			if strings.Contains(f.Quote, "the GUID is the immutable tenant ID") && !strings.Contains(f.Role, "tid") {
+				t.Errorf("Entra %s: the tid claim's sentence is not labelled as the tid claim's: role %q", field, f.Role)
+			}
+		}
+	}
+
+	gh := byName(t, "GitHub Actions", "")
+	for _, c := range gh.TenancyClaims.Claims {
+		if c.Claim == "enterprise" {
+			t.Error("GitHub: enterprise pins, although no sentence says its value names one enterprise")
+		}
+	}
+	found := false
+	for _, c := range gh.NotTenancy.Claims {
+		if c.Claim == "enterprise" {
+			found = true
+			if !strings.HasPrefix(c.Why, "unverified as a tenant claim") || !strings.Contains(c.Evidence.Quote, "The name of the enterprise") ||
+				len(c.LookedIn) == 0 {
+				t.Errorf("GitHub: enterprise is not tenancy for no stated reason: %+v", c)
+			}
+		}
+	}
+	if !found {
+		t.Error("GitHub: enterprise is recorded nowhere")
 	}
 }
 

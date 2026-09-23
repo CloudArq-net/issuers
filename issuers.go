@@ -209,20 +209,26 @@ type TenantClaim struct {
 	LookedIn          []string `json:"looked_in,omitempty"`
 }
 
-// NotTenancy lists claims that look as if they name a tenant and do not.
+// NotTenancy lists claims that look as if they name a tenant and are never
+// read as naming one: a claim a vendor sentence says names something else,
+// and a claim no sentence in this release shows to name one tenant, whose Why
+// begins "unverified as a tenant claim". A classifier reads both the same way
+// as a claim listed nowhere: it pins nothing.
 type NotTenancy struct {
 	// Value is "verified" or "unverified".
 	Value  string            `json:"value"`
 	Claims []NotTenancyClaim `json:"claims,omitempty"`
 }
 
-// NotTenancyClaim is one such claim, with the vendor's sentence saying what it
-// names instead.
+// NotTenancyClaim is one such claim, with the vendor's sentence about it.
 type NotTenancyClaim struct {
 	Claim    string `json:"claim"`
 	Why      string `json:"why"`
 	Evidence Fact   `json:"evidence"`
 	Context  []Fact `json:"context,omitempty"`
+	// LookedIn lists the pages searched for a sentence that would settle
+	// whether the claim names a tenant.
+	LookedIn []string `json:"looked_in,omitempty"`
 }
 
 // SubjectForms is every form of sub the issuer documents with a tenant at its
@@ -327,6 +333,9 @@ type NotAControlledTenant struct {
 	Tenant   string `json:"tenant"`
 	Why      string `json:"why"`
 	Evidence Fact   `json:"evidence"`
+	// Context holds the sentences that tie Evidence to the issuer, where
+	// Evidence describes another claim.
+	Context []Fact `json:"context,omitempty"`
 }
 
 // TenantMembership records whether a tenant's owner controls who obtains
@@ -338,7 +347,7 @@ type TenantMembership struct {
 	Context  []Fact `json:"context,omitempty"`
 	// Notes are conclusions drawn from the facts; a derived one says so.
 	Notes []string `json:"notes,omitempty"`
-	// Unverified lists what the research looked for here and did not find.
+	// Unverified lists what no vendor sentence in this release settles here.
 	Unverified []string `json:"unverified,omitempty"`
 	LookedIn   []string `json:"looked_in,omitempty"`
 }

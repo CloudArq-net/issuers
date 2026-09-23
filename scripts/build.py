@@ -379,13 +379,15 @@ def check_not_tenancy(c, t, tenancy_claims):
     seen = set()
     for i, x in enumerate(claims):
         w = f"not_tenancy.claims[{i}]"
-        if not c.keys(w, x, {'claim', 'why', 'evidence', 'context'}, ['claim', 'why', 'evidence']):
+        if not c.keys(w, x, {'claim', 'why', 'evidence', 'context', 'looked_in'}, ['claim', 'why', 'evidence']):
             continue
         c.text(f"{w}.claim", x['claim'])
         c.text(f"{w}.why", x['why'])
         # A claim listed here never pins, as one listed nowhere never does.
         c.fact(f"{w}.evidence", x['evidence'], settles=False)
         c.context(f"{w}.context", x.get('context'))
+        if 'looked_in' in x:
+            c.urls(f"{w}.looked_in", x['looked_in'])
         if x['claim'] in seen or x['claim'] in tenancy_claims:
             c.fail(w, f"{x['claim']!r} is listed twice, or is also a tenancy claim")
         seen.add(x['claim'])
@@ -529,10 +531,11 @@ def check_match(c, m, issuer):
         open_tenants = []
     for i, x in enumerate(open_tenants):
         w = f"match.not_a_controlled_tenant[{i}]"
-        if c.keys(w, x, {'tenant', 'why', 'evidence'}, ['tenant', 'why', 'evidence']):
+        if c.keys(w, x, {'tenant', 'why', 'evidence', 'context'}, ['tenant', 'why', 'evidence']):
             c.text(f"{w}.tenant", x['tenant'])
             c.text(f"{w}.why", x['why'])
             c.fact(f"{w}.evidence", x['evidence'])
+            c.context(f"{w}.context", x.get('context'))
 
 
 def check_tenant_membership(c, t, match):

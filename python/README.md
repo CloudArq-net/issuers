@@ -65,14 +65,17 @@ the page, the sentence verbatim, and the date it was read.
   Amazon Cognito identity pools do, in a pool that allows guests.
 - `tenancy_claims` and `not_tenancy`: the claims that name a tenant (an owner, a repository
   or an enterprise), each with its `kind`, `name` or `id`; and the claims that look like
-  tenants and are not, such as GitHub's `job_workflow_ref`.
+  tenants and are never read as naming one, such as GitHub's `job_workflow_ref`, which names
+  the called workflow, and GitHub's `enterprise`, which no sentence shows to name one
+  enterprise.
 - `subject_forms`: every documented form of `sub` with a tenant at its head, as a leading
   literal and the owner's parts, each with the delimiter after it; `never_pin` lists the
   literals whose subjects name no tenant.
 - `owner_charset` and `names_unique_regardless_of_case`: the characters an owner name can
   hold, and whether names that differ only in case are one owner.
 - `match` and `tenant_membership`: for an issuer whose URL names its tenant, how to read it,
-  and whether the tenant's owner controls who obtains its tokens.
+  and whether the tenant's owner controls who obtains its tokens. Seven of the nine patterns
+  record that it does; Spacelift's and Bitbucket Pipelines' read `unverified`.
 - `built_in`: the providers AWS STS accepts with no identity provider in the account.
 - `researched`: whether this release researched the entry at all.
 

@@ -119,11 +119,14 @@ issuers:
   self_hosted_variant: n/a - Bitbucket Cloud only. Bitbucket Data Center OIDC not verified.
   docs_url: https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
   verified_at: '2026-09-13'
+  # v0.2.0: v0.1.0 ended this note "so no Bitbucket trust policy is name-recyclable". The issuer's path
+  # carries the workspace ID, which Atlassian lets a workspace rename (its sentence is under
+  # tenant_membership), so that clause is withdrawn; whether a released ID can be claimed again is unverified.
   notes: 'TENANCY CONTROL TEST PASSED. A bogus workspace slug ("foo") and a bogus workspace UUID both
     return HTTP 404 {"type": "error", "error": {"message": "Resource not found"}}. I could not fetch a
     positive discovery document because that requires naming a real workspace, so discovery_status stays
     `unverified` rather than being guessed from the 404 shape. Best-designed subject format in this census:
-    every component is an immutable UUID, so no Bitbucket trust policy is name-recyclable.'
+    every component of the subject is an immutable UUID.'
   source: wif census 2026-09-13
   vendor: Atlassian Bitbucket
   issuer_pattern: https://api.bitbucket.org/2.0/workspaces/<ws>/pipelines-config/identity/oidc
@@ -137,6 +140,19 @@ issuers:
     - source: https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
       quote: You must be using Pipelines in your repository to integrate OpenID Connect.
       verified_at: '2026-09-23'
+      role: a token is for a repository's pipelines
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
+      quote: For example, if you rename your workspace ID from johnc to jcitizen, the repository previously
+        available at http://bitbucket.org/johnc/repo is accessed as http://bitbucket.org/jcitizen/repo after
+        renaming.
+      verified_at: '2026-09-23'
+      role: a repository sits under its workspace's ID
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
+      quote: '"iss": "https://api.bitbucket.org/2.0/workspaces/bbcitest/pipelines-config/identity/oidc"'
+      verified_at: '2026-09-23'
+      role: the issuer names that workspace
+    note: no single sentence says only; read in order, the links say a token is minted for the pipelines
+      of a repository in the workspace the issuer names
   match:
     value: verified
     issuer_pattern: https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc
@@ -148,12 +164,12 @@ issuers:
       quote: '"iss": "https://api.bitbucket.org/2.0/workspaces/bbcitest/pipelines-config/identity/oidc"'
       verified_at: '2026-09-23'
   tenant_membership:
-    value: controlled
-    evidence:
+    value: unverified
+    context:
     - source: https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
       quote: You must be using Pipelines in your repository to integrate OpenID Connect.
       verified_at: '2026-09-23'
-    context:
+      role: says what a token is for, not who can run a pipeline
     - source: https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
       quote: Your workspace ID can only contain lowercase letters with no spaces or special characters.
       verified_at: '2026-09-23'
@@ -167,6 +183,7 @@ issuers:
         as shown in the example below:'
       verified_at: '2026-09-23'
     unverified:
+    - who can run a pipeline in a workspace's repositories, for example a pull request from a fork
     - whether a released workspace ID can be claimed by another workspace, which would hand it the issuer
       URL
     looked_in:
@@ -344,8 +361,18 @@ issuers:
     basis: chain
     chain:
     - source: https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
-      quote: CircleCI provides OpenID Connect ID (OIDC) tokens in environment variables.
+      quote: CircleCI provides OpenID Connect ID (OIDC) tokens in environment variables. Jobs can be configured
+        to use these OIDC tokens to access compatible cloud services without long-lived credentials being
+        stored in CircleCI.
       verified_at: '2026-09-23'
+      role: a token is provided to a job
+    - source: https://circleci.com/docs/guides/permissions-authentication/openid-connect-tokens/
+      quote: The OpenID Provider URL is `https://oidc.circleci.com/org/<organization_id>`, where `organization_id`
+        is your unique organization identifier.
+      verified_at: '2026-09-23'
+      role: the provider that issues it is one organization's
+    note: no single sentence says only; read in order, the links say a token is provided to a job, by the
+      provider of one organization
   match:
     value: verified
     issuer_pattern: https://oidc.circleci.com/org/<organization_id>
@@ -372,7 +399,6 @@ issuers:
     notes:
     - the census's control test found the per-organisation path is a naming convention over one shared key;
       that concerns whether a tenant exists, not who is in it
-    - the census docs_url https://circleci.com/docs/openid-connect-tokens/ returned HTTP 404 on 2026-09-23
   research:
     population: the jobs of one organisation, and forked builds only when the owner enables them
     sources:
@@ -722,25 +748,6 @@ issuers:
         quote: For repositories using immutable subject claims, the `sub` format includes immutable owner
           and repository IDs (not available on GitHub Enterprise Server).
         verified_at: '2026-09-23'
-    - claim: enterprise
-      kind: name
-      scope: enterprise
-      multi_valued: 'no'
-      immutable: unverified
-      evidence:
-        source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
-        quote: The name of the enterprise that contains the repository from where the workflow is running.
-        verified_at: '2026-09-23'
-      context:
-      - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
-        quote: Your old enterprise slug will immediately become available for another customer to use.
-        verified_at: '2026-09-23'
-      note: GitHub does not say whether this claim carries the enterprise slug; slugs change and are released
-        to other customers
-      looked_in:
-      - https://docs.github.com/en/actions/reference/security/oidc
-      - https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
-      - https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
     - claim: enterprise_id
       kind: id
       scope: enterprise
@@ -795,6 +802,23 @@ issuers:
         source: https://docs.github.com/en/actions/reference/security/oidc
         quote: For jobs using a reusable workflow, the commit SHA for the reusable workflow file.
         verified_at: '2026-09-23'
+    - claim: enterprise
+      why: 'unverified as a tenant claim: GitHub does not say whether this claim carries the enterprise slug,
+        which one enterprise holds at a time and GitHub releases to other customers, or a name another
+        enterprise can share'
+      evidence:
+        source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+        quote: The name of the enterprise that contains the repository from where the workflow is running.
+        verified_at: '2026-09-23'
+      context:
+      - source: https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
+        quote: Your old enterprise slug will immediately become available for another customer to use.
+        verified_at: '2026-09-23'
+        role: a slug is held by one enterprise at a time, and passes to another customer once released
+      looked_in:
+      - https://docs.github.com/en/actions/reference/security/oidc
+      - https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      - https://docs.github.com/en/enterprise-cloud@latest/admin/managing-your-enterprise-account/changing-the-url-for-your-enterprise
     - claim: workflow_ref
       why: 'unverified as a tenant claim: GitHub does not say which repository it names for a ruleset workflow
         kept in a source repository'
@@ -1623,7 +1647,8 @@ issuers:
   discovery_status: ok
   jwks_uri: https://vstoken.dev.azure.com/.well-known/jwks
   jwks_status: ok
-  subject_format: sc://<organization>/<project>/<service-connection-name>
+  # v0.2.0: the v0.1.0 value is contradicted by the vendor's documentation (research of 2026-09-23); this release does not carry the vendor's sentence, so it reads unverified.
+  subject_format: unverified
   subject_examples: []
   claims:
   - sub
@@ -1986,12 +2011,12 @@ issuers:
         and is unique for each Spacelift account.'
       verified_at: '2026-09-23'
   tenant_membership:
-    value: controlled
-    evidence:
+    value: unverified
+    context:
     - source: https://docs.spacelift.io/integrations/cloud-providers/oidc
       quote: The token is valid for an hour and is available to every run in any paid Spacelift account.
       verified_at: '2026-09-23'
-    context:
+      role: says which runs hold a token, not who can cause a run
     - source: https://docs.spacelift.io/integrations/cloud-providers/oidc
       quote: This feature is only available to paid Spacelift accounts.
       verified_at: '2026-09-23'
@@ -2192,19 +2217,33 @@ issuers:
     value: 'no'
     basis: chain
     chain:
+    - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+      quote: You can enable the OIDC issuer on your AKS clusters, which allows Microsoft Entra ID (or another
+        cloud provider's identity and access management platform) to discover the API server's public signing
+        keys.
+      verified_at: '2026-09-23'
+      role: the issuer publishes the signing keys of one cluster's API server
+    - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+      quote: Projected service account tokens are required for Kubernetes version 1.30 or later clusters.
+      verified_at: '2026-09-23'
+      role: the tokens are service account tokens, on clusters of Kubernetes 1.30 or later; a prerequisite
+        on the page, not a statement about earlier versions
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
         in a Kubernetes cluster.
       verified_at: '2026-09-23'
-    - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
-      quote: Projected service account tokens are required for Kubernetes version 1.30 or later clusters.
-      verified_at: '2026-09-23'
+      role: a service account is an identity inside one cluster
+    note: no single sentence says only; read in order, the links say the issuer is one cluster's API server,
+      and its tokens are for that cluster's service accounts
   match:
     value: verified
     issuer_pattern: https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/
-    tenant_placeholder: <cluster_uuid>
+    tenant_placeholder: <region>/<tenant_id>/<cluster_uuid>
     tenant_kind: id
     tenant_recyclable: unverified
+    note: No sentence in this release says what either GUID in the path is; the placeholders' names are
+      v0.1.0's. The tenant is therefore spelled from everything the issuer carries, the region and both
+      GUIDs, as the vendor's example issuer shows them.
     evidence:
     - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
       quote: By default, the issuer uses the base URL https://{region}.oic.prod-aks.azure.com, where the
@@ -3036,20 +3075,49 @@ issuers:
     tenant_kind: id
     tenant_syntax: guid
     tenant_syntax_evidence:
-    - &id001
-      source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
       quote: For work and school accounts, the GUID is the immutable tenant ID of the organization that
         the user is signing in to. For sign-ins to the personal Microsoft account tenant (services like
         Xbox, Teams for Life, or Outlook), the value is 9188040d-6c67-4c5b-b112-36a304b66dad.
       verified_at: '2026-09-23'
+      role: 'the tid claim''s description: a tenant is named by a GUID'
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of
+        the authenticated user.
+      verified_at: '2026-09-23'
+      role: 'the iss claim''s description: the issuer names that tenant'
     tenant_immutable: 'yes'
     tenant_immutable_evidence:
-    - *id001
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: For work and school accounts, the GUID is the immutable tenant ID of the organization that
+        the user is signing in to. For sign-ins to the personal Microsoft account tenant (services like
+        Xbox, Teams for Life, or Outlook), the value is 9188040d-6c67-4c5b-b112-36a304b66dad.
+      verified_at: '2026-09-23'
+      role: 'the tid claim''s description: the tenant ID is immutable'
+    - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+      quote: Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of
+        the authenticated user.
+      verified_at: '2026-09-23'
+      role: 'the iss claim''s description: the issuer names that tenant'
     tenant_recyclable: unverified
     not_a_controlled_tenant:
     - tenant: 9188040d-6c67-4c5b-b112-36a304b66dad
       why: the personal Microsoft account tenant, which anyone with a Microsoft account signs in to
-      evidence: *id001
+      evidence:
+        source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+        quote: For work and school accounts, the GUID is the immutable tenant ID of the organization that
+          the user is signing in to. For sign-ins to the personal Microsoft account tenant (services like
+          Xbox, Teams for Life, or Outlook), the value is 9188040d-6c67-4c5b-b112-36a304b66dad.
+        verified_at: '2026-09-23'
+        role: 'the tid claim''s description: this GUID is the personal Microsoft account tenant'
+      context:
+      - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+        quote: Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of
+          the authenticated user.
+        verified_at: '2026-09-23'
+        role: 'the iss claim''s description: the issuer names the tenant of the authenticated user'
+    note: The GUID sentences cited are the tid claim's, on the same page as the iss claim's. The iss claim's
+      own sentence naming the personal-account GUID is not among the facts this release carries.
     evidence:
     - source: https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
       quote: Identifies the STS that constructs and returns the token, and the Microsoft Entra tenant of

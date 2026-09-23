@@ -384,7 +384,6 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 		{Claim: "repository_owner_id", Kind: "id", Scope: "owner", Immutable: "yes"},
 		{Claim: "repository", Kind: "name", Scope: "repository", Immutable: "no"},
 		{Claim: "repository_id", Kind: "id", Scope: "repository", Immutable: "yes"},
-		{Claim: "enterprise", Kind: "name", Scope: "enterprise"},
 		{Claim: "enterprise_id", Kind: "id", Scope: "enterprise"},
 	}
 	if !reflect.DeepEqual(gh.TenancyClaims, wantClaims) {
@@ -423,7 +422,7 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 	perTenant := map[string][2]string{
 		githubEnt: {"<enterpriseSlug>", "name"},
 		"https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>":                                   {"<cluster_oidc_id>", "id"},
-		"https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/":                            {"<cluster_uuid>", "id"},
+		"https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/":                            {"<region>/<tenant_id>/<cluster_uuid>", "id"},
 		"https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>": {"<project>/<location>/<cluster>", "name"},
 		entra:                                {"<tenant_id>", "id"},
 		"https://<account>.app.spacelift.io": {"<account>", "name"},
@@ -431,13 +430,22 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc": {"<workspace>", "name"},
 		"https://<tenant_uuid>.tokens.sts.global.api.aws":                                     {"<tenant_uuid>", "id"},
 	}
+	// No sentence in this release says who can cause a Spacelift run or a
+	// Bitbucket pipeline, so neither tenant is known to control who holds its
+	// tokens.
+	uncontrolled := map[string]bool{"https://<account>.app.spacelift.io": true,
+		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc": true}
 	for issuer, want := range perTenant {
 		e := find(t, issuer)
 		if e.TenantPlaceholder != want[0] || e.TenantKind != want[1] {
 			t.Errorf("%s: tenant %q kind %q, want %q kind %q", e.Name, e.TenantPlaceholder, e.TenantKind, want[0], want[1])
 		}
-		if e.TenantMembership != "controlled" || e.AnonymousTokens != "no" {
-			t.Errorf("%s: membership %q, anonymous_tokens %q; the census records controlled and no", e.Name, e.TenantMembership, e.AnonymousTokens)
+		membership := "controlled"
+		if uncontrolled[issuer] {
+			membership = ""
+		}
+		if e.TenantMembership != membership || e.AnonymousTokens != "no" {
+			t.Errorf("%s: membership %q, anonymous_tokens %q; the census records %q and no", e.Name, e.TenantMembership, e.AnonymousTokens, membership)
 		}
 	}
 	patterns := 0

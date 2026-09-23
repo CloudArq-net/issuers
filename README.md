@@ -77,10 +77,14 @@ enterprise. Each has a `kind` (a `name` can be released and taken by someone els
 `id` cannot) and says whether it is `multi_valued`; a claim that lists several values
 pins nothing. A claim not listed names no tenant.
 
-**`not_tenancy`** — claims that look like tenants and are not, each with the sentence
-that says what they name instead. GitHub's `job_workflow_ref` names the *called* reusable
-workflow, not the repository the token was minted for, and `actor` names the person who
-started the run.
+**`not_tenancy`** — claims that look like tenants and are never read as naming one, each
+with the vendor's sentence and why. Most name something else: GitHub's `job_workflow_ref`
+names the *called* reusable workflow, not the repository the token was minted for, and
+`actor` names the person who started the run. The rest are there because no sentence shows
+that their value names one tenant, and their `why` begins *unverified as a tenant claim*:
+GitHub's `enterprise` carries "the name of the enterprise", and GitHub does not say whether
+that is the enterprise's slug, which one enterprise holds at a time, or a name another can
+share.
 
 **`subject_forms`** — every documented form of `sub` with a tenant at its head: a leading
 literal, then the owner's parts in order, each with its kind and the delimiter after it.
@@ -105,8 +109,10 @@ customer (`tenant_recyclable`; GitHub's enterprise slug can). Nine patterns are 
 EKS clusters and GitHub's enterprise issuer path among them.
 
 **`tenant_membership`** — whether the tenant's owner controls who obtains tokens naming
-it. `not_a_controlled_tenant` lists the tenants anyone can join although the pattern
-matches them: Microsoft Entra's personal-account tenant.
+it. Seven of the nine patterns record `controlled`. Spacelift and Bitbucket Pipelines read
+`unverified`: the sentences this release carries say which runs or pipelines hold a token,
+not who can cause one. `not_a_controlled_tenant` lists the tenants anyone can join although
+the pattern matches them: Microsoft Entra's personal-account tenant.
 
 **`built_in`** — the four providers AWS STS accepts with no identity provider in the
 role's account: Amazon Cognito, Google, Login with Amazon and Facebook, as AWS's reference
@@ -187,9 +193,9 @@ anonymous, known := e.Tenancy().IssuesAnonymousTokens()
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 4,531 bytes of
-data against the root package's 156,387. Built with go1.27.1 for `js/wasm`, a small program
-that matches an issuer through `tenancy` came out 188,588 bytes smaller (38,116 after
+instead. It carries the values a classifier reads and none of the sentences: 4,428 bytes of
+data against the root package's 160,498. Built with go1.27.1 for `js/wasm`, a small program
+that matches an issuer through `tenancy` came out 194,948 bytes smaller (39,316 after
 `gzip -9`) than one doing the same through the root package, and it does not contain the
 root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
 fails when it is out of step.
@@ -204,9 +210,12 @@ documentation. Where this release carries the vendor's sentence the field is cor
 where it does not, the field now reads `unverified`.
 
 - Bitbucket Pipelines: `aud_controlled_by` is `workload`, not `issuer`. A pipeline declares
-  its audiences in its own configuration.
-- Microsoft (Azure DevOps): `issuer` and `tenancy_model` read `unverified`, and the note
-  that there is nothing to scope on beyond `sub` is withdrawn.
+  its audiences in its own configuration. The note that no Bitbucket trust policy is
+  name-recyclable is withdrawn: the issuer carries the workspace ID, which Atlassian lets a
+  workspace rename.
+- Microsoft (Azure DevOps): `issuer`, `tenancy_model` and `subject_format` read
+  `unverified`, and the note that there is nothing to scope on beyond `sub` is withdrawn.
+  The research found subject forms the v0.1.0 value leaves out.
 - Codeberg (Forgejo): `issuer` reads `unverified`.
 - GitLab.com and GitLab self-managed: `aud_default` reads `unverified`.
 - env0: the note that its issuer was probably the wrong one is withdrawn.

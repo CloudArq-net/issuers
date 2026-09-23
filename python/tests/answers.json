@@ -30,16 +30,16 @@
    ],
    "controlled_tenant": {
     "9188040d-6c67-4c5b-b112-36a304b66dad": [
-     true,
-     true
+     false,
+     false
     ],
     "acme": [
-     true,
-     true
+     false,
+     false
     ],
     "p1-workspace": [
-     true,
-     true
+     false,
+     false
     ]
    },
    "owner_name_may_contain": "1111111111111",
@@ -48,7 +48,6 @@
     "issuer": "https://api.bitbucket.org/2.0/workspaces/\u003cworkspace\u003e/pipelines-config/identity/oidc",
     "tenant_placeholder": "\u003cworkspace\u003e",
     "tenant_kind": "name",
-    "tenant_membership": "controlled",
     "anonymous_tokens": "no"
    }
   },
@@ -296,11 +295,6 @@
       "kind": "id",
       "scope": "repository",
       "immutable": "yes"
-     },
-     {
-      "claim": "enterprise",
-      "kind": "name",
-      "scope": "enterprise"
      },
      {
       "claim": "enterprise_id",
@@ -879,16 +873,16 @@
    ],
    "controlled_tenant": {
     "9188040d-6c67-4c5b-b112-36a304b66dad": [
-     true,
-     true
+     false,
+     false
     ],
     "acme": [
-     true,
-     true
+     false,
+     false
     ],
     "p1-account": [
-     true,
-     true
+     false,
+     false
     ]
    },
    "owner_name_may_contain": "1111111111111",
@@ -897,7 +891,6 @@
     "issuer": "https://\u003caccount\u003e.app.spacelift.io",
     "tenant_placeholder": "\u003caccount\u003e",
     "tenant_kind": "name",
-    "tenant_membership": "controlled",
     "anonymous_tokens": "no"
    }
   },
@@ -1020,7 +1013,7 @@
    "instance": "https://p1-region.oic.prod-aks.azure.com/p2-tenant-id/p3-cluster-uuid/",
    "match": {
     "entry": "Azure Kubernetes Service (AKS workload identity)",
-    "tenant": "p3-cluster-uuid"
+    "tenant": "p1-region/p2-tenant-id/p3-cluster-uuid"
    },
    "anonymous_tokens": [
     false,
@@ -1043,7 +1036,7 @@
      true,
      true
     ],
-    "p3-cluster-uuid": [
+    "p1-region/p2-tenant-id/p3-cluster-uuid": [
      true,
      true
     ]
@@ -1052,7 +1045,7 @@
    "tenancy": {
     "name": "Azure Kubernetes Service (AKS workload identity)",
     "issuer": "https://\u003cregion\u003e.oic.prod-aks.azure.com/\u003ctenant_id\u003e/\u003ccluster_uuid\u003e/",
-    "tenant_placeholder": "\u003ccluster_uuid\u003e",
+    "tenant_placeholder": "\u003cregion\u003e/\u003ctenant_id\u003e/\u003ccluster_uuid\u003e",
     "tenant_kind": "id",
     "tenant_membership": "controlled",
     "anonymous_tokens": "no"

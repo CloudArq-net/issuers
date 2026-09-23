@@ -299,14 +299,13 @@ def test_the_researched_facts_are_the_census_s():
         ("repository_owner_id", "id", "owner", "no", "yes"),
         ("repository", "name", "repository", "no", "no"),
         ("repository_id", "id", "repository", "no", "yes"),
-        ("enterprise", "name", "enterprise", "no", "unverified"),
         ("enterprise_id", "id", "enterprise", "no", "unverified"),
     ]
     assert gh["owner_charset"]["characters"] == ["A-Z", "a-z", "0-9", "-", "_"]
     assert "job_workflow_ref:" in [n["leading_literal"] for n in gh["subject_forms"]["never_pin"]]
     not_tenancy = {c["claim"] for c in gh["not_tenancy"]["claims"]}
     assert {"actor", "actor_id", "job_workflow_ref", "job_workflow_sha", "environment", "ref", "event_name",
-            "runner_environment", "repository_visibility", "workflow_ref"} <= not_tenancy
+            "runner_environment", "repository_visibility", "workflow_ref", "enterprise"} <= not_tenancy
 
     assert by_name("Amazon Cognito identity pools")["anonymous_tokens"]["value"] == "yes"
     assert by_name("Login with Amazon")["anonymous_tokens"]["value"] == "no"
@@ -320,7 +319,8 @@ def test_the_researched_facts_are_the_census_s():
     per_tenant = {
         GITHUB_ENTERPRISE: ("<enterpriseSlug>", "name", "yes"),
         "https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>": ("<cluster_oidc_id>", "id", "unverified"),
-        "https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/": ("<cluster_uuid>", "id", "unverified"),
+        "https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/":
+            ("<region>/<tenant_id>/<cluster_uuid>", "id", "unverified"),
         "https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>":
             ("<project>/<location>/<cluster>", "name", "unverified"),
         ENTRA: ("<tenant_id>", "id", "unverified"),
@@ -330,11 +330,15 @@ def test_the_researched_facts_are_the_census_s():
             ("<workspace>", "name", "unverified"),
         "https://<tenant_uuid>.tokens.sts.global.api.aws": ("<tenant_uuid>", "id", "unverified"),
     }
+    # No sentence in this release says who can cause a Spacelift run or a
+    # Bitbucket pipeline.
+    uncontrolled = {"Spacelift", "Bitbucket Pipelines"}
     for key, (tenant, kind, recyclable) in per_tenant.items():
         e = by_key(key)
         m = e["match"]
         assert (m["tenant_placeholder"], m["tenant_kind"], m["tenant_recyclable"]) == (tenant, kind, recyclable), e["name"]
-        assert e["tenant_membership"]["value"] == "controlled", e["name"]
+        membership = "unverified" if e["name"] in uncontrolled else "controlled"
+        assert e["tenant_membership"]["value"] == membership, e["name"]
         assert (e["anonymous_tokens"]["value"], e["anonymous_tokens"]["basis"]) == ("no", "chain"), e["name"]
     assert len([e for e in ci.issuers() if e["match"]["value"] == "verified"]) == len(per_tenant)
     entra = by_key(ENTRA)["match"]
@@ -436,6 +440,8 @@ def test_the_corrections_the_vendors_force():
     assert bb["aud_controlled_by"] == "workload" and "To customize your audiences" in bb["aud_evidence"]
     assert "workspace-pinned anyway" not in bb.get("vendor_example_note", "")
     assert by_name("Chainguard")["tenancy_claim"] == "unverified"
+    assert azure["subject_format"] == "unverified"
+    assert "name-recyclable" not in bb["notes"]
 
 
 def test_get_resolves_a_shared_host_to_the_host_s_own_issuer():
