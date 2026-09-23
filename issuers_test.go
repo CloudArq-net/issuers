@@ -650,7 +650,7 @@ var recorded = map[string]struct {
 	"HCP Terraform (Terraform Cloud)": {map[string]int{}, nil},
 	"Spacelift": {map[string]int{"anonymous_tokens": 1, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
-	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1, "match": 1,
+	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1, "match": 2,
 		"tenant_membership": 8}, []string{"population", "sources"}},
 	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3, "match": 2,
 		"tenant_membership": 8}, []string{"population", "sources"}},
@@ -1063,6 +1063,26 @@ func TestAChainedValueIsMarked(t *testing.T) {
 	}
 	if gh := byName(t, "GitHub Actions", ""); len(gh.AnonymousTokens.Chain) != 5 {
 		t.Errorf("GitHub's chain has %d links; the research recorded five", len(gh.AnonymousTokens.Chain))
+	}
+}
+
+// EKS's pattern is the provider AWS prints in its own trust-policy example:
+// the regional host, then /id/ and the cluster's OIDC id. A sentence that
+// says each cluster has an issuer URL says nothing of the URL's shape.
+func TestTheEKSPatternIsShownByAWSsExample(t *testing.T) {
+	eks := byName(t, "Amazon EKS (Kubernetes service account issuer / IRSA)", "")
+	shown := false
+	for _, f := range eks.Match.Evidence {
+		_, provider, found := strings.Cut(f.Quote, "oidc-provider/")
+		if !found || !strings.HasPrefix(f.Source, "https://docs.aws.amazon.com/eks/") {
+			continue
+		}
+		provider, _, _ = strings.Cut(provider, `"`)
+		got, tenant, ok := Match(provider)
+		shown = shown || ok && got.Name == eks.Name && tenant == "EXAMPLED539D4633E53DE1B71EXAMPLE"
+	}
+	if !shown {
+		t.Errorf("EKS: no match evidence prints a provider the pattern %q matches", eks.Match.IssuerPattern)
 	}
 }
 

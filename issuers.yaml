@@ -2194,6 +2194,11 @@ issuers:
     - source: https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
       quote: Your cluster has an OpenID Connect (OIDC) issuer URL associated with it.
       verified_at: '2026-09-23'
+      role: one issuer per cluster; the sentence does not give its shape
+    - source: https://docs.aws.amazon.com/eks/latest/userguide/associate-service-account-role.html
+      quote: '"Federated": "arn:aws:iam::111122223333:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"'
+      verified_at: '2026-09-24'
+      role: 'AWS''s trust-policy example: the regional host, then /id/ and the cluster''s OIDC id'
   tenant_membership:
     value: controlled
     basis: chain

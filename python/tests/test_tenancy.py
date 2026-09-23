@@ -359,6 +359,19 @@ def test_the_researched_facts_are_the_census_s():
     assert [x["tenant"] for x in entra["not_a_controlled_tenant"]] == [PERSONAL_MSA]
 
 
+def test_the_eks_pattern_is_shown_by_aws_s_example():
+    """EKS's pattern is the provider AWS prints in its own trust-policy
+    example; a sentence that each cluster has an issuer URL says nothing of
+    its shape."""
+    eks = by_name("Amazon EKS (Kubernetes service account issuer / IRSA)")
+    shown = []
+    for f in eks["match"]["evidence"]:
+        if "oidc-provider/" in f["quote"] and f["source"].startswith("https://docs.aws.amazon.com/eks/"):
+            got = ci.match(f["quote"].split("oidc-provider/", 1)[1].split('"', 1)[0])
+            shown.append(got is not None and (got[0]["name"], got[1]) == (eks["name"], "EXAMPLED539D4633E53DE1B71EXAMPLE"))
+    assert any(shown), eks["match"]["evidence"]
+
+
 def test_the_id_led_forms_rest_on_a_chain():
     """GitHub prints no subject led by repository_owner_id or repository_id:
     it instructs relying parties to require one, prints other customised
