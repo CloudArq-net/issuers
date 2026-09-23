@@ -37,8 +37,8 @@
 # Tenancy, added in v0.2.0: who can hold a token an issuer mints.
 #
 #   researched              in_release | not_in_this_release. An entry this release researched
-#                           says so. Every other entry carries none of the fields below here, and
-#                           the build writes each of them unverified.
+#                           says so; every other entry carries none of the fields below here. A
+#                           field an entry does not carry is written unverified by the build.
 #   unverified              in the fields below means exactly: no vendor sentence establishes the
 #                           value in this release, whatever the reason. Read it the cautious way.
 #   anonymous_tokens        value: yes | no | unverified. Whether the issuer mints tokens to people
