@@ -74,6 +74,11 @@
 #                           obtains tokens naming it.
 #   built_in                value: yes | unverified. A provider STS accepts with no identity
 #                           provider in the role's account.
+#   aws_condition_keys      value: verified | unverified. The condition keys AWS documents for the
+#                           issuer, each with the claim its table says the key carries: a trust policy's
+#                           condition on <provider>:<key> reads a claim only for a key listed. Each key's
+#                           table row, as the page renders it, or the key written out in AWS's example
+#                           policy, is among the quotes.
 #   accounts                value: verified | unverified. The platform whose accounts hold the
 #                           issuer's tenants, as the vendor's sentence names it (platform), and, for
 #                           an issuer whose claims name owners, the declaration_namespace a consumer
@@ -208,6 +213,36 @@ issuers:
     - https://support.atlassian.com/bitbucket-cloud/docs/change-a-workspace-id/
     - https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
     - https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-24'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-09-23T21:09Z
+      result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
+        Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
   research:
     population: the pipelines of one workspace's repositories
     sources:
@@ -432,6 +467,28 @@ issuers:
     notes:
     - the census's control test found the per-organisation path is a naming convention over one shared key;
       that concerns whether a tenant exists, not who is in it
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: oidc.circleci.com/project-id
+      claim: oidc.circleci.com/project-id
+    - key: aud
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'This tab explains how CircleCI maps OIDC claims to AWS STS condition context keys in AWS.'
+      verified_at: '2026-09-24'
+      role: 'AWS: CircleCI''s keys are its tab''s'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session oidc.circleci.com/project-id
+        oidc.circleci.com/project-id No'
+      verified_at: '2026-09-24'
+      role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
+        is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: '"oidc.circleci.com/org/12345:aud": "sts.amazonaws.com",'
+      verified_at: '2026-09-24'
+      role: 'AWS''s example trust policy for CircleCI conditions on aud, a key the tab does not list'
+    note: AWS shows no sub key for CircleCI; its example conditions on aud and the project id
   research:
     population: the jobs of one organisation, and forked builds only when the owner enables them
     sources:
@@ -907,7 +964,8 @@ issuers:
       why: where the job ran
       evidence:
         source: https://docs.github.com/en/actions/reference/security/oidc
-        quote: 'The type of runner used by the job. Accepts the following values: `github-hosted` or `self-hosted`.'
+        quote: 'The type of runner used by the job. Accepts the following values: `github-hosted` or
+          `self-hosted`.'
         verified_at: '2026-09-23'
     - claim: repository_visibility
       why: a property of the repository
@@ -1097,7 +1155,8 @@ issuers:
         the token was minted for (see not_tenancy)
       evidence:
         source: https://docs.github.com/en/actions/reference/security/oidc
-        quote: 'For example: `"sub": "job_workflow_ref:octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main"`'
+        quote: 'For example: `"sub":
+          "job_workflow_ref:octo-org/octo-automation/.github/workflows/oidc.yml@refs/heads/main"`'
         verified_at: '2026-09-23'
     - leading_literal: repo_property_
       why: each organisation sets its own property values
@@ -1167,6 +1226,65 @@ issuers:
     - https://docs.github.com/en/account-and-profile/concepts/username-changes
     - https://docs.github.com/en/organizations/managing-organization-settings/renaming-an-organization
     - https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    - key: actor
+      claim: actor
+    - key: actor_id
+      claim: actor_id
+    - key: job_workflow_ref
+      claim: job_workflow_ref
+    - key: repository
+      claim: repository
+    - key: repository_id
+      claim: repository_id
+    - key: repository_owner_id
+      claim: repository_owner_id
+    - key: workflow
+      claim: workflow
+    - key: ref
+      claim: ref
+    - key: environment
+      claim: environment
+    - key: enterprise_id
+      claim: enterprise_id
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'GitHub Actions workflows and Google are some examples of IdPs that use the default
+        implementation in their OIDC JWT ID token.'
+      verified_at: '2026-09-24'
+      role: 'AWS: GitHub''s and Google''s tokens read by the Default tab''s keys'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'This tab explains how GitHub Actions maps OIDC claims to AWS STS condition context keys in AWS.'
+      verified_at: '2026-09-24'
+      role: 'AWS: and by the GitHub tab''s keys'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session actor actor No actor_id actor_id No
+        job_workflow_ref job_workflow_ref No repository repository No repository_id repository_id No
+        repository_owner_id repository_owner_id No workflow workflow No ref ref No environment environment No
+        enterprise_id enterprise_id No'
+      verified_at: '2026-09-24'
+      role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
+        is available in session'
+    note: the GitHub tab has no repository_owner, enterprise or workflow_ref key, so a condition on one tests a
+      key AWS does not document for this issuer
   research:
     population: 'anyone with a GitHub account: Actions is free for public repositories and on self-hosted
       runners'
@@ -1448,6 +1566,71 @@ issuers:
     notes:
     - 'derived, not tested: after a slug change, a customer who takes the old slug and turns the path on
       receives tokens whose iss is the old path, so a trust that still names the old path can admit them.'
+  aws_condition_keys:
+    value: verified
+    basis: chain
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    - key: actor
+      claim: actor
+    - key: actor_id
+      claim: actor_id
+    - key: job_workflow_ref
+      claim: job_workflow_ref
+    - key: repository
+      claim: repository
+    - key: repository_id
+      claim: repository_id
+    - key: repository_owner_id
+      claim: repository_owner_id
+    - key: workflow
+      claim: workflow
+    - key: ref
+      claim: ref
+    - key: environment
+      claim: environment
+    - key: enterprise_id
+      claim: enterprise_id
+    chain:
+    - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
+      quote: 'After this setting is applied, the JWT will contain the updated `iss` value.'
+      verified_at: '2026-09-24'
+      role: 'GitHub: the enterprise''s tokens are GitHub Actions'' tokens with another iss'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'GitHub Actions workflows and Google are some examples of IdPs that use the default
+        implementation in their OIDC JWT ID token.'
+      verified_at: '2026-09-24'
+      role: 'AWS: GitHub''s and Google''s tokens read by the Default tab''s keys'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'This tab explains how GitHub Actions maps OIDC claims to AWS STS condition context keys in AWS.'
+      verified_at: '2026-09-24'
+      role: 'AWS: and by the GitHub tab''s keys'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session actor actor No actor_id actor_id No
+        job_workflow_ref job_workflow_ref No repository repository No repository_id repository_id No
+        repository_owner_id repository_owner_id No workflow workflow No ref ref No environment environment No
+        enterprise_id enterprise_id No'
+      verified_at: '2026-09-24'
+      role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
+        is available in session'
+    note: no AWS sentence names the enterprise path; its tokens are GitHub Actions', so AWS's keys for GitHub
+      Actions apply, and a condition on repository_owner, enterprise or workflow_ref tests a key AWS does not
+      document
   research:
     population: the repositories of the enterprise that set the path
     sources:
@@ -2127,6 +2310,36 @@ issuers:
     - https://docs.spacelift.io/integrations/cloud-providers/oidc
     - https://docs.spacelift.io/concepts/run/proposed
     - https://docs.spacelift.io/integrations/source-control/github
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-24'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-09-23T21:09Z
+      result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
+        Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
   research:
     population: the runs of one paid Spacelift account
     sources:
@@ -2259,7 +2472,8 @@ issuers:
       verified_at: '2026-09-23'
       role: one issuer per cluster; the sentence does not give its shape
     - source: https://docs.aws.amazon.com/eks/latest/userguide/associate-service-account-role.html
-      quote: '"Federated": "arn:aws:iam::111122223333:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"'
+      quote: '"Federated":
+        "arn:aws:iam::111122223333:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"'
       verified_at: '2026-09-24'
       role: 'AWS''s trust-policy example: the regional host, then /id/ and the cluster''s OIDC id'
   tenant_membership:
@@ -2314,6 +2528,36 @@ issuers:
       quote: Application Pods, system components, and entities inside and outside the cluster can use a
         specific ServiceAccount's credentials to identify as that ServiceAccount.
       verified_at: '2026-09-23'
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-24'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-09-23T21:09Z
+      result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
+        Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
   research:
     population: the cluster's service accounts, as the cluster creates them
     sources:
@@ -2389,7 +2633,8 @@ issuers:
         value for {region} matches the location where you deployed the AKS cluster.
       verified_at: '2026-09-23'
     - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
-      quote: '"issuer": "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/00000000-0000-0000-0000-000000000000/"'
+      quote: '"issuer":
+        "https://eastus.oic.prod-aks.azure.com/ffffffff-eeee-dddd-cccc-bbbbbbbbbbb0/00000000-0000-0000-0000-000000000000/"'
       verified_at: '2026-09-23'
   tenant_membership:
     value: controlled
@@ -2440,6 +2685,36 @@ issuers:
       quote: Application Pods, system components, and entities inside and outside the cluster can use a
         specific ServiceAccount's credentials to identify as that ServiceAccount.
       verified_at: '2026-09-23'
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-24'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-09-23T21:09Z
+      result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
+        Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
   research:
     population: the cluster's service accounts, as the cluster creates them
     sources:
@@ -2531,7 +2806,8 @@ issuers:
       another project's owner; within one project the cluster name is the open question
     evidence:
     - source: https://cloud.google.com/blog/products/containers-kubernetes/kubernetes-bound-service-account-tokens
-      quote: '"iss": "https://container.googleapis.com/v1/projects/taahm-gke-dev/locations/us-central1-c/clusters/mesh-certs-test2"'
+      quote: '"iss":
+        "https://container.googleapis.com/v1/projects/taahm-gke-dev/locations/us-central1-c/clusters/mesh-certs-test2"'
       verified_at: '2026-09-23'
     - source: https://cloud.google.com/blog/products/containers-kubernetes/kubernetes-bound-service-account-tokens
       quote: Not all implementations of Kubernetes surface this claim, but for those that do (including
@@ -2592,6 +2868,36 @@ issuers:
     - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster
     - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/service-accounts
     - https://cloud.google.com/blog/products/containers-kubernetes/kubernetes-bound-service-account-tokens
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-24'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-09-23T21:09Z
+      result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
+        Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
   research:
     population: the cluster's service accounts, as the cluster creates them
     sources:
@@ -2775,6 +3081,36 @@ issuers:
       quote: You can control access to token generation and enforce token properties such as signing algorithms,
         permitted audiences and duration using IAM policies.
       verified_at: '2026-09-23'
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-24'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-09-23T21:09Z
+      result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
+        Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
   research:
     population: the IAM principals of one AWS account that IAM policy allows to request tokens
     sources:
@@ -2938,6 +3274,43 @@ issuers:
       verified_at: '2026-09-23'
     note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
       Amazon
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    - key: google/organization_number
+      claim: 'google:organization_number'
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'GitHub Actions workflows and Google are some examples of IdPs that use the default
+        implementation in their OIDC JWT ID token.'
+      verified_at: '2026-09-24'
+      role: 'AWS: GitHub''s and Google''s tokens read by the Default tab''s keys'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'This tab explains how Google maps OIDC claims to AWS STS condition context keys in AWS.'
+      verified_at: '2026-09-24'
+      role: 'AWS: and by the Google tab''s key'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session google/organization_number
+        google:organization_number No'
+      verified_at: '2026-09-24'
+      role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
+        is available in session'
   research:
     sources:
     - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
@@ -3054,6 +3427,28 @@ issuers:
       verified_at: '2026-09-23'
     note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
       Amazon
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: aud
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'This tab explains how Amazon Cognito maps OIDC claims to AWS STS condition context keys in AWS.'
+      verified_at: '2026-09-24'
+      role: 'AWS: Cognito''s keys are its tab''s'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud aud Yes oaud aud No sub
+        sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
+        is available in session'
   research:
     aws:
       shared_issuer_row:
@@ -3149,6 +3544,27 @@ issuers:
       verified_at: '2026-09-23'
     note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
       Amazon
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: app_id
+      claim: 'Application ID'
+    - key: sub
+      claim: 'User ID'
+    - key: user_id
+      claim: 'User ID'
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'This tab explains how Login with Amazon maps OIDC claims to AWS STS condition context keys in
+        AWS.'
+      verified_at: '2026-09-24'
+      role: 'AWS: Login with Amazon''s keys are its tab''s'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session app_id Application ID Yes sub User ID
+        Yes user_id User ID Yes'
+      verified_at: '2026-09-24'
+      role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
+        is available in session'
   research:
     token_kind:
       source: https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
@@ -3214,6 +3630,23 @@ issuers:
       verified_at: '2026-09-23'
     note: the Principal reference names four built-ins; these two IAM pages name three and omit Login with
       Amazon
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: app_id
+      claim: 'Application ID'
+    - key: id
+      claim: id
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'This tab explains how Facebook maps OIDC claims to AWS STS condition context keys in AWS.'
+      verified_at: '2026-09-24'
+      role: 'AWS: Facebook''s keys are its tab''s'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session app_id Application ID Yes id id Yes'
+      verified_at: '2026-09-24'
+      role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
+        is available in session'
   research:
     token_kind:
       source: https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
@@ -3386,6 +3819,36 @@ issuers:
     - https://learn.microsoft.com/en-us/entra/external-id/external-collaboration-settings-configure
     - https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/configure-user-consent
     - https://learn.microsoft.com/en-us/entra/identity-platform/access-token-claims-reference
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+    - key: aud
+      claim: azp
+    - key: email
+      claim: email
+    - key: oaud
+      claim: aud
+    - key: sub
+      claim: sub
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-24'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-09-24'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-09-23T21:09Z
+      result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
+        Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
   research:
     population: the tenant's principals, including guests any user may invite and other tenants' multitenant
       applications a user of the tenant consented to

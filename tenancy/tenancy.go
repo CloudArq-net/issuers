@@ -79,6 +79,10 @@ type Issuer struct {
 	// NamesUniqueRegardlessOfCase is "yes" when the vendor documents that two
 	// owners' names never differ only in case.
 	NamesUniqueRegardlessOfCase string `json:"names_unique_regardless_of_case,omitempty"`
+	// AWSConditionKeys are the condition keys AWS documents for the issuer:
+	// a trust policy's condition on <provider>:<key> reads a claim only for
+	// a key listed here. Empty when the census does not record them.
+	AWSConditionKeys []string `json:"aws_condition_keys,omitempty"`
 	// Platform is where the issuer's tenants hold their accounts, as a vendor
 	// sentence names it, such as "GitHub": the platform, not the product that
 	// mints the tokens. Empty when no sentence in this release names it.
@@ -182,6 +186,27 @@ func (i Issuer) TenantIsRecyclable() (recyclable, known bool) {
 	return true, false
 }
 
+// AWSMapsConditionKey reports whether AWS documents key as a condition key for
+// the issuer, which is what puts a claim in the request context that a trust
+// policy's condition on <provider>:<key> reads. Keys compare without ASCII
+// case, as AWS reads them: "Context key names are not case-sensitive."
+// (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition.html).
+// known is false when the census does not record AWS's keys for the issuer,
+// and the answer beside it is then the cautious one, false: a condition on a
+// key not known to be mapped is read as unread, which never pins and never
+// narrows.
+func (i Issuer) AWSMapsConditionKey(key string) (mapped, known bool) {
+	if len(i.AWSConditionKeys) == 0 {
+		return false, false
+	}
+	for _, k := range i.AWSConditionKeys {
+		if equalFoldASCII(k, key) {
+			return true, true
+		}
+	}
+	return false, true
+}
+
 // OwnerNameMayContain reports whether r can occur in an owner name. With no
 // recorded character set, or one this package cannot read, any character may.
 func (i Issuer) OwnerNameMayContain(r rune) bool {
@@ -222,6 +247,7 @@ func (i Issuer) clone() Issuer {
 	i.TenancyClaims = slices.Clone(i.TenancyClaims)
 	i.NotTenancy = slices.Clone(i.NotTenancy)
 	i.NeverPin = slices.Clone(i.NeverPin)
+	i.AWSConditionKeys = slices.Clone(i.AWSConditionKeys)
 	i.OwnerNameCharacters = slices.Clone(i.OwnerNameCharacters)
 	if i.SubjectForms != nil {
 		forms := make([]SubjectForm, len(i.SubjectForms))

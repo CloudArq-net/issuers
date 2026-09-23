@@ -135,6 +135,15 @@ token. GitHub Actions also carries a `declaration_namespace`, `github`: the pref
 consumer declares an owner under by name, as in `github:acme`. No two entries share a
 namespace, since the same name under another issuer is another owner.
 
+**`aws_condition_keys`** — the condition keys AWS documents for the issuer, each with the
+claim AWS's table says it carries, from AWS's reference for OIDC condition keys: its
+Default tab for an issuer with no tab of its own, and the issuer's own tab where it has
+one. AWS puts a claim in the request context only under a key it documents, so a trust
+policy's condition on any other key tests a key the context does not hold: GitHub's tab
+has `repository_owner_id` and no `repository_owner`. Recorded for the 14 researched
+issuers whose tokens AWS reads; `aws_maps_condition_key` and `AWSMapsConditionKey` answer
+whether a key is one, comparing names without ASCII case as AWS does.
+
 **`researched`** — `in_release` for the 17 entries this release researched, and
 `not_in_this_release` for the rest.
 
@@ -191,8 +200,8 @@ without ASCII case and no other, in `get` and `Get` as in `match`, so a look-ali
 with the Kelvin sign is not a census host. Every entry either package hands out is the
 caller's own copy: edit it however deep and the next answer is still the census's. The readers
 (`issues_anonymous_tokens`, `controlled_tenant`, `tenant_is_recyclable`,
-`claim_is_recyclable`, `names_compare_without_case`) return an `Answer`, a `(value, known)`
-pair; when `known` is false the value is the cautious one. A claim's value is recyclable
+`claim_is_recyclable`, `aws_maps_condition_key`, `names_compare_without_case`) return an
+`Answer`, a `(value, known)` pair; when `known` is false the value is the cautious one. A claim's value is recyclable
 unless a vendor sentence says it cannot pass to someone else, whatever its kind: GitHub's
 `enterprise_id` is an id, and no sentence settles it. An `Answer` refuses to be read as true or false,
 so an unknown cannot pass for an answer by accident.

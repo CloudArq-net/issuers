@@ -65,6 +65,7 @@ __all__ = [
     "controlled_tenant",
     "tenant_is_recyclable",
     "claim_is_recyclable",
+    "aws_maps_condition_key",
     "owner_name_may_contain",
     "names_compare_without_case",
     "host_of",
@@ -300,6 +301,23 @@ def claim_is_recyclable(entry: Mapping[str, Any], claim: str) -> Answer:
                 return Answer(True, True)
             break
     return Answer(True, False)
+
+
+def aws_maps_condition_key(entry: Mapping[str, Any], key: str) -> Answer:
+    """Whether AWS documents ``key`` as a condition key for this issuer, which
+    is what puts a claim in the request context that a trust policy's
+    condition on ``<provider>:<key>`` reads. Keys compare without ASCII case,
+    as AWS reads them: "Context key names are not case-sensitive."
+    (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition.html).
+    Not known when the census does not record AWS's keys for the issuer, and
+    the answer beside it is then the cautious one, ``False``: a condition on a
+    key not known to be mapped is read as unread, which never pins and never
+    narrows."""
+    keys = tenancy(entry).get("aws_condition_keys")
+    if not keys:
+        return Answer(False, False)
+    folded = _tenancy.lower_ascii(key)
+    return Answer(any(_tenancy.lower_ascii(k) == folded for k in keys), True)
 
 
 def names_compare_without_case(entry: Mapping[str, Any]) -> Answer:

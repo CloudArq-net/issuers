@@ -82,7 +82,8 @@ KEEP = ['name', 'vendor', 'category', 'issuer', 'issuer_pattern', 'tenancy_model
 # entry the YAML does not mark `researched: in_release` holds none of them in the
 # YAML, and each is written unverified.
 TENANCY_FIELDS = ['anonymous_tokens', 'tenancy_claims', 'not_tenancy', 'subject_forms', 'owner_charset',
-                  'names_unique_regardless_of_case', 'match', 'tenant_membership', 'built_in', 'accounts']
+                  'names_unique_regardless_of_case', 'match', 'tenant_membership', 'built_in', 'accounts',
+                  'aws_condition_keys']
 
 # A field must have one shape across every entry. A field that is a string on
 # one entry and a map on another silently breaks any typed consumer -- Go
@@ -635,6 +636,56 @@ def check_accounts(c, a, names_owners):
                                                  "declare")
 
 
+def check_aws_condition_keys(c, a, pinned):
+    """The condition keys AWS documents for the issuer, each tied to AWS's
+    text: a key with a claim to the table row that maps it, as the page
+    renders it, and a key AWS shows only in an example policy to the key
+    written out there. A key that names a tenancy claim, or sub where the
+    issuer's subject names a tenant, must carry that claim under its own
+    name, or a pin would read another claim's value."""
+    w = 'aws_condition_keys'
+    if not c.keys(w, a, {'value', 'basis', 'keys', 'evidence', 'chain', 'context', 'note'}, ['value']):
+        return
+    c.one_of(f"{w}.value", a['value'], LISTED)
+    if a['value'] != 'verified':
+        for k in ('keys', 'basis', 'evidence', 'chain'):
+            if k in a:
+                c.fail(w, f"an unverified list carries {k}")
+        return
+    for k in ('evidence', 'chain'):
+        c.facts(f"{w}.{k}", a.get(k))
+    c.context(f"{w}.context", a.get('context'))
+    if not a.get('evidence') and not a.get('chain'):
+        c.fail(w, "a verified list with no evidence and no chain")
+    if 'basis' in a:
+        c.one_of(f"{w}.basis", a['basis'], {'chain'})
+        if not a.get('chain'):
+            c.fail(w, "basis: chain with no chain")
+    keys = a.get('keys')
+    if not isinstance(keys, list) or not keys:
+        c.fail(f"{w}.keys", "a verified list needs its keys")
+        return
+    quotes = [f['quote'] for f in (a.get('evidence') or []) + (a.get('chain') or [])
+              if isinstance(f, dict) and isinstance(f.get('quote'), str)]
+    seen = set()
+    for i, k in enumerate(keys):
+        kw = f"{w}.keys[{i}]"
+        if not c.keys(kw, k, {'key', 'claim'}, ['key']):
+            continue
+        c.text(f"{kw}.key", k['key'])
+        if 'claim' in k:
+            c.text(f"{kw}.claim", k['claim'])
+        if k['key'] in seen:
+            c.fail(kw, f"{k['key']!r} is listed twice")
+        seen.add(k['key'])
+        shown = f"{k['key']} {k['claim']}" if 'claim' in k else f":{k['key']}\""
+        if not any(shown in q for q in quotes):
+            carrying = f" carrying {k['claim']!r}" if 'claim' in k else ""
+            c.fail(kw, f"no quoted row or example shows {k['key']!r}{carrying}")
+        if k['key'] in pinned and k.get('claim') != k['key']:
+            c.fail(kw, f"{k['key']!r} pins a tenant, and AWS carries it under another claim's name or states none")
+
+
 def check_entry(e):
     """Everything wrong with one entry of the YAML."""
     if not isinstance(e, dict):
@@ -696,6 +747,13 @@ def check_entry(e):
         names_owners = tc.get('value') == 'verified' and any(
             isinstance(x, dict) and x.get('scope') == 'owner' for x in tc.get('claims') or [])
         check_accounts(c, e['accounts'], names_owners)
+    if 'aws_condition_keys' in e:
+        tc, sf = e.get('tenancy_claims') or {}, e.get('subject_forms') or {}
+        pinned = {x.get('claim') for x in tc.get('claims') or [] if isinstance(x, dict)} \
+            if tc.get('value') == 'verified' else set()
+        if sf.get('value') == 'verified' and sf.get('forms'):
+            pinned.add('sub')
+        check_aws_condition_keys(c, e['aws_condition_keys'], pinned)
     if 'research' in e:
         c.research('research', e['research'])
     return c.errors

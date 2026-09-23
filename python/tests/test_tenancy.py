@@ -34,7 +34,8 @@ RESEARCHED = {
     "Amazon Cognito identity pools", "Login with Amazon", "Facebook", "Microsoft Entra ID",
 }
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts")
+                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
+                  "aws_condition_keys")
 
 
 def match_key(entry):
@@ -374,6 +375,36 @@ def test_the_researched_facts_are_the_census_s():
     assert [x["tenant"] for x in entra["not_a_controlled_tenant"]] == [PERSONAL_MSA]
 
 
+def test_aws_condition_keys_are_recorded_per_issuer():
+    """AWS puts a claim in the request context only under a key it documents
+    for the issuer; a key the census does not record for a recorded issuer is
+    known unmapped, and an issuer with no recorded keys is not known."""
+    gh = by_name("GitHub Actions")
+    assert ci.tenancy(gh)["aws_condition_keys"] == [
+        "amr", "aud", "email", "oaud", "sub", "actor", "actor_id", "job_workflow_ref", "repository", "repository_id",
+        "repository_owner_id", "workflow", "ref", "environment", "enterprise_id"]
+    for name, keys in {
+        "GitHub Actions": {"sub": (True, True), "repository_owner_id": (True, True), "repository_owner": (False, True),
+                           "enterprise": (False, True), "workflow_ref": (False, True)},
+        "Amazon Cognito identity pools": {"amr": (True, True), "email": (False, True)},
+        "Facebook": {"id": (True, True), "sub": (False, True)},
+        "CircleCI": {"oidc.circleci.com/project-id": (True, True), "aud": (True, True), "sub": (False, True)},
+        "GitLab.com": {"sub": (False, False)},
+    }.items():
+        for key, want in keys.items():
+            assert ci.aws_maps_condition_key(by_name(name), key) == want, (name, key)
+    assert ci.aws_maps_condition_key({"name": "x"}, "sub") == (False, False)
+    # AWS reads context key names without regard to case; only ASCII folds.
+    assert ci.aws_maps_condition_key(gh, "Repository_Owner_ID") == (True, True)
+    assert ci.aws_maps_condition_key(gh, "SUB") == (True, True)
+    assert ci.aws_maps_condition_key(gh, "\u017fub") == (False, True)
+    # A tenancy claim is carried under its own name, or a pin would read
+    # another claim's value.
+    for c in gh["aws_condition_keys"]["keys"]:
+        if c["key"] in {t["claim"] for t in gh["tenancy_claims"]["claims"]} | {"sub"}:
+            assert c["claim"] == c["key"], c
+
+
 def test_the_platform_and_the_declaration_namespace_are_data():
     """Where an issuer's tenants hold their accounts, and where a consumer
     declares its owners, are census facts: GitHub's owners alone are declared
@@ -607,6 +638,8 @@ def test_go_and_python_agree(n):
     assert {t: list(ci.controlled_tenant(entry, t)) for t in want["controlled_tenant"]} == want["controlled_tenant"]
     assert {c["claim"]: list(ci.claim_is_recyclable(entry, c["claim"]))
             for c in ci.tenancy(entry).get("tenancy_claims", [])} == want["claim_is_recyclable"]
+    assert {k: list(ci.aws_maps_condition_key(entry, k)) for k in ANSWERS["probes"]["condition_keys"]} == \
+        want["aws_maps_condition_key"]
     chars = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
     assert chars == want["owner_name_may_contain"]
     assert ci.tenancy(entry) == want["tenancy"]

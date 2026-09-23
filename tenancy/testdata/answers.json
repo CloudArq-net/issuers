@@ -5,6 +5,17 @@
   "tenants": [
    "acme",
    "9188040d-6c67-4c5b-b112-36a304b66dad"
+  ],
+  "condition_keys": [
+   "sub",
+   "aud",
+   "amr",
+   "repository_owner",
+   "repository_owner_id",
+   "id",
+   "user_id",
+   "oidc.circleci.com/project-id",
+   "google/organization_number"
   ]
  },
  "entries": [
@@ -43,6 +54,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Bitbucket Pipelines",
@@ -50,6 +99,13 @@
     "tenant_placeholder": "\u003cworkspace\u003e",
     "tenant_kind": "name",
     "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub"
+    ],
     "platform": "Bitbucket"
    }
   },
@@ -84,6 +140,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Buildkite",
@@ -125,6 +219,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     true,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     false,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "CircleCI",
@@ -133,6 +265,10 @@
     "tenant_kind": "id",
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "oidc.circleci.com/project-id",
+     "aud"
+    ],
     "platform": "CircleCI"
    }
   },
@@ -164,6 +300,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Codeberg (Forgejo)",
@@ -201,6 +375,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Codefresh",
@@ -238,6 +450,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Depot",
@@ -292,6 +542,44 @@
      true
     ],
     "repository_owner_id": [
+     false,
+     true
+    ]
+   },
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     true,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
      false,
      true
     ]
@@ -413,6 +701,23 @@
      "-",
      "_"
     ],
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub",
+     "actor",
+     "actor_id",
+     "job_workflow_ref",
+     "repository",
+     "repository_id",
+     "repository_owner_id",
+     "workflow",
+     "ref",
+     "environment",
+     "enterprise_id"
+    ],
     "platform": "GitHub",
     "declaration_namespace": "github"
    }
@@ -452,6 +757,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     true,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitHub Actions (enterprise issuer path)",
@@ -461,6 +804,23 @@
     "tenant_recyclable": "yes",
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub",
+     "actor",
+     "actor_id",
+     "job_workflow_ref",
+     "repository",
+     "repository_id",
+     "repository_owner_id",
+     "workflow",
+     "ref",
+     "environment",
+     "enterprise_id"
+    ],
     "platform": "GitHub"
    }
   },
@@ -492,6 +852,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitHub Enterprise Server (self-hosted)",
@@ -526,6 +924,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitLab self-managed",
@@ -563,6 +999,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitLab.com",
@@ -597,6 +1071,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Gitea / Forgejo Actions",
@@ -631,6 +1143,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Harness",
@@ -665,6 +1215,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Harness",
@@ -699,6 +1287,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Jenkins (OpenID Connect Provider plugin)",
@@ -733,6 +1359,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Microsoft (Azure DevOps)",
@@ -770,6 +1434,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Namespace",
@@ -804,6 +1506,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Semaphore",
@@ -841,6 +1581,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "HCP Terraform (Terraform Cloud)",
@@ -878,6 +1656,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Pulumi Cloud",
@@ -915,6 +1731,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Scalr",
@@ -956,13 +1810,58 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Spacelift",
     "issuer": "https://\u003caccount\u003e.app.spacelift.io",
     "tenant_placeholder": "\u003caccount\u003e",
     "tenant_kind": "name",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub"
+    ]
    }
   },
   {
@@ -993,6 +1892,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Terraform Enterprise (self-hosted)",
@@ -1030,6 +1967,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "env0",
@@ -1071,6 +2046,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon EKS (Kubernetes service account issuer / IRSA)",
@@ -1078,7 +2091,14 @@
     "tenant_placeholder": "\u003ccluster_oidc_id\u003e",
     "tenant_kind": "id",
     "tenant_membership": "controlled",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub"
+    ]
    }
   },
   {
@@ -1116,6 +2136,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Azure Kubernetes Service (AKS workload identity)",
@@ -1123,7 +2181,14 @@
     "tenant_placeholder": "\u003cregion\u003e/\u003ctenant_id\u003e/\u003ccluster_uuid\u003e",
     "tenant_kind": "id",
     "tenant_membership": "controlled",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub"
+    ]
    }
   },
   {
@@ -1154,6 +2219,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cloudflare Access",
@@ -1195,6 +2298,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Google Kubernetes Engine (GKE)",
@@ -1202,7 +2343,14 @@
     "tenant_placeholder": "\u003cproject\u003e/\u003clocation\u003e/\u003ccluster\u003e",
     "tenant_kind": "name",
     "tenant_membership": "controlled",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub"
+    ]
    }
   },
   {
@@ -1233,6 +2381,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "HashiCorp Vault (as an OIDC provider)",
@@ -1270,6 +2456,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Modal",
@@ -1304,6 +2528,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "SPIFFE / SPIRE (OIDC Discovery Provider)",
@@ -1338,6 +2600,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Teleport",
@@ -1379,6 +2679,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "AWS (outbound identity federation)",
@@ -1386,7 +2724,14 @@
     "tenant_placeholder": "\u003ctenant_uuid\u003e",
     "tenant_kind": "id",
     "tenant_membership": "controlled",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub"
+    ]
    }
   },
   {
@@ -1417,6 +2762,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "AWS STS (sts.amazonaws.com)",
@@ -1454,11 +2837,57 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     true,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Google (accounts.google.com)",
     "issuer": "https://accounts.google.com",
     "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub",
+     "google/organization_number"
+    ],
     "platform": "Google"
    }
   },
@@ -1493,6 +2922,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon Cognito identity pools",
@@ -1501,6 +2968,12 @@
     "not_tenancy": [
      "amr",
      "aud"
+    ],
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "oaud",
+     "sub"
     ]
    }
   },
@@ -1535,11 +3008,54 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     true
+    ],
+    "aud": [
+     false,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     true,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Login with Amazon",
     "issuer": "www.amazon.com",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "app_id",
+     "sub",
+     "user_id"
+    ]
    }
   },
   {
@@ -1573,10 +3089,52 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     true
+    ],
+    "aud": [
+     false,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     true,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     false,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Facebook",
-    "issuer": "graph.facebook.com"
+    "issuer": "graph.facebook.com",
+    "aws_condition_keys": [
+     "app_id",
+     "id"
+    ]
    }
   },
   {
@@ -1614,6 +3172,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     true,
+     true
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "google/organization_number": [
+     false,
+     true
+    ],
+    "id": [
+     false,
+     true
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     true
+    ],
+    "repository_owner": [
+     false,
+     true
+    ],
+    "repository_owner_id": [
+     false,
+     true
+    ],
+    "sub": [
+     true,
+     true
+    ],
+    "user_id": [
+     false,
+     true
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Microsoft Entra ID",
@@ -1624,7 +3220,14 @@
     "not_a_controlled_tenant": [
      "9188040d-6c67-4c5b-b112-36a304b66dad"
     ],
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "aws_condition_keys": [
+     "amr",
+     "aud",
+     "email",
+     "oaud",
+     "sub"
+    ]
    }
   },
   {
@@ -1658,6 +3261,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cognition",
@@ -1695,6 +3336,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cursor",
@@ -1732,6 +3411,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cursor",
@@ -1769,6 +3486,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Warp",
@@ -1806,6 +3561,44 @@
     ]
    },
    "claim_is_recyclable": {},
+   "aws_maps_condition_key": {
+    "amr": [
+     false,
+     false
+    ],
+    "aud": [
+     false,
+     false
+    ],
+    "google/organization_number": [
+     false,
+     false
+    ],
+    "id": [
+     false,
+     false
+    ],
+    "oidc.circleci.com/project-id": [
+     false,
+     false
+    ],
+    "repository_owner": [
+     false,
+     false
+    ],
+    "repository_owner_id": [
+     false,
+     false
+    ],
+    "sub": [
+     false,
+     false
+    ],
+    "user_id": [
+     false,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Chainguard",

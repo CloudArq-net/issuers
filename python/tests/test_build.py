@@ -22,8 +22,16 @@ FACT = {"source": "https://example.com/doc", "quote": "A sentence the vendor wro
         "verified_at": "2026-09-23"}
 OBSERVATION = {"observed": "https://example.com/.well-known/openid-configuration", "method": "curl",
                "at": "2026-09-23T00:12Z", "result": "claims_supported includes x"}
+# AWS's condition-key table as its page renders it, and a key written out in
+# its example policy: what ties each recorded key to the vendor's text.
+KEYS_TABLE = {"source": "https://example.com/keys",
+              "quote": "Condition key Claim sub sub Yes owner_id owner_id No renamed other No",
+              "verified_at": "2026-09-23"}
+KEYS_EXAMPLE = {"source": "https://example.com/keys", "quote": '"token.example.com:aud": "sts.amazonaws.com",',
+                "verified_at": "2026-09-23"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts")
+                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
+                  "aws_condition_keys")
 
 # Python raises on any file it reads or writes in the locale's encoding when
 # run this way, so a build that forgot to say UTF-8 fails here, whatever the
@@ -69,6 +77,10 @@ def valid_census():
                                "description": "lower-case letters and dashes", "evidence": [fact()]},
              "accounts": {"value": "verified", "platform": "Example", "declaration_namespace": "example",
                           "evidence": [fact()]},
+             "aws_condition_keys": {"value": "verified", "keys": [{"key": "sub", "claim": "sub"},
+                                                                   {"key": "owner_id", "claim": "owner_id"},
+                                                                   {"key": "aud"}],
+                                    "evidence": [KEYS_TABLE, KEYS_EXAMPLE]},
              "research": {"population": "anyone with an account", "nested": {"read": fact()},
                           "live": {"observed": observation()}}},
             {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenancy_model": "per_tenant_host",
@@ -146,7 +158,8 @@ def test_the_sub_package_carries_only_what_is_settled(tmp_path):
          "not_tenancy": ["actor", "scope"],
          "subject_forms": [{"leading_literal": "org:", "owner_parts": [{"kind": "name", "delimiter_after": ":"}]}],
          "never_pin": ["job:"],
-         "owner_name_characters": ["a-z", "-"], "platform": "Example", "declaration_namespace": "example"},
+         "owner_name_characters": ["a-z", "-"], "platform": "Example", "declaration_namespace": "example",
+         "aws_condition_keys": ["sub", "owner_id", "aud"]},
         {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenant_placeholder": "<tenant>",
          "tenant_kind": "name", "tenant_membership": "controlled"},
         {"name": "Unresearched", "issuer": "https://other.example.net"},
@@ -266,6 +279,23 @@ REFUSALS = {
                                         "neither one character nor a range"),
     "a character set with nothing behind it": (drop(f"{SHARED}.owner_charset", "evidence"), "non-empty list of facts"),
     "a platform with nothing behind it": (drop(f"{SHARED}.accounts", "evidence"), "non-empty list of facts"),
+    "a condition key no row shows": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
+        {"key": "extra", "claim": "extra"}), "no quoted row or example shows 'extra'"),
+    "a condition key with a claim no row gives it": (put(f"{SHARED}.aws_condition_keys.keys.0", "claim", "subject"),
+                                                    "no quoted row or example shows 'sub'"),
+    "a condition key no example writes out": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
+        {"key": "email"}), "no quoted row or example shows 'email'"),
+    "a condition key listed twice": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
+        {"key": "sub", "claim": "sub"}), "listed twice"),
+    "a tenancy claim AWS carries under another claim's name": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").__setitem__(1, {"key": "renamed", "claim": "other"})
+        or at(doc, f"{SHARED}.tenancy_claims.claims.0").__setitem__("claim", "renamed"), "under another claim's name"),
+    "a condition key with no sentence behind it": (drop(f"{SHARED}.aws_condition_keys", "evidence"),
+                                                   "with no evidence and no chain"),
+    "an observation behind a condition key": (put(f"{SHARED}.aws_condition_keys", "evidence", [OBSERVATION]),
+                                              SETTLES_NOTHING),
+    "an unverified key list carrying keys": (put(f"{SHARED}.aws_condition_keys", "value", "unverified"),
+                                             "an unverified list carries keys"),
     "a verified accounts block that names no platform": (drop(f"{SHARED}.accounts", "platform"),
                                                          "names no platform"),
     "an observation behind a platform": (put(f"{SHARED}.accounts", "evidence", [OBSERVATION]), SETTLES_NOTHING),

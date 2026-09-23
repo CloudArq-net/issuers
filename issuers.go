@@ -137,6 +137,7 @@ type Issuer struct {
 	TenantMembership            TenantMembership `json:"tenant_membership"`
 	BuiltIn                     BuiltIn          `json:"built_in"`
 	Accounts                    Accounts         `json:"accounts"`
+	AWSConditionKeys            AWSConditionKeys `json:"aws_condition_keys"`
 	// Research keeps the rest of what the tenancy research read for this
 	// entry, as the research recorded it: context a reader checking a value
 	// wants beside it. Every fact inside it carries its source like any other.
@@ -391,6 +392,33 @@ type Accounts struct {
 	Note                 string `json:"note,omitempty"`
 }
 
+// AWSConditionKeys records the condition keys AWS documents for the issuer,
+// each with the claim AWS's table says it carries. A trust policy's condition
+// on <provider>:<key> reads a claim only for a key listed here.
+type AWSConditionKeys struct {
+	// Value is "verified" or "unverified".
+	Value string `json:"value"`
+	// Basis is "chain" when no single page says AWS's keys apply to this
+	// issuer and it follows from the sentences in Chain, read in order.
+	Basis string            `json:"basis,omitempty"`
+	Keys  []AWSConditionKey `json:"keys,omitempty"`
+	// Evidence holds AWS's sentences and its tables as the page renders
+	// them; each key's row, or the key written out in AWS's example policy,
+	// is among them.
+	Evidence []Fact `json:"evidence,omitempty"`
+	Chain    []Fact `json:"chain,omitempty"`
+	Context  []Fact `json:"context,omitempty"`
+	Note     string `json:"note,omitempty"`
+}
+
+// AWSConditionKey is one condition key AWS documents for an issuer.
+type AWSConditionKey struct {
+	Key string `json:"key"`
+	// Claim is the claim AWS's table says the key carries, as the table
+	// writes it; empty for a key AWS shows only in an example policy.
+	Claim string `json:"claim,omitempty"`
+}
+
 // Host is the issuer's hostname, with no scheme and no path. For a per-tenant
 // issuer whose tenant sits in the path, this is the shared host. It is empty
 // when the issuer field holds a note, such as "unverified", rather than an
@@ -478,6 +506,11 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 		t.OwnerNameCharacters = slices.Clone(i.OwnerCharset.Characters)
 	}
 	t.NamesUniqueRegardlessOfCase = settled(i.NamesUniqueRegardlessOfCase.Value)
+	if i.AWSConditionKeys.Value == "verified" {
+		for _, k := range i.AWSConditionKeys.Keys {
+			t.AWSConditionKeys = append(t.AWSConditionKeys, k.Key)
+		}
+	}
 	if i.Accounts.Value == "verified" {
 		t.Platform, t.DeclarationNamespace = i.Accounts.Platform, i.Accounts.DeclarationNamespace
 	}

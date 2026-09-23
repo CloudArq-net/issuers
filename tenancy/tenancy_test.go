@@ -365,6 +365,50 @@ func TestTenantIsRecyclable(t *testing.T) {
 	}
 }
 
+// AWS puts a claim in the request context only under a condition key it
+// documents for the issuer, so a condition on any other key tests a key the
+// context does not hold. The census records AWS's keys per issuer; a key it
+// does not record for a recorded issuer is known unmapped, and an issuer
+// whose keys are not recorded answers not mapped and not known.
+func TestAWSConditionKeysAreRecordedPerIssuer(t *testing.T) {
+	gitHubKeys := []string{"amr", "aud", "email", "oaud", "sub", "actor", "actor_id", "job_workflow_ref", "repository",
+		"repository_id", "repository_owner_id", "workflow", "ref", "environment", "enterprise_id"}
+	if got := find(t, github).AWSConditionKeys; !slices.Equal(got, gitHubKeys) {
+		t.Errorf("GitHub's AWS condition keys = %q, want %q", got, gitHubKeys)
+	}
+	for issuer, keys := range map[string]map[string][2]bool{
+		github: {"sub": {true, true}, "aud": {true, true}, "repository_owner_id": {true, true}, "enterprise_id": {true, true},
+			"repository_owner": {false, true}, "enterprise": {false, true}, "workflow_ref": {false, true}},
+		githubEnt: {"sub": {true, true}, "repository_owner": {false, true}},
+		"https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>": {"sub": {true, true}, "repository_owner_id": {false, true}},
+		"cognito-identity.amazonaws.com":                               {"amr": {true, true}, "aud": {true, true}, "email": {false, true}},
+		"graph.facebook.com":                                           {"id": {true, true}, "app_id": {true, true}, "sub": {false, true}},
+		"www.amazon.com":                                               {"user_id": {true, true}, "sub": {true, true}, "aud": {false, true}},
+		"https://oidc.circleci.com/org/<organization_id>": {"oidc.circleci.com/project-id": {true, true}, "aud": {true, true},
+			"sub": {false, true}},
+		"https://accounts.google.com": {"google/organization_number": {true, true}, "sub": {true, true}},
+		"https://gitlab.com":          {"sub": {false, false}},
+	} {
+		e := find(t, issuer)
+		for key, want := range keys {
+			if mapped, known := e.AWSMapsConditionKey(key); mapped != want[0] || known != want[1] {
+				t.Errorf("%s AWSMapsConditionKey(%q) = %v, %v; want %v, %v", e.Name, key, mapped, known, want[0], want[1])
+			}
+		}
+	}
+	if mapped, known := (Issuer{}).AWSMapsConditionKey("sub"); mapped || known {
+		t.Errorf("an issuer with no recorded keys reads %v, %v; want false, false", mapped, known)
+	}
+	// AWS reads context key names without regard to case, and ASCII case is
+	// the only case the census folds: a long s is not an s.
+	gh := find(t, github)
+	for key, want := range map[string]bool{"Repository_Owner_ID": true, "SUB": true, "\u017fub": false} {
+		if mapped, known := gh.AWSMapsConditionKey(key); mapped != want || !known {
+			t.Errorf("GitHub AWSMapsConditionKey(%q) = %v, %v; want %v, true", key, mapped, known, want)
+		}
+	}
+}
+
 // Where an issuer's tenants hold their accounts, and where a consumer declares
 // its owners, are census facts, so a classifier names no issuer in its code.
 // GitHub's owners alone are declared by name, under github: a name under
@@ -588,6 +632,7 @@ func TestTheSubPackageCarriesOnlyTheClassifiersFields(t *testing.T) {
 		"tenant_membership": true, "not_a_controlled_tenant": true, "anonymous_tokens": true,
 		"tenancy_claims": true, "subject_forms": true, "owner_name_characters": true, "names_unique_regardless_of_case": true,
 		"not_tenancy": true, "never_pin": true, "platform": true, "declaration_namespace": true,
+		"aws_condition_keys": true,
 	}
 	for _, e := range doc.Issuers {
 		for k := range e {

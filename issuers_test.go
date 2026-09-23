@@ -519,6 +519,9 @@ func facts(e Issuer) map[string][]Fact {
 	add("tenant_membership.chain", e.TenantMembership.Chain...)
 	add("tenant_membership.context", e.TenantMembership.Context...)
 	add("accounts.evidence", e.Accounts.Evidence...)
+	add("aws_condition_keys.evidence", e.AWSConditionKeys.Evidence...)
+	add("aws_condition_keys.chain", e.AWSConditionKeys.Chain...)
+	add("aws_condition_keys.context", e.AWSConditionKeys.Context...)
 	add("built_in.evidence", e.BuiltIn.Evidence...)
 	add("built_in.discrepancy", e.BuiltIn.Discrepancy...)
 	researchFacts(e.Research, "research", out)
@@ -655,37 +658,49 @@ var recorded = map[string]struct {
 	facts    map[string]int
 	research []string
 }{
-	"Bitbucket Pipelines": {map[string]int{"accounts": 1, "anonymous_tokens": 4, "match": 1, "tenant_membership": 4},
+	"Bitbucket Pipelines": {map[string]int{"accounts": 1, "anonymous_tokens": 4, "aws_condition_keys": 3,
+		"match": 1, "tenant_membership": 4},
 		[]string{"population", "sources"}},
 	"Buildkite": {map[string]int{}, nil},
-	"CircleCI": {map[string]int{"accounts": 1, "anonymous_tokens": 3, "match": 1, "tenant_membership": 2},
+	"CircleCI": {map[string]int{"accounts": 1, "anonymous_tokens": 3, "aws_condition_keys": 3, "match": 1,
+		"tenant_membership": 2},
 		[]string{"population", "sources"}},
-	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "names_unique_regardless_of_case": 2, "not_tenancy": 20,
+	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "aws_condition_keys": 4,
+		"names_unique_regardless_of_case": 2, "not_tenancy": 20,
 		"owner_charset": 7, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
 		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
 			"population_evidence", "sources"}},
-	"GitHub Actions (enterprise issuer path)": {map[string]int{"accounts": 1, "anonymous_tokens": 7, "match": 7, "tenant_membership": 1},
+	"GitHub Actions (enterprise issuer path)": {map[string]int{"accounts": 1, "anonymous_tokens": 7,
+		"aws_condition_keys": 5, "match": 7, "tenant_membership": 1},
 		[]string{"population", "sources"}},
 	"GitLab.com":                      {map[string]int{}, nil},
 	"HCP Terraform (Terraform Cloud)": {map[string]int{}, nil},
-	"Spacelift": {map[string]int{"anonymous_tokens": 1, "match": 1, "tenant_membership": 2},
+	"Spacelift": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 3, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
-	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1, "match": 2,
+	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1,
+		"aws_condition_keys": 3, "match": 2,
 		"tenant_membership": 8}, []string{"population", "sources"}},
-	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3, "match": 2,
+	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3,
+		"aws_condition_keys": 3, "match": 2,
 		"tenant_membership": 8}, []string{"population", "sources"}},
-	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "match": 4, "tenant_membership": 8},
+	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 3,
+		"match": 4, "tenant_membership": 8},
 		[]string{"population", "sources"}},
-	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "match": 1, "tenant_membership": 1},
+	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 3,
+		"match": 1, "tenant_membership": 1},
 		[]string{"population", "sources"}},
-	"Google (accounts.google.com)": {map[string]int{"accounts": 1, "anonymous_tokens": 9, "built_in": 3}, []string{"sources"}},
-	"Amazon Cognito identity pools": {map[string]int{"anonymous_tokens": 9, "built_in": 3, "not_tenancy": 4,
+	"Google (accounts.google.com)": {map[string]int{"accounts": 1, "anonymous_tokens": 9,
+		"aws_condition_keys": 4, "built_in": 3}, []string{"sources"}},
+	"Amazon Cognito identity pools": {map[string]int{"anonymous_tokens": 9, "aws_condition_keys": 2,
+		"built_in": 3, "not_tenancy": 4,
 		"research": 6, "subject_forms": 2}, []string{"aws", "population", "sources"}},
-	"Login with Amazon": {map[string]int{"anonymous_tokens": 3, "built_in": 3, "research": 1},
+	"Login with Amazon": {map[string]int{"anonymous_tokens": 3, "aws_condition_keys": 2, "built_in": 3,
+		"research": 1},
 		[]string{"sources", "token_kind"}},
-	"Facebook": {map[string]int{"anonymous_tokens": 3, "built_in": 3, "research": 1},
+	"Facebook": {map[string]int{"anonymous_tokens": 3, "aws_condition_keys": 2, "built_in": 3, "research": 1},
 		[]string{"sources", "token_kind"}},
-	"Microsoft Entra ID": {map[string]int{"anonymous_tokens": 1, "match": 7, "tenant_membership": 7},
+	"Microsoft Entra ID": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 3, "match": 7,
+		"tenant_membership": 7},
 		[]string{"population", "sources"}},
 }
 
@@ -754,7 +769,7 @@ func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 		}
 		for field, v := range map[string]string{"tenancy_claims": e.TenancyClaims.Value, "not_tenancy": e.NotTenancy.Value,
 			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value, "match": e.Match.Value,
-			"accounts": e.Accounts.Value} {
+			"accounts": e.Accounts.Value, "aws_condition_keys": e.AWSConditionKeys.Value} {
 			if !oneOf(v, "verified", "unverified") {
 				t.Errorf("%s: %s value %q", n, field, v)
 			}
@@ -891,7 +906,7 @@ func TestEveryEntrySaysWhetherItWasResearched(t *testing.T) {
 		t.Fatal(err)
 	}
 	fields := []string{"anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-		"names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts"}
+		"names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts", "aws_condition_keys"}
 	var inRelease []string
 	unresearched := 0
 	for _, e := range doc.Issuers {
@@ -1449,8 +1464,9 @@ var probeCharsets = [][]string{
 }
 
 type probes struct {
-	Characters string   `json:"characters"`
-	Tenants    []string `json:"tenants"`
+	Characters    string   `json:"characters"`
+	Tenants       []string `json:"tenants"`
+	ConditionKeys []string `json:"condition_keys"`
 }
 
 type entryAnswer struct {
@@ -1466,6 +1482,8 @@ type entryAnswer struct {
 	ControlledTenant        map[string][2]bool `json:"controlled_tenant"`
 	// ClaimIsRecyclable is what each tenancy claim's ValueIsRecyclable says.
 	ClaimIsRecyclable map[string][2]bool `json:"claim_is_recyclable"`
+	// AWSMapsConditionKey is what AWSMapsConditionKey says of each probe key.
+	AWSMapsConditionKey map[string][2]bool `json:"aws_maps_condition_key"`
 	// OwnerNameMayContain holds 1 or 0 for each probe character, in order.
 	OwnerNameMayContain string         `json:"owner_name_may_contain"`
 	Tenancy             tenancy.Issuer `json:"tenancy"`
@@ -1508,7 +1526,9 @@ func goAnswers() answers {
 		About: "What every reader of the census answers about every entry, written by the Go tests " +
 			"(go test . -run TestGoAndPythonAgree -update) and checked by the Go and the Python tests alike. " +
 			"scripts/build.py copies it to python/tests/answers.json.",
-		Probes: probes{Characters: "/@:-_.%aZ09 é", Tenants: []string{"acme", personalMSA}},
+		Probes: probes{Characters: "/@:-_.%aZ09 é", Tenants: []string{"acme", personalMSA},
+			ConditionKeys: []string{"sub", "aud", "amr", "repository_owner", "repository_owner_id", "id", "user_id",
+				"oidc.circleci.com/project-id", "google/organization_number"}},
 	}
 	for _, e := range All() {
 		t := e.Tenancy()
@@ -1516,6 +1536,10 @@ func goAnswers() answers {
 			ControlledTenant: map[string][2]bool{}, ClaimIsRecyclable: map[string][2]bool{}}
 		for _, c := range t.TenancyClaims {
 			a.ClaimIsRecyclable[c.Claim] = pair(c.ValueIsRecyclable())
+		}
+		a.AWSMapsConditionKey = map[string][2]bool{}
+		for _, k := range out.Probes.ConditionKeys {
+			a.AWSMapsConditionKey[k] = pair(t.AWSMapsConditionKey(k))
 		}
 		tenants := slices.Clone(out.Probes.Tenants)
 		if got, tenant, ok := Match(a.Instance); ok {
