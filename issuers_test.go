@@ -621,6 +621,86 @@ type census struct {
 	Issuers    []Issuer `json:"issuers"`
 }
 
+// recorded is what this release recorded for each entry it researched: the
+// facts each field carries, counted where they sit, and the keys of the
+// entry's research block. Every other test checks the facts that are there,
+// so a block of them that vanished, an entry's research above all, would leave
+// those tests green. A change to the census's facts changes this table in the
+// same commit.
+var recorded = map[string]struct {
+	facts    map[string]int
+	research []string
+}{
+	"Bitbucket Pipelines": {map[string]int{"anonymous_tokens": 3, "match": 1, "tenant_membership": 4},
+		[]string{"population", "sources"}},
+	"Buildkite": {map[string]int{}, nil},
+	"CircleCI": {map[string]int{"anonymous_tokens": 2, "match": 1, "tenant_membership": 2},
+		[]string{"population", "sources"}},
+	"GitHub Actions": {map[string]int{"anonymous_tokens": 5, "names_unique_regardless_of_case": 2, "not_tenancy": 20,
+		"owner_charset": 7, "research": 25, "subject_forms": 16, "tenancy_claims": 11},
+		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
+			"population_evidence", "sources"}},
+	"GitHub Actions (enterprise issuer path)": {map[string]int{"anonymous_tokens": 7, "match": 7, "tenant_membership": 1},
+		[]string{"population", "sources"}},
+	"GitLab.com":                      {map[string]int{}, nil},
+	"HCP Terraform (Terraform Cloud)": {map[string]int{}, nil},
+	"Spacelift": {map[string]int{"anonymous_tokens": 1, "match": 1, "tenant_membership": 2},
+		[]string{"population", "sources"}},
+	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1, "match": 1,
+		"tenant_membership": 4}, []string{"population", "sources"}},
+	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3, "match": 2,
+		"tenant_membership": 4}, []string{"population", "sources"}},
+	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "match": 4, "tenant_membership": 4},
+		[]string{"population", "sources"}},
+	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "match": 1, "tenant_membership": 1},
+		[]string{"population", "sources"}},
+	"Google (accounts.google.com)": {map[string]int{"anonymous_tokens": 9, "built_in": 3}, []string{"sources"}},
+	"Amazon Cognito identity pools": {map[string]int{"anonymous_tokens": 9, "built_in": 3, "not_tenancy": 4,
+		"research": 6, "subject_forms": 2}, []string{"aws", "population", "sources"}},
+	"Login with Amazon": {map[string]int{"anonymous_tokens": 3, "built_in": 3, "research": 1},
+		[]string{"sources", "token_kind"}},
+	"Facebook": {map[string]int{"anonymous_tokens": 3, "built_in": 3, "research": 1},
+		[]string{"sources", "token_kind"}},
+	"Microsoft Entra ID": {map[string]int{"anonymous_tokens": 1, "match": 7, "tenant_membership": 3},
+		[]string{"population", "sources"}},
+}
+
+func TestEveryResearchedEntryKeepsWhatWasRecorded(t *testing.T) {
+	examined, total := 0, 0
+	for _, e := range All() {
+		if e.Researched != "in_release" {
+			continue
+		}
+		want, ok := recorded[e.Name]
+		if !ok {
+			t.Errorf("%s is researched in this release and recorded here nowhere", e.Name)
+			continue
+		}
+		examined++
+		got := map[string]int{}
+		for where, fs := range facts(e) {
+			if len(fs) > 0 {
+				got[strings.SplitN(where, ".", 2)[0]] += len(fs)
+				total += len(fs)
+			}
+		}
+		if !reflect.DeepEqual(got, want.facts) {
+			t.Errorf("%s: facts per field %v; the release recorded %v", e.Name, got, want.facts)
+		}
+		var keys []string
+		for k := range e.Research {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		if !slices.Equal(keys, want.research) {
+			t.Errorf("%s: research holds %q; the release recorded %q", e.Name, keys, want.research)
+		}
+	}
+	if examined != len(recorded) || total == 0 {
+		t.Fatalf("examined %d of the %d entries recorded, holding %d facts", examined, len(recorded), total)
+	}
+}
+
 // The embedded census decodes into Issuer with no key left over, so no field
 // the census carries is silently dropped by the Go type.
 func TestTheGoTypeReadsEveryField(t *testing.T) {
