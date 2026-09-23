@@ -239,8 +239,8 @@ const (
 	personalMSA = "9188040d-6c67-4c5b-b112-36a304b66dad"
 )
 
-// Rule 10.8 item 1: a tenant listed as not controlled is platform and known;
-// a controlled membership names an outsider; an unverified one is not known.
+// A tenant the census lists as open to anyone is known not to be controlled;
+// a controlled membership is known controlled; an unverified one is not known.
 func TestControlledTenant(t *testing.T) {
 	e := find(t, entra)
 	for _, c := range []struct {
@@ -275,7 +275,7 @@ func TestControlledTenant(t *testing.T) {
 	}
 }
 
-// Rule A2: yes and no are answers; anything else may mint tokens to people
+// yes and no are answers; anything else may mint tokens to people
 // with no account, and says so by not being known.
 func TestIssuesAnonymousTokens(t *testing.T) {
 	for issuer, want := range map[string][2]bool{
@@ -325,7 +325,7 @@ func TestNamesCompareWithoutCase(t *testing.T) {
 	}
 }
 
-// Ruling 10.10 item 5: a tenant named by an identifier that can be released
+// A tenant named by an identifier that can be released
 // and re-registered carries the recyclable fact, and an unverified one reads
 // as recyclable. GitHub's enterprise slug is the verified case.
 func TestTenantIsRecyclable(t *testing.T) {
@@ -394,8 +394,8 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 		t.Errorf("GitHub owner name characters = %q, want %q", gh.OwnerNameCharacters, want)
 	}
 
-	// Ruling 10.10 item 2: GitLab.com, HCP Terraform and Buildkite carry
-	// anonymous_tokens only, and no sentence in this release settles it.
+	// GitLab.com, HCP Terraform and Buildkite carry anonymous_tokens only, and
+	// no sentence in this release settles it.
 	for issuer, want := range map[string]string{
 		"cognito-identity.amazonaws.com": "yes",
 		"www.amazon.com":                 "no",
@@ -410,8 +410,8 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 			t.Errorf("%s anonymous_tokens = %q, want %q", issuer, got, want)
 		}
 	}
-	// Ruling 10.10 item 4: a pool id in aud pins the pool, never who can get
-	// into it, so Cognito names no tenant by any claim.
+	// A pool id in aud pins the pool, never who can get into it, so Cognito
+	// names no tenant by any claim.
 	cognito := find(t, "cognito-identity.amazonaws.com")
 	if cognito.TenancyClaims != nil {
 		t.Errorf("Cognito tenancy claims = %+v; its aud names the pool, not a tenant", cognito.TenancyClaims)

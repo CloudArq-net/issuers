@@ -102,9 +102,9 @@ func TestMultiTenantHostsIsUsefullyPopulated(t *testing.T) {
 	}
 }
 
-// The entries this release researched (ruling 10.4's list, and 10.10 item 2's
-// three issuers with anonymous_tokens only). Every other entry is
-// not_in_this_release.
+// The entries this release researched: the issuers and per-tenant patterns
+// the tenancy research read, and three issuers researched for
+// anonymous_tokens alone. Every other entry is not_in_this_release.
 var researched = []string{
 	"Bitbucket Pipelines", "Buildkite", "CircleCI", "GitHub Actions", "GitHub Actions (enterprise issuer path)",
 	"GitLab.com", "HCP Terraform (Terraform Cloud)", "Spacelift",
@@ -534,9 +534,9 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 	}
 }
 
-// Ruling 10.10 item 1: every entry says whether this release researched it,
-// and an entry it did not research holds only unverified in its new fields:
-// each is written out, and each reads unverified and nothing else.
+// Every entry says whether this release researched it, and an entry it did
+// not research holds only unverified in its new fields: each is written out,
+// and each reads unverified and nothing else.
 func TestEveryEntrySaysWhetherItWasResearched(t *testing.T) {
 	var doc struct {
 		Issuers []map[string]json.RawMessage `json:"issuers"`
@@ -587,8 +587,8 @@ func TestEveryEntrySaysWhetherItWasResearched(t *testing.T) {
 	}
 }
 
-// Ruling 10.7 item 1: the owner character set cites its sources, and the
-// organisation-name fact is AWS's sentence, which the census must say.
+// GitHub's owner character set cites its sources, and the organisation-name
+// sentence is AWS's, not GitHub's, which the census must say.
 func TestGitHubsOwnerCharacterSetNamesItsSources(t *testing.T) {
 	gh := byName(t, "GitHub Actions", "")
 	if gh.OwnerCharset.Value != "verified" || len(gh.OwnerCharset.Characters) == 0 {
@@ -616,7 +616,7 @@ func TestGitHubsOwnerCharacterSetNamesItsSources(t *testing.T) {
 		}
 	}
 	if aws != 1 || github < 3 {
-		t.Errorf("GitHub's owner character set cites %d GitHub sentences and %d AWS ones; the ruling cites GitHub's and one of AWS's",
+		t.Errorf("GitHub's owner character set cites %d GitHub sentences and %d AWS ones; it rests on GitHub's and one of AWS's",
 			github, aws)
 	}
 	if n := gh.NamesUniqueRegardlessOfCase; n.Value != "unverified" || len(n.LookedIn) == 0 {
@@ -636,13 +636,13 @@ func TestGitHubsOwnerCharacterSetNamesItsSources(t *testing.T) {
 	for _, c := range []string{"actor", "actor_id", "job_workflow_ref", "job_workflow_sha", "environment", "ref",
 		"event_name", "runner_environment", "repository_visibility", "workflow_ref"} {
 		if !notTenancy[c] {
-			t.Errorf("GitHub: %s is not recorded in not_tenancy (A3)", c)
+			t.Errorf("GitHub: %s is not recorded in not_tenancy: it names no owner, repository or enterprise", c)
 		}
 	}
 }
 
-// The four providers STS accepts with no provider in the account (ruling
-// 10.2, 10.7 item 5), and the discrepancy between AWS's pages about them.
+// The four providers STS accepts with no identity provider in the account,
+// and the discrepancy between AWS's pages about them.
 func TestTheBuiltInProvidersAreRecorded(t *testing.T) {
 	for _, name := range []string{"Amazon Cognito identity pools", "Login with Amazon", "Facebook", "Google (accounts.google.com)"} {
 		e := byName(t, name, "")
@@ -673,9 +673,9 @@ func TestTheBuiltInProvidersAreRecorded(t *testing.T) {
 	}
 }
 
-// Ruling 10.10 item 4 and W21: Cognito's aud is the identity pool, which pins
-// the pool and never who can get into it, so it is recorded as not tenancy
-// and no Cognito claim names a tenant.
+// Cognito's aud is the identity pool, which pins the pool and never who can
+// get into it, so it is recorded as not tenancy and no Cognito claim names a
+// tenant.
 func TestCognitosAudienceNamesThePoolNotATenant(t *testing.T) {
 	c := byName(t, "Amazon Cognito identity pools", "")
 	if c.TenancyClaims.Value != "unverified" || len(c.TenancyClaims.Claims) != 0 {
@@ -698,8 +698,8 @@ func TestCognitosAudienceNamesThePoolNotATenant(t *testing.T) {
 	}
 }
 
-// Ruling 10.10 item 2: GitLab.com, HCP Terraform and Buildkite are researched
-// for anonymous_tokens only. The research recorded who can open an account,
+// GitLab.com, HCP Terraform and Buildkite are researched for
+// anonymous_tokens only. The research recorded who can open an account,
 // not that tokens need one, so the value is unverified and says why, and
 // every other tenancy field is unverified too.
 func TestGitLabHCPTerraformAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
@@ -722,9 +722,8 @@ func TestGitLabHCPTerraformAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
 	}
 }
 
-// Ruling 10.10 item 3: a no that rests on a chain of sentences says so. That
-// covers GitHub, the enterprise path, Google and the per-tenant patterns, and
-// nothing else.
+// A no that rests on a chain of sentences says so. That covers GitHub, the
+// enterprise path, Google and the per-tenant patterns, and nothing else.
 func TestAChainedValueIsMarked(t *testing.T) {
 	want := append([]string{"GitHub Actions", "Google (accounts.google.com)"}, perTenant...)
 	var got []string
@@ -739,16 +738,15 @@ func TestAChainedValueIsMarked(t *testing.T) {
 	slices.Sort(got)
 	slices.Sort(want)
 	if !slices.Equal(got, want) {
-		t.Errorf("chained values on %q\nthe ruling's list %q", got, want)
+		t.Errorf("chained values on %q\nwant them on %q", got, want)
 	}
 	if gh := byName(t, "GitHub Actions", ""); len(gh.AnonymousTokens.Chain) != 5 {
 		t.Errorf("GitHub's chain has %d links; the research recorded five", len(gh.AnonymousTokens.Chain))
 	}
 }
 
-// Ruling 10.10 item 5: GitHub's enterprise slug is verified recyclable; every
-// other researched tenant's recyclability is unverified, which reads as
-// recyclable.
+// GitHub's enterprise slug is verified recyclable; every other researched
+// tenant's recyclability is unverified, which reads as recyclable.
 func TestTheEnterpriseSlugIsRecyclable(t *testing.T) {
 	ent := byName(t, "GitHub Actions (enterprise issuer path)", "")
 	if ent.Match.TenantRecyclable != "yes" || len(ent.Match.TenantRecyclableEvidence) == 0 ||
@@ -762,7 +760,7 @@ func TestTheEnterpriseSlugIsRecyclable(t *testing.T) {
 	}
 }
 
-// Ruling 10.8 item 2: no fact a vendor contradicts survives the release.
+// No v0.1.0 fact a vendor contradicts survives the release.
 func TestTheCorrectionsTheVendorsForce(t *testing.T) {
 	if e := byName(t, "Microsoft (Azure DevOps)", ""); e.Issuer != "unverified" || e.TenancyModel != "unverified" || strings.Contains(e.Notes, "nothing to scope on") {
 		t.Errorf("Azure DevOps: issuer %q, tenancy_model %q, notes %q", e.Issuer, e.TenancyModel, e.Notes)
@@ -811,7 +809,7 @@ func TestTheV010TenancyClaimIsKept(t *testing.T) {
 	}
 }
 
-// Several entries may share a host (A7). A lookup by host alone returns the
+// Several entries may share a host. A lookup by host alone returns the
 // entry whose issuer is that host, as it did before the enterprise path had
 // an entry of its own.
 func TestGetResolvesASharedHostToTheHostsOwnIssuer(t *testing.T) {

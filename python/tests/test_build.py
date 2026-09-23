@@ -211,8 +211,8 @@ def test_the_build_refuses(tmp_path, name):
 
 
 def test_several_entries_may_share_a_host(tmp_path):
-    """A7: one pattern, one entry. GitHub's enterprise path shares GitHub's host
-    and is told apart by its path."""
+    """One pattern, one entry: GitHub's enterprise path shares GitHub's host and
+    is told apart by its path."""
     doc = valid_census()
     doc["issuers"].append({
         "name": "Shared, by path", "issuer": "https://token.example.com/<org>", "tenancy_model": "per_tenant_path",

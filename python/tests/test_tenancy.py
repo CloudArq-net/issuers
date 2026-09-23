@@ -302,8 +302,8 @@ def test_the_researched_facts_are_the_census_s():
 
 
 def test_every_entry_says_whether_it_was_researched():
-    """Ruling 10.10 item 1: every entry carries researched and every tenancy
-    field, and an entry this release did not research holds only unverified."""
+    """Every entry carries researched and every tenancy field, and an entry
+    this release did not research holds only unverified."""
     in_release = set()
     unresearched = 0
     for e in ci.issuers():
