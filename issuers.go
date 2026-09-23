@@ -56,8 +56,10 @@ var raw []byte
 // Issuer is one entry in the census. Absent fields are absent because nobody
 // confirmed them, not because the answer is known to be empty.
 type Issuer struct {
-	Name     string `json:"name"`
-	Vendor   string `json:"vendor,omitempty"`
+	Name   string `json:"name"`
+	Vendor string `json:"vendor,omitempty"`
+	// Category is one of: ci, iac, runtime, cloud, ai-agent-platform,
+	// platform, or empty where the census gives none.
 	Category string `json:"category"`
 
 	// Issuer is the exact `iss` claim value. IssuerPattern is set instead when
@@ -78,6 +80,9 @@ type Issuer struct {
 	ControlTest       string `json:"control_test,omitempty"`
 	ControlTestResult string `json:"control_test_result,omitempty"`
 
+	// DiscoveryStatus is one of: ok, not_found, error, unverified. JWKSStatus
+	// is one of: ok, error, unverified, or n/a where the issuer field holds
+	// the note "not an OIDC issuer", which has no key set to fetch.
 	DiscoveryURL    string `json:"discovery_url,omitempty"`
 	DiscoveryStatus string `json:"discovery_status"`
 	JWKSURI         string `json:"jwks_uri,omitempty"`

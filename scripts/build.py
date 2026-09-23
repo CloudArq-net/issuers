@@ -8,11 +8,13 @@ without adding one.
 
 Every tenancy value rests on vendor sentences recorded beside it, and this script
 refuses a census that breaks that: a fact with no source or no quote, a value
-outside its vocabulary, a settled value with nothing behind it, or two entries one
-issuer could match with nothing to choose between them. An entry this release did
-not research is written with every tenancy field unverified.
+settled by an observation rather than a sentence, a value outside its
+vocabulary, a settled value with nothing behind it, a key given twice, or two
+entries one issuer could match with nothing to choose between them. An entry
+this release did not research is written with every tenancy field unverified.
 
-It writes the files below, and CI fails when running it changes any of them:
+It reads and writes UTF-8 whatever the machine's locale, and writes the files
+below; CI fails when running it changes any of them:
 
   issuers.json, python/src/cloudarq_issuers/issuers.json   the census
   tenancy/tenancy.json                                     what a classifier reads
@@ -26,6 +28,7 @@ import pathlib
 import re
 import shutil
 import sys
+import urllib.parse
 
 import yaml
 
@@ -44,6 +47,28 @@ def _load_tenancy_module():
 
 
 tenancy = _load_tenancy_module()
+
+
+class CensusLoader(yaml.SafeLoader):
+    """PyYAML's safe loader, except that it refuses a key given twice in one
+    mapping. The safe loader keeps the last value and drops the first without a
+    word, so a second block under a key would replace a settled value and the
+    census would still build."""
+
+
+def _mapping_without_repeats(loader, node):
+    seen = set()
+    for key_node, _ in node.value:
+        if isinstance(key_node, yaml.ScalarNode) and key_node.tag != 'tag:yaml.org,2002:merge':
+            key = loader.construct_object(key_node)
+            if key in seen:
+                raise yaml.constructor.ConstructorError(
+                    None, None, f"the key {key!r} is given twice in one mapping", key_node.start_mark)
+            seen.add(key)
+    return loader.construct_mapping(node, deep=True)
+
+
+CensusLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _mapping_without_repeats)
 
 KEEP = ['name', 'vendor', 'category', 'issuer', 'issuer_pattern', 'tenancy_model',
         'tenancy_claim', 'control_test', 'control_test_result', 'discovery_url', 'discovery_status', 'jwks_uri',
@@ -75,15 +100,25 @@ AUD = {'relying_party', 'issuer', 'workload', 'unverified'}
 VERDICT = {'scoped', 'admits_whole_org', 'admits_any_repo', 'admits_any_principal',
            'no_subject_constraint', 'unverified'}
 TENANCY = {'shared', 'per_tenant_host', 'per_tenant_path', 'unverified'}
+DISCOVERY = {'ok', 'not_found', 'error', 'unverified'}
+JWKS = {'ok', 'error', 'unverified'}
+CATEGORY = {'ci', 'iac', 'runtime', 'cloud', 'ai-agent-platform', 'platform'}
+CONTROL_TEST = {'passed', 'failed', 'inconclusive', 'unverified'}
 RESEARCHED = {'in_release', 'not_in_this_release'}
 YES_NO = {'yes', 'no', 'unverified'}
 LISTED = {'verified', 'unverified'}
 KIND = {'name', 'id'}
 SCOPE = {'owner', 'repository', 'enterprise'}
 
+# What an issuer field holds when it holds no issuer. An entry whose issuer is
+# NOT_AN_ISSUER has no key set to fetch, which is what its jwks_status n/a says.
+NOT_AN_ISSUER = 'not an OIDC issuer'
+NOTES = {'unverified', NOT_AN_ISSUER}
+
 FACT = {'source', 'quote', 'verified_at', 'role'}
 OBSERVATION = {'observed', 'method', 'at', 'result'}
 DATE = re.compile(r'\d{4}-\d{2}-\d{2}')
+TIMESTAMP = re.compile(r'(\d{4}-\d{2}-\d{2})(?:T([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?Z)?')
 
 
 def clean(v):
@@ -94,6 +129,72 @@ def clean(v):
     if isinstance(v, list):
         return [clean(x) for x in v]
     return v
+
+
+def is_date(value):
+    """Whether value is a day on the calendar, written YYYY-MM-DD."""
+    if not (isinstance(value, str) and DATE.fullmatch(value)):
+        return False
+    try:
+        datetime.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def is_timestamp(value):
+    """Whether value is a day, or a day and a UTC time, as an observation
+    records when it was made: YYYY-MM-DD or YYYY-MM-DDTHH:MM[:SS]Z."""
+    m = TIMESTAMP.fullmatch(value) if isinstance(value, str) else None
+    return bool(m) and is_date(m.group(1))
+
+
+def is_page(value):
+    """Whether value is an https URL that names a host, which is what the
+    source of a vendor's sentence must be."""
+    if not (isinstance(value, str) and value.startswith('https://')) or any(c.isspace() for c in value):
+        return False
+    try:
+        host = urllib.parse.urlsplit(value).hostname or ''
+    except ValueError:
+        return False
+    return '.' in host.strip('.')
+
+
+def issuer_problem(value, notes_allowed):
+    """Why value is not an issuer as the census writes one, or None when it is:
+    https:// in lower case or no scheme at all, one host of at least two labels
+    or a single placeholder, no empty label or path segment, no whitespace.
+    Anything else would escape the check that one issuer has one entry, because
+    the packages would read it as a note."""
+    if notes_allowed and value in NOTES:
+        return None
+    notes = ', '.join(repr(n) for n in sorted(NOTES))
+    if not isinstance(value, str) or not value or any(c.isspace() for c in value):
+        return f"{value!r} is neither an issuer URL, a bare host nor one of the notes {notes}"
+    scheme, sep, _ = value.partition('://')
+    if sep and scheme != 'https':
+        return f"{value!r}: an issuer is written with https:// in lower case, or with no scheme"
+    if ('<' in value or '>' in value) and not sep:
+        return f"{value!r}: a pattern is written as an https:// URL"
+    parts = tenancy.split(value)
+    host = parts[0] if parts else []
+    if not parts or len(host) < 2 and not (host[0].startswith('<') and host[0].endswith('>')):
+        return f"{value!r} is neither an issuer URL, a bare host nor one of the notes {notes}"
+    return None
+
+
+def misspelt_unverified(value, where):
+    """Every place under value, with what it holds, that spells unverified
+    other than in lower case, which no reader in either package recognises as
+    unverified."""
+    if isinstance(value, str):
+        return [(where, value)] if value.strip().lower() == 'unverified' and value != 'unverified' else []
+    if isinstance(value, dict):
+        return [p for k, v in value.items() for p in misspelt_unverified(v, f"{where}.{k}")]
+    if isinstance(value, list):
+        return [p for i, v in enumerate(value) for p in misspelt_unverified(v, f"{where}[{i}]")]
+    return []
 
 
 class Checker:
@@ -111,15 +212,19 @@ class Checker:
             self.fail(where, f"{value!r} is not one of {', '.join(sorted(allowed))}")
 
     def keys(self, where, mapping, allowed, required=()):
+        """Whether mapping is a mapping holding every required key, recording
+        each thing wrong with it. A caller reads the required keys only when
+        this says yes, so a missing key is refused by name rather than crashing
+        the build before the rest is checked."""
         if not isinstance(mapping, dict):
             self.fail(where, f"must be a mapping, not {type(mapping).__name__}")
             return False
-        for k in sorted(mapping.keys() - set(allowed)):
+        for k in sorted(mapping.keys() - set(allowed), key=repr):
             self.fail(where, f"unknown key {k!r}")
-        for k in required:
-            if k not in mapping:
-                self.fail(where, f"missing {k!r}")
-        return True
+        missing = [k for k in required if k not in mapping]
+        for k in missing:
+            self.fail(where, f"missing {k!r}")
+        return not missing
 
     def text(self, where, value):
         if not (isinstance(value, str) and value.strip()):
@@ -130,49 +235,64 @@ class Checker:
             self.fail(where, "must be a non-empty list of URLs")
             return
         for i, u in enumerate(value):
-            if not (isinstance(u, str) and u.startswith('https://')):
+            if not is_page(u):
                 self.fail(f"{where}[{i}]", f"{u!r} is not an https URL")
 
-    def fact(self, where, f):
+    def fact(self, where, f, settles=True):
         """A vendor's sentence with its page and the date it was read, or an
         observation of a live endpoint with how and when it was made. A fact
-        with no source or no quote is not a fact."""
+        with no source or no quote is not a fact.
+
+        Where the fact settles a value (settles), only a sentence will do:
+        unverified means that no vendor sentence establishes the value, so a
+        value an observation alone supports is unverified. An observation may
+        stand as context, in research, and behind a claim or a leading literal
+        that never pins, which cannot move a grant inward."""
         if not isinstance(f, dict):
             self.fail(where, f"a fact must be a mapping, not {type(f).__name__}")
             return
         if 'observed' in f:
-            self.keys(where, f, OBSERVATION, OBSERVATION)
-            for k in OBSERVATION & f.keys():
-                self.text(f"{where}.{k}", f[k])
+            if settles:
+                self.fail(where, "an observation settles no value: it needs the vendor's sentence, "
+                                 "with its source, quote and verified_at")
+            if self.keys(where, f, OBSERVATION, OBSERVATION):
+                for k in ('observed', 'method', 'result'):
+                    self.text(f"{where}.{k}", f[k])
+                if not is_timestamp(f['at']):
+                    self.fail(f"{where}.at", f"{f['at']!r} is not a date, as YYYY-MM-DD or YYYY-MM-DDTHH:MMZ")
             return
         self.keys(where, f, FACT)
-        if not (isinstance(f.get('source'), str) and f['source'].startswith('https://')):
-            self.fail(where, "a fact needs its source, an https URL")
+        if not is_page(f.get('source')):
+            self.fail(where, "a fact needs its source, an https URL of a page")
         if not (isinstance(f.get('quote'), str) and f['quote'].strip()):
             self.fail(where, "a fact needs its quote")
-        if not (isinstance(f.get('verified_at'), str) and DATE.fullmatch(f['verified_at'])):
+        if not is_date(f.get('verified_at')):
             self.fail(where, "a fact needs the date it was read, as verified_at: YYYY-MM-DD")
         if 'role' in f:
             self.text(f"{where}.role", f['role'])
 
-    def facts(self, where, value, required=False):
+    def facts(self, where, value, required=False, settles=True):
         if value is None and not required:
             return
         if not isinstance(value, list) or (required and not value):
             self.fail(where, "must be a non-empty list of facts" if required else "must be a list of facts")
             return
         for i, f in enumerate(value):
-            self.fact(f"{where}[{i}]", f)
+            self.fact(f"{where}[{i}]", f, settles)
+
+    def context(self, where, value):
+        """Sentences or observations read beside a value that do not establish it."""
+        self.facts(where, value, settles=False)
 
     def research(self, where, value):
         """Everything under research that looks like a fact is held to the fact
-        rule, however deep it sits: a mapping with a source or a quote in it,
-        or an observation. (A key named `observed` whose value is a mapping or
-        a list names a group, not an observation.)"""
+        rule, however deep it sits: a mapping carrying any key a fact or an
+        observation has, so a fact written under other names is refused rather
+        than walked past. (A key named `observed` whose value is a mapping or a
+        list names a group, not an observation.)"""
         if isinstance(value, dict):
-            observed = value.get('observed')
-            if 'source' in value or 'quote' in value or observed is not None and not isinstance(observed, (dict, list)):
-                self.fact(where, value)
+            if any(k in FACT | OBSERVATION and not isinstance(v, (dict, list)) for k, v in value.items()):
+                self.fact(where, value, settles=False)
                 return
             for k, v in value.items():
                 self.research(f"{where}.{k}", v)
@@ -186,8 +306,9 @@ def check_anonymous_tokens(c, a):
                                           'why_unverified', 'looked_in'}, ['value']):
         return
     c.one_of('anonymous_tokens.value', a['value'], YES_NO)
-    for k in ('evidence', 'chain', 'context'):
+    for k in ('evidence', 'chain'):
         c.facts(f"anonymous_tokens.{k}", a.get(k))
+    c.context('anonymous_tokens.context', a.get('context'))
     if 'looked_in' in a:
         c.urls('anonymous_tokens.looked_in', a['looked_in'])
     if a['value'] in ('yes', 'no'):
@@ -235,7 +356,7 @@ def check_tenancy_claims(c, t):
         c.one_of(f"{w}.immutable", x['immutable'], YES_NO)
         c.fact(f"{w}.evidence", x['evidence'])
         c.facts(f"{w}.immutable_evidence", x.get('immutable_evidence'))
-        c.facts(f"{w}.context", x.get('context'))
+        c.context(f"{w}.context", x.get('context'))
         if x['immutable'] in ('yes', 'no') and not x.get('immutable_evidence'):
             c.fail(w, f"immutable {x['immutable']!r} with no immutable_evidence")
         if 'looked_in' in x:
@@ -262,8 +383,9 @@ def check_not_tenancy(c, t, tenancy_claims):
             continue
         c.text(f"{w}.claim", x['claim'])
         c.text(f"{w}.why", x['why'])
-        c.fact(f"{w}.evidence", x['evidence'])
-        c.facts(f"{w}.context", x.get('context'))
+        # A claim listed here never pins, as one listed nowhere never does.
+        c.fact(f"{w}.evidence", x['evidence'], settles=False)
+        c.context(f"{w}.context", x.get('context'))
         if x['claim'] in seen or x['claim'] in tenancy_claims:
             c.fail(w, f"{x['claim']!r} is listed twice, or is also a tenancy claim")
         seen.add(x['claim'])
@@ -317,12 +439,18 @@ def check_subject_forms(c, s):
                         c.fail(f"{pw}.delimiter_after", "must be one character")
         if total == 0:
             c.fail(w, "a form names its tenant by at least one part")
-    for i, n in enumerate(s.get('never_pin') or []):
+    never = s.get('never_pin') or []
+    if not isinstance(never, list):
+        c.fail('subject_forms.never_pin', "must be a list")
+        never = []
+    for i, n in enumerate(never):
         w = f"subject_forms.never_pin[{i}]"
         if c.keys(w, n, {'leading_literal', 'why', 'evidence'}, ['leading_literal', 'why', 'evidence']):
             c.text(f"{w}.leading_literal", n['leading_literal'])
             c.text(f"{w}.why", n['why'])
-            c.fact(f"{w}.evidence", n['evidence'])
+            # A subject led by this literal never pins, as one led by a literal
+            # the entry does not list never does.
+            c.fact(f"{w}.evidence", n['evidence'], settles=False)
             if n['leading_literal'] in literals:
                 c.fail(w, f"{n['leading_literal']!r} both leads a form and never pins")
 
@@ -340,12 +468,16 @@ def check_owner_charset(c, o):
         c.fail('owner_charset.characters', "a verified set needs its characters")
     else:
         for i, x in enumerate(chars):
-            ok = isinstance(x, str) and (len(x) == 1 or len(x) == 3 and x[1] == '-' and x[0] < x[2])
+            # Printable ASCII only: the Go reader counts bytes where Python
+            # counts characters, and on ASCII the two counts are one.
+            ok = isinstance(x, str) and x.isascii() and x.isprintable() and (
+                len(x) == 1 or len(x) == 3 and x[1] == '-' and x[0] < x[2])
             if not ok:
-                c.fail(f"owner_charset.characters[{i}]", f"{x!r} is neither one character nor a range such as a-z")
+                c.fail(f"owner_charset.characters[{i}]",
+                       f"{x!r} is neither one character nor a range such as a-z, in printable ASCII")
     c.text('owner_charset.description', o.get('description'))
     c.facts('owner_charset.evidence', o.get('evidence'), required=True)
-    c.facts('owner_charset.context', o.get('context'))
+    c.context('owner_charset.context', o.get('context'))
 
 
 def check_name_case(c, n):
@@ -354,7 +486,7 @@ def check_name_case(c, n):
         return
     c.one_of(f"{w}.value", n['value'], YES_NO)
     c.facts(f"{w}.evidence", n.get('evidence'), required=n['value'] in ('yes', 'no'))
-    c.facts(f"{w}.context", n.get('context'))
+    c.context(f"{w}.context", n.get('context'))
     if 'looked_in' in n:
         c.urls(f"{w}.looked_in", n['looked_in'])
 
@@ -378,20 +510,24 @@ def check_match(c, m, issuer):
     try:
         tenancy.compile_rule(None, m.get('issuer_pattern', ''), m.get('tenant_placeholder', ''),
                              m.get('tenant_syntax', ''))
-    except ValueError as e:
+    except (ValueError, TypeError, AttributeError) as e:
         c.fail('match', f"the pattern does not compile: {e}")
-    if '<' not in m.get('issuer_pattern', '<'):
+    if '<' not in str(m.get('issuer_pattern', '<')):
         c.fail('match.issuer_pattern', "a verified rule is a pattern; an exact issuer matches without one")
     c.one_of('match.tenant_kind', m.get('tenant_kind'), KIND)
     c.facts('match.evidence', m.get('evidence'), required=True)
-    c.facts('match.context', m.get('context'))
+    c.context('match.context', m.get('context'))
     if 'tenant_syntax' in m:
         c.facts('match.tenant_syntax_evidence', m.get('tenant_syntax_evidence'), required=True)
     for k in ('tenant_immutable', 'tenant_recyclable'):
         if k in m:
             c.one_of(f"match.{k}", m[k], YES_NO)
             c.facts(f"match.{k}_evidence", m.get(f"{k}_evidence"), required=m[k] in ('yes', 'no'))
-    for i, x in enumerate(m.get('not_a_controlled_tenant') or []):
+    open_tenants = m.get('not_a_controlled_tenant') or []
+    if not isinstance(open_tenants, list):
+        c.fail('match.not_a_controlled_tenant', "must be a list")
+        open_tenants = []
+    for i, x in enumerate(open_tenants):
         w = f"match.not_a_controlled_tenant[{i}]"
         if c.keys(w, x, {'tenant', 'why', 'evidence'}, ['tenant', 'why', 'evidence']):
             c.text(f"{w}.tenant", x['tenant'])
@@ -405,9 +541,13 @@ def check_tenant_membership(c, t, match):
         return
     c.one_of(f"{w}.value", t['value'], {'controlled', 'unverified'})
     c.facts(f"{w}.evidence", t.get('evidence'), required=t['value'] == 'controlled')
-    c.facts(f"{w}.context", t.get('context'))
+    c.context(f"{w}.context", t.get('context'))
     for k in ('notes', 'unverified'):
-        for i, x in enumerate(t.get(k) or []):
+        items = t.get(k) or []
+        if not isinstance(items, list):
+            c.fail(f"{w}.{k}", "must be a list of text")
+            continue
+        for i, x in enumerate(items):
             c.text(f"{w}.{k}[{i}]", x)
     if 'looked_in' in t:
         c.urls(f"{w}.looked_in", t['looked_in'])
@@ -427,18 +567,31 @@ def check_built_in(c, b):
 
 def check_entry(e):
     """Everything wrong with one entry of the YAML."""
+    if not isinstance(e, dict):
+        return [f"an entry must be a mapping, not {type(e).__name__}"]
     c = Checker(e.get('name', '<unnamed>'))
+    c.text('name', e.get('name'))
     c.one_of('aud_controlled_by', e.get('aud_controlled_by'), AUD)
     c.one_of('vendor_example_verdict', e.get('vendor_example_verdict'), VERDICT)
     c.one_of('tenancy_model', e.get('tenancy_model'), TENANCY)
+    c.one_of('discovery_status', e.get('discovery_status'), DISCOVERY)
+    c.one_of('jwks_status', e.get('jwks_status'), JWKS | ({'n/a'} if e.get('issuer') == NOT_AN_ISSUER else set()))
+    if 'category' in e:
+        c.one_of('category', e['category'], CATEGORY)
+    if 'control_test_result' in e:
+        c.one_of('control_test_result', e['control_test_result'], CONTROL_TEST)
     for field, want in SHAPES.items():
         if field in e and not isinstance(e[field], want):
             c.fail(field, f"is {type(e[field]).__name__}, every entry must have it as {want.__name__}")
     if not (e.get('issuer') or e.get('issuer_pattern')):
         c.fail('issuer', "neither issuer nor issuer_pattern")
-    claim = e.get('tenancy_claim')
-    if isinstance(claim, str) and claim.lower() == 'unverified' and claim != 'unverified':
-        c.fail('tenancy_claim', f"{claim!r} is spelled unverified")
+    for field, notes_allowed in (('issuer', True), ('issuer_pattern', False)):
+        if field in e:
+            problem = issuer_problem(e[field], notes_allowed)
+            if problem:
+                c.fail(field, problem)
+    for where, value in misspelt_unverified(e, 'entry'):
+        c.fail(where.removeprefix('entry.'), f"{value!r} is spelled unverified; the census writes it in lower case")
     if c.errors:
         return c.errors
 
@@ -471,6 +624,18 @@ def check_entry(e):
     if 'research' in e:
         c.research('research', e['research'])
     return c.errors
+
+
+def check_document(doc):
+    """What is wrong with the document around the entries."""
+    if not isinstance(doc, dict):
+        return [f"the census must be a mapping, not {type(doc).__name__}"]
+    errs = []
+    if not is_date(doc.get('census_date')):
+        errs.append(f"census_date: {doc.get('census_date')!r} is not a date, as YYYY-MM-DD")
+    if not isinstance(doc.get('issuers'), list) or not doc['issuers']:
+        errs.append("issuers: the census needs a non-empty list of entries")
+    return errs
 
 
 def render(e):
@@ -538,27 +703,39 @@ def check_census(entries):
     return errs
 
 
+def refuse(errs):
+    print("issuers.yaml is invalid:", file=sys.stderr)
+    for x in errs:
+        print("  " + x, file=sys.stderr)
+    return 1
+
+
 def main():
-    doc = clean(yaml.safe_load((ROOT / 'issuers.yaml').read_text()))
+    try:
+        doc = clean(yaml.load((ROOT / 'issuers.yaml').read_text(encoding='utf-8'), Loader=CensusLoader))
+    except yaml.YAMLError as e:
+        return refuse([str(e)])
+    errs = check_document(doc)
+    if errs:
+        return refuse(errs)
     entries = doc['issuers']
     errs = [x for e in entries for x in check_entry(e)]
-    census = [render(e) for e in entries]
-    if not errs:
-        errs = check_census(census)
     if errs:
-        print("issuers.yaml is invalid:", file=sys.stderr)
-        for x in errs:
-            print("  " + x, file=sys.stderr)
-        return 1
+        return refuse(errs)
+    census = [render(e) for e in entries]
+    errs = check_census(census)
+    if errs:
+        return refuse(errs)
 
     payload = {'census_date': str(doc['census_date']), 'issuers': census}
     text = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
-    (ROOT / 'issuers.json').write_text(text)
-    (ROOT / 'python' / 'src' / 'cloudarq_issuers' / 'issuers.json').write_text(text)
+    (ROOT / 'issuers.json').write_text(text, encoding='utf-8')
+    (ROOT / 'python' / 'src' / 'cloudarq_issuers' / 'issuers.json').write_text(text, encoding='utf-8')
 
     sub = [tenancy.projection(e) for e in census if tenancy.rule_of(e) is not None]
     (ROOT / 'tenancy' / 'tenancy.json').write_text(
-        json.dumps({'census_date': payload['census_date'], 'issuers': sub}, ensure_ascii=False, separators=(',', ':')))
+        json.dumps({'census_date': payload['census_date'], 'issuers': sub}, ensure_ascii=False, separators=(',', ':')),
+        encoding='utf-8')
     researched = sum(1 for e in census if e['researched'] == 'in_release')
     print(f"issuers.json: {len(census)} entries, {researched} researched in this release; "
           f"tenancy/tenancy.json: {len(sub)} entries an issuer can match")

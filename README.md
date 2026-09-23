@@ -235,7 +235,8 @@ state for an entry to be in.
 
 A tenancy value other than `unverified` needs the vendor's sentence behind it: its page,
 the sentence verbatim, and the date it was read. `scripts/build.py` refuses a fact with no
-source or no quote.
+source or no quote, a value that rests on an observation alone, a date no calendar has, a
+key given twice, and a value outside its field's vocabulary.
 
 Public metadata only. Nothing in this repository authenticates anywhere, probes anyone's
 infrastructure, or enumerates tenant names.

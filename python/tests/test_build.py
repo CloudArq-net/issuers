@@ -18,40 +18,59 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[2]
 
-FACT = {"source": "https://example.com/doc", "quote": "A sentence the vendor wrote.", "verified_at": "2026-09-23"}
+FACT = {"source": "https://example.com/doc", "quote": "A sentence the vendor wrote → with an arrow in it.",
+        "verified_at": "2026-09-23"}
+OBSERVATION = {"observed": "https://example.com/.well-known/openid-configuration", "method": "curl",
+               "at": "2026-09-23T00:12Z", "result": "claims_supported includes x"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "names_unique_regardless_of_case", "match", "tenant_membership", "built_in")
+
+# Python raises on any file it reads or writes in the locale's encoding when
+# run this way, so a build that forgot to say UTF-8 fails here, whatever the
+# machine's locale happens to be.
+UTF8_ONLY = ("-X", "warn_default_encoding", "-W", "error::EncodingWarning")
 
 
 def fact():
     return dict(FACT)
 
 
+def observation():
+    return dict(OBSERVATION)
+
+
 def valid_census():
     """A small census the build accepts: a researched shared issuer, a
-    researched per-tenant pattern and an entry this release did not research."""
+    researched per-tenant pattern and an entry this release did not research.
+    The shared issuer carries an observation where one may stand, in context
+    and behind a claim that never pins."""
     return {
         "schema_version": 3,
         "census_date": "2026-09-13",
         "issuers": [
-            {"name": "Shared", "issuer": "https://token.example.com", "tenancy_model": "shared",
+            {"name": "Shared", "category": "ci", "issuer": "https://token.example.com", "tenancy_model": "shared",
+             "discovery_status": "ok", "jwks_status": "ok", "control_test_result": "passed",
              "aud_controlled_by": "workload", "vendor_example_verdict": "unverified",
              "researched": "in_release",
-             "anonymous_tokens": {"value": "no", "evidence": [fact()]},
+             "anonymous_tokens": {"value": "no", "evidence": [fact()], "context": [observation()]},
              "tenancy_claims": {"value": "verified", "claims": [
                  {"claim": "owner_id", "kind": "id", "scope": "owner", "multi_valued": "no",
                   "immutable": "unverified", "evidence": fact()},
                  {"claim": "owners", "kind": "name", "scope": "owner", "multi_valued": "yes",
                   "immutable": "unverified", "evidence": fact()}]},
              "not_tenancy": {"value": "verified", "claims": [
-                 {"claim": "actor", "why": "the person who started the run", "evidence": fact()}]},
+                 {"claim": "actor", "why": "the person who started the run", "evidence": fact()},
+                 {"claim": "scope", "why": "no page read says what it names", "evidence": observation()}]},
              "subject_forms": {"value": "verified", "forms": [
                  {"form": "default", "leading_literal": "org:",
-                  "owner_parts": [{"kind": "name", "delimiter_after": ":"}], "evidence": fact()}]},
+                  "owner_parts": [{"kind": "name", "delimiter_after": ":"}], "evidence": fact()}],
+                 "never_pin": [{"leading_literal": "job:", "why": "names the called job", "evidence": fact()}]},
              "owner_charset": {"value": "verified", "characters": ["a-z", "-"],
                                "description": "lower-case letters and dashes", "evidence": [fact()]},
-             "research": {"population": "anyone with an account", "nested": {"read": fact()}}},
+             "research": {"population": "anyone with an account", "nested": {"read": fact()},
+                          "live": {"observed": observation()}}},
             {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenancy_model": "per_tenant_host",
+             "discovery_status": "unverified", "jwks_status": "unverified",
              "aud_controlled_by": "unverified", "vendor_example_verdict": "unverified",
              "researched": "in_release",
              "match": {"value": "verified", "issuer_pattern": "https://<tenant>.example.org",
@@ -59,14 +78,19 @@ def valid_census():
                        "evidence": [fact()]},
              "tenant_membership": {"value": "controlled", "evidence": [fact()]}},
             {"name": "Unresearched", "issuer": "https://other.example.net", "tenancy_model": "unverified",
+             "discovery_status": "unverified", "jwks_status": "unverified",
+             "aud_controlled_by": "unverified", "vendor_example_verdict": "unverified"},
+            {"name": "Not an issuer", "issuer": "not an OIDC issuer", "tenancy_model": "unverified",
+             "discovery_status": "error", "jwks_uri": "n/a", "jwks_status": "n/a",
              "aud_controlled_by": "unverified", "vendor_example_verdict": "unverified"},
         ],
     }
 
 
-def build(tmp_path, doc):
-    """Run the repository's build script over ``doc`` in a tree of its own, and
-    return its exit status, its error output and the tree."""
+def build(tmp_path, doc=None, text=None, flags=()):
+    """Run the repository's build script over ``doc``, or over YAML ``text``
+    as written, in a tree of its own, and return its exit status, its error
+    output and the tree."""
     (tmp_path / "scripts").mkdir()
     shutil.copy(REPO / "scripts" / "build.py", tmp_path / "scripts" / "build.py")
     package = tmp_path / "python" / "src" / "cloudarq_issuers"
@@ -77,9 +101,11 @@ def build(tmp_path, doc):
     shared.mkdir(parents=True)
     for name in ("match_cases.json", "answers.json"):
         (shared / name).write_text("{}", encoding="utf-8")
-    (tmp_path / "issuers.yaml").write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
-    run = subprocess.run([sys.executable, str(tmp_path / "scripts" / "build.py")], capture_output=True, text=True,
-                         timeout=60)
+    if text is None:
+        text = yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
+    (tmp_path / "issuers.yaml").write_text(text, encoding="utf-8")
+    run = subprocess.run([sys.executable, *flags, str(tmp_path / "scripts" / "build.py")], capture_output=True,
+                         text=True, encoding="utf-8", timeout=60)
     return run.returncode, run.stderr, tmp_path
 
 
@@ -87,15 +113,24 @@ def test_a_valid_census_builds_and_writes_every_field(tmp_path):
     status, err, tree = build(tmp_path, valid_census())
     assert status == 0, err
     census = json.loads((tree / "issuers.json").read_text(encoding="utf-8"))["issuers"]
-    assert [e["name"] for e in census] == ["Shared", "Per tenant", "Unresearched"]
+    assert [e["name"] for e in census] == ["Shared", "Per tenant", "Unresearched", "Not an issuer"]
     for e in census:
         assert all(k in e for k in TENANCY_FIELDS), e["name"]
     assert census[2]["researched"] == "not_in_this_release"
     assert all(census[2][k] == {"value": "unverified"} for k in TENANCY_FIELDS)
     assert census[0]["research"]["nested"]["read"] == FACT
-    assert (tree / "python" / "src" / "cloudarq_issuers" / "issuers.json").read_text() == (tree / "issuers.json").read_text()
+    assert census[0]["not_tenancy"]["claims"][1]["evidence"] == OBSERVATION
+    assert (tree / "python" / "src" / "cloudarq_issuers" / "issuers.json").read_text(encoding="utf-8") == \
+        (tree / "issuers.json").read_text(encoding="utf-8")
     for name in ("match_cases.json", "answers.json"):
         assert (tree / "python" / "tests" / name).exists(), name
+
+
+def test_the_build_reads_and_writes_utf8_whatever_the_locale(tmp_path):
+    status, err, tree = build(tmp_path, valid_census(), flags=UTF8_ONLY)
+    assert status == 0, err
+    census = json.loads((tree / "issuers.json").read_bytes().decode("utf-8"))["issuers"]
+    assert census[0]["anonymous_tokens"]["evidence"][0]["quote"] == FACT["quote"]
 
 
 def test_the_sub_package_carries_only_what_is_settled(tmp_path):
@@ -138,25 +173,56 @@ def append_entry(entry):
 
 SHARED = "issuers.0"
 PER_TENANT = "issuers.1"
+UNRESEARCHED = "issuers.2"
 
 
 def overlapping(doc):
     doc["issuers"][1]["issuer"] = doc["issuers"][1]["match"]["issuer_pattern"] = "https://<tenant>.example.org/x"
     doc["issuers"].append({
         "name": "Other pattern", "issuer": "https://h.example.org/<y>", "tenancy_model": "per_tenant_path",
+        "discovery_status": "unverified", "jwks_status": "unverified",
         "aud_controlled_by": "unverified", "vendor_example_verdict": "unverified", "researched": "in_release",
         "match": {"value": "verified", "issuer_pattern": "https://h.example.org/<y>", "tenant_placeholder": "<y>",
                   "tenant_kind": "name", "tenant_recyclable": "unverified", "evidence": [fact()]}})
 
+
+def unresearched(name, issuer):
+    return {"name": name, "issuer": issuer, "tenancy_model": "shared", "discovery_status": "unverified",
+            "jwks_status": "unverified", "aud_controlled_by": "workload", "vendor_example_verdict": "unverified"}
+
+
+SETTLES_NOTHING = "an observation settles no value"
 
 REFUSALS = {
     "a fact with no quote": (drop(f"{SHARED}.anonymous_tokens.evidence.0", "quote"), "a fact needs its quote"),
     "a fact with no source": (drop(f"{SHARED}.anonymous_tokens.evidence.0", "source"), "a fact needs its source"),
     "a fact whose source is not https": (put(f"{SHARED}.anonymous_tokens.evidence.0", "source", "http://example.com"),
                                          "a fact needs its source"),
+    "a fact whose source names no page": (put(f"{SHARED}.anonymous_tokens.evidence.0", "source", "https://"),
+                                          "a fact needs its source"),
+    "a fact whose source is not a URL": (put(f"{SHARED}.anonymous_tokens.evidence.0", "source",
+                                             "https:// not a url"), "a fact needs its source"),
     "a fact with no date": (drop(f"{SHARED}.anonymous_tokens.evidence.0", "verified_at"), "verified_at"),
+    "a fact read on a day no calendar has": (put(f"{SHARED}.anonymous_tokens.evidence.0", "verified_at",
+                                                 "2026-13-45"), "verified_at"),
     "a fact with a key a fact does not have": (put(f"{SHARED}.anonymous_tokens.evidence.0", "page", "x"), "unknown key"),
     "a fact deep in research with no quote": (drop(f"{SHARED}.research.nested.read", "quote"), "a fact needs its quote"),
+    "a fact in research under other names": (put(f"{SHARED}.research", "probe", {
+        "url": "https://example.com/doc", "sentence": "A sentence.", "verified_at": "2026-09-23"}), "unknown key 'url'"),
+    "an observation with no date": (put(f"{SHARED}.anonymous_tokens.context.0", "at", "yesterday"), "is not a date"),
+    "an observation on a day no calendar has": (put(f"{SHARED}.anonymous_tokens.context.0", "at", "2026-02-30"),
+                                                "is not a date"),
+    "an observation behind a settled value": (put(f"{SHARED}.anonymous_tokens", "evidence", [OBSERVATION]),
+                                              SETTLES_NOTHING),
+    "an observation behind a tenancy claim": (put(f"{SHARED}.tenancy_claims.claims.0", "evidence", OBSERVATION),
+                                              SETTLES_NOTHING),
+    "an observation behind a subject form": (put(f"{SHARED}.subject_forms.forms.0", "evidence", OBSERVATION),
+                                             SETTLES_NOTHING),
+    "an observation behind a character set": (put(f"{SHARED}.owner_charset", "evidence", [OBSERVATION]),
+                                              SETTLES_NOTHING),
+    "an observation behind a pattern": (put(f"{PER_TENANT}.match", "evidence", [OBSERVATION]), SETTLES_NOTHING),
+    "an observation behind a controlled membership": (put(f"{PER_TENANT}.tenant_membership", "evidence",
+                                                          [OBSERVATION]), SETTLES_NOTHING),
     "YAML's unquoted no": (put(f"{SHARED}.anonymous_tokens", "value", False), "is not one of"),
     "a settled value with nothing behind it": (drop(f"{SHARED}.anonymous_tokens", "evidence"),
                                                "with no evidence and no chain"),
@@ -175,6 +241,10 @@ REFUSALS = {
     "a literal that leads a form and never pins": (put(f"{SHARED}.subject_forms", "never_pin", [
         {"leading_literal": "org:", "why": "names something else", "evidence": fact()}]), "never pins"),
     "a backwards range": (put(f"{SHARED}.owner_charset", "characters", ["z-a"]), "neither one character nor a range"),
+    "an owner character outside ASCII": (put(f"{SHARED}.owner_charset", "characters", ["a-z", "é"]),
+                                         "neither one character nor a range"),
+    "a range that ends outside ASCII": (put(f"{SHARED}.owner_charset", "characters", ["a-é"]),
+                                        "neither one character nor a range"),
     "a character set with nothing behind it": (drop(f"{SHARED}.owner_charset", "evidence"), "non-empty list of facts"),
     "a misspelt key": (put(f"{SHARED}.anonymous_tokens", "evidnce", [fact()]), "unknown key 'evidnce'"),
     "a tenant spelled from no placeholder of the pattern": (put(f"{PER_TENANT}.match", "tenant_placeholder", "<t>"),
@@ -186,16 +256,49 @@ REFUSALS = {
     "a controlled membership on no pattern": (put(f"{SHARED}", "tenant_membership", {"value": "controlled",
                                                                                      "evidence": [fact()]}),
                                               "belongs to a verified pattern"),
-    "an entry not researched carrying a fact": (put("issuers.2", "anonymous_tokens", {"value": "no",
-                                                                                      "evidence": [fact()]}),
+    "an entry not researched carrying a fact": (put(UNRESEARCHED, "anonymous_tokens", {"value": "no",
+                                                                                       "evidence": [fact()]}),
                                                 "carries no tenancy field"),
     "v0.1.0's spelling of unverified": (put(SHARED, "tenancy_claim", "UNVERIFIED"), "is spelled unverified"),
+    "unverified in capitals in free text": (put(UNRESEARCHED, "jwks_uri", "UNVERIFIED"), "is spelled unverified"),
+    "unverified in capitals deep in an entry": (put(UNRESEARCHED, "sub_grammar", {"default": "Unverified"}),
+                                                "is spelled unverified"),
+    "a discovery status outside its vocabulary": (put(UNRESEARCHED, "discovery_status", "UNVERIFIED"),
+                                                  "is not one of"),
+    "a JWKS status outside its vocabulary": (put(UNRESEARCHED, "jwks_status", "UNVERIFIED"), "is not one of"),
+    "a JWKS that does not apply, on an issuer": (put(UNRESEARCHED, "jwks_status", "n/a"), "is not one of"),
+    "a category outside its vocabulary": (put(SHARED, "category", "UNVERIFIED"), "is not one of"),
+    "a control test result outside its vocabulary": (put(SHARED, "control_test_result", "UNVERIFIED"),
+                                                     "is not one of"),
+    "an issuer with its scheme in capitals": (put(SHARED, "issuer", "HTTPS://token.example.com"), "in lower case"),
+    "an issuer over http": (put(UNRESEARCHED, "issuer", "http://other.example.net"), "in lower case"),
+    "an issuer that is neither a URL nor a note": (put(UNRESEARCHED, "issuer", "other example net"),
+                                                   "neither an issuer"),
+    "an issuer with space around it": (put(UNRESEARCHED, "issuer", " https://other.example.net"), "neither an issuer"),
+    "an issuer with an empty label": (put(UNRESEARCHED, "issuer", "https://other..example.net"), "neither an issuer"),
+    "a v0.1.0 pattern that is not an https URL": (put(PER_TENANT, "issuer_pattern", "<tenant>.example.org"),
+                                                  "a pattern is written as an https:// URL"),
+    "a note where a pattern belongs": (put(PER_TENANT, "issuer_pattern", "unverified"), "neither an issuer"),
+    "a tenancy claim with no kind": (drop(f"{SHARED}.tenancy_claims.claims.0", "kind"), "missing 'kind'"),
+    "a tenancy claim with no cardinality": (drop(f"{SHARED}.tenancy_claims.claims.0", "multi_valued"),
+                                            "missing 'multi_valued'"),
+    "a tenancy claim with no evidence": (drop(f"{SHARED}.tenancy_claims.claims.0", "evidence"), "missing 'evidence'"),
+    "a subject form with no leading literal": (drop(f"{SHARED}.subject_forms.forms.0", "leading_literal"),
+                                               "missing 'leading_literal'"),
+    "a literal that never pins, with no why": (drop(f"{SHARED}.subject_forms.never_pin.0", "why"), "missing 'why'"),
+    "a claim that is not tenancy, with no why": (drop(f"{SHARED}.not_tenancy.claims.0", "why"), "missing 'why'"),
+    "anonymous_tokens with no value": (drop(f"{SHARED}.anonymous_tokens", "value"), "missing 'value'"),
+    "a pattern with no value": (drop(f"{PER_TENANT}.match", "value"), "missing 'value'"),
+    "an entry with no name": (drop(SHARED, "name"), "name: must be non-empty text"),
+    "a census with no date": (lambda doc: doc.pop("census_date"), "census_date"),
+    "a census with no entries": (lambda doc: doc.pop("issuers"), "issuers"),
     "one issuer in two entries": (append_entry({
-        "name": "Shared again", "issuer": "https://TOKEN.example.com/", "tenancy_model": "shared",
-        "aud_controlled_by": "workload", "vendor_example_verdict": "unverified"}), "the same issuer as"),
+        **unresearched("Shared again", "https://TOKEN.example.com/")}), "the same issuer as"),
+    "one issuer in two entries, the second with its scheme in capitals": (append_entry({
+        **unresearched("Shared again", "HTTPS://token.example.com")}), "in lower case"),
     "one pattern in two entries under other placeholder names": (append_entry({
-        "name": "Per tenant again", "issuer": "https://<account>.example.org", "tenancy_model": "per_tenant_host",
-        "aud_controlled_by": "unverified", "vendor_example_verdict": "unverified"}), "the same issuer as"),
+        **unresearched("Per tenant again", "https://<account>.example.org"), "tenancy_model": "per_tenant_host"}),
+        "the same issuer as"),
     "two patterns one issuer matches with neither more specific": (overlapping, "neither is more specific"),
 }
 
@@ -207,6 +310,31 @@ def test_the_build_refuses(tmp_path, name):
     change(doc)
     status, err, tree = build(tmp_path, doc)
     assert status == 1 and message in err, f"{name}: exit {status}\n{err}"
+    assert "Traceback" not in err, f"{name}: the build crashed rather than refusing\n{err}"
+    assert not (tree / "issuers.json").exists(), f"{name}: the build wrote a census it refused"
+
+
+# A key given twice in one mapping, written as YAML text: a mapping built in
+# Python cannot hold one. Each edit names the first line it follows, and the
+# key is repeated right after it, in the other order as well.
+TWICE = {
+    "a field given twice in one entry": ("  tenancy_model: shared\n", "  tenancy_model: per_tenant_host\n"),
+    "a field given twice, the settled value second": ("  tenancy_model: per_tenant_host\n",
+                                                      "  tenancy_model: shared\n"),
+    "a tenancy block given twice": ("  researched: in_release\n",
+                                    "  anonymous_tokens:\n    value: unverified\n    why_unverified: a second block\n"),
+    "the census date given twice": ("census_date: '2026-09-13'\n", "census_date: '2026-09-14'\n"),
+}
+
+
+@pytest.mark.parametrize("name", TWICE)
+def test_the_build_refuses_a_key_given_twice(tmp_path, name):
+    after, repeat = TWICE[name]
+    text = yaml.safe_dump(valid_census(), sort_keys=False, allow_unicode=True)
+    assert after in text, f"{name}: the census text has no line {after!r} to follow"
+    status, err, tree = build(tmp_path, text=text.replace(after, after + repeat, 1))
+    assert status == 1 and "given twice" in err, f"{name}: exit {status}\n{err}"
+    assert "Traceback" not in err, err
     assert not (tree / "issuers.json").exists(), f"{name}: the build wrote a census it refused"
 
 
@@ -216,6 +344,7 @@ def test_several_entries_may_share_a_host(tmp_path):
     doc = valid_census()
     doc["issuers"].append({
         "name": "Shared, by path", "issuer": "https://token.example.com/<org>", "tenancy_model": "per_tenant_path",
+        "discovery_status": "unverified", "jwks_status": "unverified",
         "aud_controlled_by": "unverified", "vendor_example_verdict": "unverified", "researched": "in_release",
         "match": {"value": "verified", "issuer_pattern": "https://token.example.com/<org>", "tenant_placeholder": "<org>",
                   "tenant_kind": "name", "tenant_recyclable": "unverified", "evidence": [fact()]}})

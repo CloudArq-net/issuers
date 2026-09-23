@@ -31,8 +31,14 @@
 #   vendor_example_verdict  scoped | admits_whole_org | admits_any_repo |
 #                           admits_any_principal | no_subject_constraint | unverified
 #   discovery_status        ok | not_found | error | unverified
-#   jwks_status             ok | error | unverified
+#   jwks_status             ok | error | unverified, or n/a on an entry whose issuer is
+#                           "not an OIDC issuer": there is no key set to fetch
 #   category                ci | iac | runtime | cloud | ai-agent-platform | platform
+#   control_test_result     passed | failed | inconclusive | unverified
+#
+# `unverified` is spelled in lower case, everywhere: a reader comparing with it does not
+# recognise UNVERIFIED. An issuer is written with https:// in lower case, or as a bare
+# host, or is one of the notes "unverified" and "not an OIDC issuer". A key is given once.
 #
 # Tenancy, added in v0.2.0: who can hold a token an issuer mints.
 #
@@ -73,7 +79,8 @@
 # A list-valued field reads {value: verified, ...} or {value: unverified}. A fact is the vendor's
 # sentence, verbatim, as {source, quote, verified_at}, with a role where a value cites several; an
 # observation of a live endpoint is {observed, method, at, result}. scripts/build.py refuses a fact
-# with no source or no quote.
+# with no source or no quote. An observation settles no value: it stands in context, in research,
+# or behind a claim or a leading literal that never pins.
 #
 schema_version: 3
 census_date: '2026-09-13'

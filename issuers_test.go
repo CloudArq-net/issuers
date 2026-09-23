@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"reflect"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CloudArq-net/issuers/tenancy"
 )
@@ -45,6 +47,63 @@ func TestEveryEntryCarriesTheFourFields(t *testing.T) {
 		if e.Issuer == "" && e.IssuerPattern == "" {
 			t.Errorf("%s: neither issuer nor issuer_pattern", e.Name)
 		}
+	}
+}
+
+// The v0.1.0 fields whose vocabulary the census documents keep it, and
+// unverified is spelled one way everywhere. A reader that compares a value
+// with "unverified" does not recognise "UNVERIFIED", so it would read a
+// settled answer into it; and the daily drift check re-reads only entries
+// whose discovery_status is exactly "ok".
+func TestTheDocumentedVocabulariesHold(t *testing.T) {
+	jwks := []string{"ok", "error", "unverified"}
+	for _, e := range All() {
+		if !oneOf(e.DiscoveryStatus, "ok", "not_found", "error", "unverified") {
+			t.Errorf("%s: discovery_status %q not in the controlled vocabulary", e.Name, e.DiscoveryStatus)
+		}
+		allowed := jwks
+		if e.Issuer == "not an OIDC issuer" {
+			// No issuer, so no key set to fetch.
+			allowed = append(slices.Clone(jwks), "n/a")
+		}
+		if !oneOf(e.JWKSStatus, allowed...) {
+			t.Errorf("%s: jwks_status %q not in the controlled vocabulary", e.Name, e.JWKSStatus)
+		}
+		if !oneOf(e.Category, "", "ci", "iac", "runtime", "cloud", "ai-agent-platform", "platform") {
+			t.Errorf("%s: category %q not in the controlled vocabulary", e.Name, e.Category)
+		}
+		if !oneOf(e.ControlTestResult, "", "passed", "failed", "inconclusive", "unverified") {
+			t.Errorf("%s: control_test_result %q not in the controlled vocabulary", e.Name, e.ControlTestResult)
+		}
+	}
+	var doc any
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	unverified := 0
+	var walk func(v any, where string)
+	walk = func(v any, where string) {
+		switch x := v.(type) {
+		case string:
+			if strings.EqualFold(strings.TrimSpace(x), "unverified") {
+				unverified++
+				if x != "unverified" {
+					t.Errorf("%s: %q is spelled unverified; the census writes it in lower case", where, x)
+				}
+			}
+		case map[string]any:
+			for k, y := range x {
+				walk(y, where+"."+k)
+			}
+		case []any:
+			for i, y := range x {
+				walk(y, fmt.Sprintf("%s[%d]", where, i))
+			}
+		}
+	}
+	walk(doc, "census")
+	if unverified == 0 {
+		t.Fatal("no value reads unverified, so the spelling was checked on nothing")
 	}
 }
 
@@ -319,25 +378,24 @@ var factKeys = map[string]bool{"source": true, "quote": true, "verified_at": tru
 	"observed": true, "method": true, "at": true, "result": true}
 
 // researchFacts gathers the facts inside an entry's free-form research block:
-// every mapping that carries a quote or a source, or an observation. A key
-// named observed whose value is a mapping or a list names a group, not an
+// every mapping that carries any key a fact or an observation has, so a fact
+// written under other names is reported rather than walked past. A key named
+// observed whose value is a mapping or a list names a group, not an
 // observation. A mapping that looks like a fact and carries a key a fact does
 // not have is reported as broken rather than read as a fact with the key
 // dropped.
 func researchFacts(v any, where string, out map[string][]Fact) {
 	switch x := v.(type) {
 	case map[string]any:
-		_, q := x["quote"]
-		_, s := x["source"]
-		o := false
-		if obs, has := x["observed"]; has {
-			switch obs.(type) {
+		looksLikeFact := false
+		for k, v := range x {
+			switch v.(type) {
 			case map[string]any, []any:
 			default:
-				o = true
+				looksLikeFact = looksLikeFact || factKeys[k]
 			}
 		}
-		if q || s || o {
+		if looksLikeFact {
 			for k := range x {
 				if !factKeys[k] {
 					out[where+" (not a fact: "+k+")"] = append(out[where+" (not a fact: "+k+")"], Fact{})
@@ -365,29 +423,68 @@ func researchFacts(v any, where string, out map[string][]Fact) {
 	}
 }
 
-var date = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+// isPage reports whether s is an https URL that names a host: what the source
+// of a vendor's sentence must be.
+func isPage(s string) bool {
+	u, err := url.Parse(s)
+	return err == nil && strings.HasPrefix(s, "https://") && !strings.ContainsAny(s, " \t\n") &&
+		strings.Contains(strings.Trim(u.Hostname(), "."), ".")
+}
+
+// isDay reports whether s is a day on the calendar, written YYYY-MM-DD.
+func isDay(s string) bool {
+	_, err := time.Parse(time.DateOnly, s)
+	return err == nil
+}
+
+// isMoment reports whether s is a day, or a day and a UTC time: when an
+// observation was made.
+func isMoment(s string) bool {
+	for _, layout := range []string{time.DateOnly, "2006-01-02T15:04Z", "2006-01-02T15:04:05Z"} {
+		if _, err := time.Parse(layout, s); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// observationMayStand reports whether an observation may sit where a fact
+// does: beside a value rather than behind it, in research, or behind a claim
+// or a leading literal that never pins, which cannot move a grant inward.
+// Anywhere else a fact settles a value, and unverified means that no vendor
+// sentence establishes it.
+func observationMayStand(where string) bool {
+	return strings.HasSuffix(where, ".context") || strings.HasPrefix(where, "research") ||
+		strings.HasPrefix(where, "not_tenancy.") || strings.HasPrefix(where, "subject_forms.never_pin.")
+}
 
 // N5: every fact keeps its own source URL, its exact quote and the date it
 // was read; an observation keeps what was requested, how, when and what came
-// back. A fact with no source or no quote is not a fact.
+// back, and settles nothing. A fact with no source or no quote is not a fact.
 func TestEveryFactHasASourceAQuoteAndADate(t *testing.T) {
-	examined := 0
+	examined, observations := 0, 0
 	for _, e := range All() {
 		for where, fs := range facts(e) {
 			for _, f := range fs {
 				examined++
 				observation := f.Observed != "" || f.Method != "" || f.At != "" || f.Result != ""
 				switch {
-				case observation && (f.Observed == "" || f.Method == "" || f.At == "" || f.Result == "" || f.Quote != "" || f.Source != ""):
-					t.Errorf("%s %s: an observation needs observed, method, at and result, and no quote: %+v", e.Name, where, f)
-				case !observation && (!strings.HasPrefix(f.Source, "https://") || strings.TrimSpace(f.Quote) == "" || !date.MatchString(f.VerifiedAt)):
+				case observation && (f.Observed == "" || f.Method == "" || !isMoment(f.At) || f.Result == "" || f.Quote != "" || f.Source != ""):
+					t.Errorf("%s %s: an observation needs observed, method, a dated at and result, and no quote: %+v", e.Name, where, f)
+				case observation && !observationMayStand(where):
+					t.Errorf("%s %s: an observation settles no value; it needs the vendor's sentence: %+v", e.Name, where, f)
+				case !observation && (!isPage(f.Source) || strings.TrimSpace(f.Quote) == "" || !isDay(f.VerifiedAt)):
 					t.Errorf("%s %s: a fact needs an https source, a quote and a verified_at date: %+v", e.Name, where, f)
+				}
+				if observation {
+					observations++
 				}
 			}
 		}
 	}
-	if examined < 150 {
-		t.Fatalf("examined %d facts; the tenancy research recorded more than 150", examined)
+	if examined < 150 || observations == 0 {
+		t.Fatalf("examined %d facts, %d of them observations; the tenancy research recorded more than 150, and observations",
+			examined, observations)
 	}
 }
 

@@ -11,11 +11,38 @@ def test_controlled_vocabularies_hold():
     verdict = {"scoped", "admits_whole_org", "admits_any_repo",
                "admits_any_principal", "no_subject_constraint", "unverified"}
     tenancy = {"shared", "per_tenant_host", "per_tenant_path", "unverified"}
+    discovery = {"ok", "not_found", "error", "unverified"}
+    category = {"ci", "iac", "runtime", "cloud", "ai-agent-platform", "platform"}
+    control_test = {"passed", "failed", "inconclusive", "unverified"}
     for e in ci.issuers():
         assert e["aud_controlled_by"] in aud, e["name"]
         assert e["vendor_example_verdict"] in verdict, e["name"]
         assert e["tenancy_model"] in tenancy, e["name"]
+        assert e["discovery_status"] in discovery, e["name"]
+        # n/a only where the entry records no issuer, so no key set to fetch.
+        jwks = {"ok", "error", "unverified"} | ({"n/a"} if e.get("issuer") == "not an OIDC issuer" else set())
+        assert e["jwks_status"] in jwks, e["name"]
+        assert e.get("category", "ci") in category, e["name"]
+        assert e.get("control_test_result", "unverified") in control_test, e["name"]
         assert e.get("issuer") or e.get("issuer_pattern"), e["name"]
+
+
+def spellings_of_unverified(value):
+    if isinstance(value, str):
+        return [value] if value.strip().lower() == "unverified" else []
+    if isinstance(value, dict):
+        return [s for v in value.values() for s in spellings_of_unverified(v)]
+    if isinstance(value, list):
+        return [s for v in value for s in spellings_of_unverified(v)]
+    return []
+
+
+def test_unverified_is_spelled_one_way():
+    """A reader that compares with "unverified" does not recognise
+    "UNVERIFIED", and would read a settled answer into it."""
+    spellings = spellings_of_unverified(list(ci.issuers()))
+    assert spellings, "no value reads unverified, so the spelling was checked on nothing"
+    assert set(spellings) == {"unverified"}, sorted(set(spellings))
 
 
 def test_lookup_by_host_and_url_agree():

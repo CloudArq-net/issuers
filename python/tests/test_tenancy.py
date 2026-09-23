@@ -7,8 +7,10 @@ answers.json holds what the Go packages answer for every census entry; the
 Python package must answer the same, entry by entry.
 """
 
+import datetime
 import json
 import re
+import urllib.parse
 from pathlib import Path
 
 import pytest
@@ -323,15 +325,20 @@ def test_every_entry_says_whether_it_was_researched():
 
 FACT_KEYS = {"source", "quote", "verified_at", "role", "observed", "method", "at", "result"}
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+MOMENT = re.compile(r"^(\d{4}-\d{2}-\d{2})(T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?Z)?$")
+# Where an observation may stand: beside a value rather than behind it, in
+# research, or behind a claim or a leading literal that never pins. Anywhere
+# else a fact settles a value, and only the vendor's sentence settles one.
+MAY_STAND = re.compile(r"^research|^not_tenancy\.|\.never_pin\[|(^|\.)context(\[|\.|$)")
 
 
 def facts_in(value, where, out):
-    """Every mapping under an entry's tenancy fields that carries a quote or a
-    source, or an observation, which is what a fact is in this census. A key
-    named observed whose value is a mapping or a list names a group."""
+    """Every mapping under an entry's tenancy fields that carries any key a
+    fact or an observation has, which is what a fact is in this census, so one
+    written under other names is caught rather than walked past. A key named
+    observed whose value is a mapping or a list names a group."""
     if isinstance(value, dict):
-        observed = value.get("observed")
-        if "quote" in value or "source" in value or observed is not None and not isinstance(observed, (dict, list)):
+        if any(k in FACT_KEYS and not isinstance(v, (dict, list)) for k, v in value.items()):
             out.append((where, value))
             return
         for k, v in value.items():
@@ -341,20 +348,39 @@ def facts_in(value, where, out):
             facts_in(v, f"{where}[{i}]", out)
 
 
+def is_day(value):
+    try:
+        return bool(DATE.match(value)) and datetime.date.fromisoformat(value) is not None
+    except ValueError:
+        return False
+
+
+def is_page(value):
+    host = urllib.parse.urlsplit(value).hostname or ""
+    return value.startswith("https://") and not any(c.isspace() for c in value) and "." in host.strip(".")
+
+
 def test_every_fact_has_a_source_a_quote_and_a_date():
     found = []
     for e in ci.issuers():
         for k in TENANCY_FIELDS + ("research",):
             if k in e:
-                facts_in(e[k], f"{e['name']}.{k}", found)
-    assert len(found) >= 150, f"examined {len(found)} facts; the tenancy research recorded more than 150"
-    for where, f in found:
-        assert set(f) <= FACT_KEYS, (where, f)
+                in_entry = []
+                facts_in(e[k], k, in_entry)
+                found += [(e["name"], where, f) for where, f in in_entry]
+    observations = [where for _, where, f in found if "observed" in f]
+    assert len(found) >= 150 and observations, (
+        f"examined {len(found)} facts, {len(observations)} observations; the research recorded more than 150, and observations")
+    for name, where, f in found:
+        assert set(f) <= FACT_KEYS, (name, where, f)
         if "observed" in f:
-            assert all(f.get(k) for k in ("observed", "method", "at", "result")) and "quote" not in f, (where, f)
+            assert all(f.get(k) for k in ("observed", "method", "at", "result")) and "quote" not in f, (name, where, f)
+            m = MOMENT.match(f["at"])
+            assert m and is_day(m.group(1)), (name, where, f)
+            assert MAY_STAND.search(where), f"{name} {where}: an observation settles no value; it needs the vendor's sentence"
         else:
-            assert f.get("source", "").startswith("https://") and f.get("quote", "").strip(), (where, f)
-            assert DATE.match(f.get("verified_at", "")), (where, f)
+            assert is_page(f.get("source", "")) and f.get("quote", "").strip(), (name, where, f)
+            assert is_day(f.get("verified_at", "")), (name, where, f)
 
 
 def test_the_corrections_the_vendors_force():
