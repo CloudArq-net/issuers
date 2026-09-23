@@ -77,6 +77,21 @@ def test_match_reads_the_census_as_the_shared_cases_say(case):
     check(case, ci.match(case["issuer"]), match_key)
 
 
+@pytest.mark.parametrize("case", CASES["get"], ids=lambda c: repr(c["query"]))
+def test_get_reads_the_shared_cases(case):
+    """Hosts compare without ASCII case and no other, as the Go package's do:
+    a character that lower-cases onto an ASCII letter elsewhere in Unicode
+    must not let a look-alike host pass for a census host."""
+    got = ci.get(case["query"])
+    assert (None if got is None else got["name"]) == case["entry"], case
+
+
+def test_the_shared_lookups_exercise_both_answers():
+    found = sum(1 for c in CASES["get"] if c["entry"] is not None)
+    refused = sum(1 for c in CASES["get"] if c["entry"] is None)
+    assert found > 0 and refused > 0
+
+
 def test_match_rules_on_invented_censuses():
     examined = 0
     for s in CASES["synthetic"]:
@@ -236,6 +251,30 @@ def test_owner_name_may_contain():
         assert ci.owner_name_may_contain(gh, ch), ch
     for ch in "/@:%":
         assert ci.owner_name_may_contain({"name": "x"}, ch), ch
+
+
+@pytest.mark.parametrize("n", range(len(ANSWERS["charsets"])), ids=lambda n: repr(ANSWERS["charsets"][n]["characters"]))
+def test_an_owner_character_set_reads_as_go_reads_it(n):
+    """Character sets the census does not hold, as a caller might hand either
+    package one: an item Go cannot read byte by byte, such as a non-ASCII
+    character, lets any character through in both."""
+    want = ANSWERS["charsets"][n]
+    entry = {"name": "x", "owner_charset": {"value": "verified", "characters": want["characters"]}}
+    got = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
+    assert got == want["owner_name_may_contain"], want["characters"]
+
+
+def test_the_character_set_probes_exercise_both_readings():
+    """Some probed sets must read as unreadable, letting every character
+    through, and some must let only some through, or the test above could pass
+    on sets that never tell the two packages apart."""
+    answers = [c["owner_name_may_contain"] for c in ANSWERS["charsets"]]
+    assert any(set(a) == {"1"} for a in answers) and any("0" in a for a in answers), answers
+
+
+def test_an_empty_character_set_is_left_out_as_go_leaves_it():
+    entry = {"name": "x", "owner_charset": {"value": "verified", "characters": []}}
+    assert "owner_name_characters" not in ci.tenancy(entry)
 
 
 def test_names_compare_without_case():

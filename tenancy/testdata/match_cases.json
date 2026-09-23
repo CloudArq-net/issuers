@@ -1,5 +1,5 @@
 {
-  "about": "Match cases shared by the Go root package, the tenancy sub-package and the Python package, so the three read issuers the same way. In \"census\", entry is the census string the issuer matched (an exact issuer or an issuer pattern), or null for no match; tenant is the tenant the issuer names, empty for an exact issuer. \"synthetic\" holds small invented censuses for the rules the real one cannot exercise: which of two matching patterns wins, and how a tenant is spelled. scripts/build.py copies this file to python/tests/match_cases.json so the Python source distribution carries its own copy.",
+  "about": "Match cases shared by the Go root package, the tenancy sub-package and the Python package, so the three read issuers the same way. In \"census\", entry is the census string the issuer matched (an exact issuer or an issuer pattern), or null for no match; tenant is the tenant the issuer names, empty for an exact issuer. \"synthetic\" holds small invented censuses for the rules the real one cannot exercise: which of two matching patterns wins, and how a tenant is spelled. \"get\" holds lookups by host, which the Go root package and the Python package answer with the census entry's name, or null. scripts/build.py copies this file to python/tests/match_cases.json so the Python source distribution carries its own copy.",
   "census": [
     {"issuer": "https://token.actions.githubusercontent.com", "entry": "https://token.actions.githubusercontent.com", "tenant": ""},
     {"issuer": "https://token.actions.githubusercontent.com/", "entry": "https://token.actions.githubusercontent.com", "tenant": "", "why": "a trailing slash is not part of the issuer"},
@@ -18,6 +18,15 @@
     {"issuer": "https://token.actions.githubusercontent.com.evil.example", "entry": null},
     {"issuer": "https://evil.example/token.actions.githubusercontent.com", "entry": null},
     {"issuer": "https://token.actions.githubusercontent.com:443", "entry": null, "why": "a port is not part of a census issuer"},
+    {"issuer": "https://user@token.actions.githubusercontent.com", "entry": null, "why": "userinfo is not part of a census issuer"},
+    {"issuer": "https://user:secret@demo.app.spacelift.io", "entry": null, "why": "nor is it part of a pattern's host"},
+    {"issuer": "https://token.actions.githubusercontent.com?x=1", "entry": null, "why": "a query string is not part of a census issuer"},
+    {"issuer": "https://token.actions.githubusercontent.com/?x=1", "entry": null},
+    {"issuer": "https://token.actions.githubusercontent.com#main", "entry": null, "why": "a fragment is not part of a census issuer"},
+    {"issuer": "https://oidc.circleci.com/org/11111111-2222-3333-4444-555555555555?x=1", "entry": null, "why": "nor after a pattern's path"},
+    {"issuer": "https://oidc.circleci.com/org/11111111-2222-3333-4444-555555555555#x", "entry": null},
+    {"issuer": "https://token.actions.githubusercontent.com//", "entry": null, "why": "one trailing slash is dropped, not two"},
+    {"issuer": "https://oidc.circleci.com/org/11111111-2222-3333-4444-555555555555//", "entry": null},
 
     {"issuer": "https://oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": "https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>", "tenant": "EXAMPLED539D4633E53DE1B71EXAMPLE", "why": "the issuer names the cluster"},
     {"issuer": "oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE", "entry": "https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>", "tenant": "EXAMPLED539D4633E53DE1B71EXAMPLE"},
@@ -94,6 +103,23 @@
     {"issuer": "unverified", "entry": null, "why": "a note in the issuer field is not an issuer"},
     {"issuer": "not an OIDC issuer", "entry": null},
     {"issuer": "", "entry": null}
+  ],
+  "get": [
+    {"query": "token.actions.githubusercontent.com", "entry": "GitHub Actions"},
+    {"query": "https://token.actions.githubusercontent.com", "entry": "GitHub Actions"},
+    {"query": "https://TOKEN.Actions.GitHubUserContent.com", "entry": "GitHub Actions", "why": "hosts compare without ASCII case"},
+    {"query": "https://token.actions.githubusercontent.com/octocorp", "entry": "GitHub Actions", "why": "a host several entries share answers with the host's own issuer; match reads the path"},
+    {"query": "http://token.actions.githubusercontent.com", "entry": "GitHub Actions", "why": "a lookup by host strips http:// as v0.1.0 did; match does not"},
+    {"query": "https://token.act\u0130ons.githubusercontent.com", "entry": null, "why": "only ASCII letters fold: U+0130 is not an i"},
+    {"query": "https://to\u212aen.actions.githubusercontent.com", "entry": null, "why": "only ASCII letters fold: the Kelvin sign is not a k"},
+    {"query": "https://agent.build\u212aite.com", "entry": null},
+    {"query": "oidc.circleci.com", "entry": "CircleCI", "why": "the host of a pattern whose tenant is in the path"},
+    {"query": "login.microsoftonline.com", "entry": "Microsoft Entra ID"},
+    {"query": "graph.facebook.com", "entry": "Facebook"},
+    {"query": "example.invalid", "entry": null, "why": "nobody surveyed it, which never means it is safe"},
+    {"query": "unverified", "entry": null, "why": "a note in the issuer field is not a host"},
+    {"query": "not an OIDC issuer", "entry": null},
+    {"query": "", "entry": null}
   ],
   "synthetic": [
     {

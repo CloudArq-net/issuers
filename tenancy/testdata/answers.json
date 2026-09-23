@@ -1722,5 +1722,84 @@
     "issuer": "https://issuer.enforce.dev"
    }
   }
+ ],
+ "charsets": [
+  {
+   "characters": [
+    "a-z"
+   ],
+   "owner_name_may_contain": "0000000100000"
+  },
+  {
+   "characters": [
+    "A-Z",
+    "a-z",
+    "0-9",
+    "-",
+    "_"
+   ],
+   "owner_name_may_contain": "0001100111100"
+  },
+  {
+   "characters": [
+    "--/"
+   ],
+   "owner_name_may_contain": "1001010000000"
+  },
+  {
+   "characters": [
+    "z-a"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    "a-é"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    "é"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    "a-z",
+    "é"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    "€"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    "aé"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    "ab"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    ""
+   ],
+   "owner_name_may_contain": "1111111111111"
+  },
+  {
+   "characters": [
+    "a-"
+   ],
+   "owner_name_may_contain": "1111111111111"
+  }
  ]
 }

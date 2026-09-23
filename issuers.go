@@ -495,7 +495,7 @@ func load() {
 			if key, ok := matchKey(e); ok {
 				byMatchKey[key] = e
 			}
-			h := e.Host()
+			h := foldASCII(e.Host())
 			if h == "" {
 				continue
 			}
@@ -531,14 +531,27 @@ func All() []Issuer {
 // is false when the host is not in the census, which means nobody has surveyed
 // it -- not that it is safe. When several entries share the host, it returns
 // the one whose issuer is the host itself; Match reads the path as well.
+// Hosts compare without ASCII case and no other, as Match's do.
 func Get(hostOrURL string) (Issuer, bool) {
 	load()
 	h := strings.TrimPrefix(strings.TrimPrefix(hostOrURL, "https://"), "http://")
 	if n := strings.IndexByte(h, '/'); n >= 0 {
 		h = h[:n]
 	}
-	e, ok := byHost[strings.ToLower(h)]
+	e, ok := byHost[foldASCII(h)]
 	return e, ok
+}
+
+// foldASCII lower-cases ASCII letters only. strings.ToLower also folds the
+// Kelvin sign onto k and U+0130 onto i, which would let a look-alike host pass
+// for a census host.
+func foldASCII(s string) string {
+	return strings.Map(func(r rune) rune {
+		if 'A' <= r && r <= 'Z' {
+			return r + 'a' - 'A'
+		}
+		return r
+	}, s)
 }
 
 // Match finds the census entry for an issuer URL and the tenant the URL names,

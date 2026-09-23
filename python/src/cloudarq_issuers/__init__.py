@@ -80,16 +80,19 @@ def _census() -> Mapping[str, Any]:
 
 
 def host_of(issuer_or_url: str) -> str:
-    """The bare hostname of an issuer URL: no scheme, no path, lowercased."""
+    """The bare hostname of an issuer URL: no scheme, no path, its ASCII
+    letters lowercased. Only ASCII letters fold, as in the Go package:
+    ``str.lower`` also folds the Kelvin sign onto ``k``, which would let a
+    look-alike host pass for a census host."""
     h = issuer_or_url.removeprefix("https://").removeprefix("http://")
-    return h.split("/", 1)[0].lower()
+    return _tenancy.lower_ascii(h.split("/", 1)[0])
 
 
 def _entry_host(e: Mapping[str, Any]) -> str:
     """An entry's host, lowercased, or ``""`` when its issuer field holds a note
     such as ``"unverified"`` rather than an issuer."""
     h = _tenancy.host_of_issuer(e.get("issuer") or "") or _tenancy.host_of_issuer(e.get("issuer_pattern") or "")
-    return h.lower()
+    return _tenancy.lower_ascii(h)
 
 
 def _owns_host(e: Mapping[str, Any]) -> bool:
@@ -282,7 +285,10 @@ def names_compare_without_case(entry: Mapping[str, Any]) -> Answer:
 
 def owner_name_may_contain(entry: Mapping[str, Any], character: str) -> bool:
     """Whether ``character`` can occur in an owner name. With no recorded
-    character set, or one this package cannot read, any character may."""
+    character set, or one this package cannot read, any character may. It
+    reads what the Go package reads, one ASCII character or a range of them
+    such as ``a-z``: Go counts bytes, and outside ASCII a character is more
+    than one."""
     if len(character) != 1:
         raise ValueError(f"one character, not {character!r}")
     chars = tenancy(entry).get("owner_name_characters")
@@ -290,9 +296,9 @@ def owner_name_may_contain(entry: Mapping[str, Any], character: str) -> bool:
         return True
     found = False
     for c in chars:
-        if len(c) == 1:
+        if len(c) == 1 and c.isascii():
             found = found or c == character
-        elif len(c) == 3 and c[1] == "-" and c[0] < c[2]:
+        elif len(c) == 3 and c.isascii() and c[1] == "-" and c[0] < c[2]:
             found = found or c[0] <= character <= c[2]
         else:
             return True

@@ -261,6 +261,39 @@ func TestMatchReadsTheCensusAsTheSharedCasesSay(t *testing.T) {
 	}
 }
 
+// Get reads hosts as the shared cases say, the Python package too. Hosts
+// compare without ASCII case and no other, as Match's do: a character that
+// lower-cases onto an ASCII letter elsewhere in Unicode must not let a
+// look-alike host pass for a census host.
+func TestGetReadsTheSharedCases(t *testing.T) {
+	var mc struct {
+		Get []struct {
+			Query string  `json:"query"`
+			Entry *string `json:"entry"`
+			Why   string  `json:"why"`
+		} `json:"get"`
+	}
+	readJSON(t, "tenancy/testdata/match_cases.json", &mc)
+	found, refused := 0, 0
+	for _, c := range mc.Get {
+		e, ok := Get(c.Query)
+		switch {
+		case c.Entry == nil && ok:
+			t.Errorf("Get(%q) = %s; want nothing (%s)", c.Query, e.Name, c.Why)
+		case c.Entry != nil && (!ok || e.Name != *c.Entry):
+			t.Errorf("Get(%q) = %q, %v; want %q (%s)", c.Query, e.Name, ok, *c.Entry, c.Why)
+		}
+		if c.Entry == nil {
+			refused++
+		} else {
+			found++
+		}
+	}
+	if found == 0 || refused == 0 {
+		t.Fatalf("the shared lookups hold %d finds and %d refusals; both kinds must be exercised", found, refused)
+	}
+}
+
 // Match hands back the census's own entry, with every fact behind it, so a
 // caller can quote the sentence that placed a grant.
 func TestMatchReturnsTheWholeEntry(t *testing.T) {
@@ -954,6 +987,23 @@ type answers struct {
 	About   string        `json:"about"`
 	Probes  probes        `json:"probes"`
 	Entries []entryAnswer `json:"entries"`
+	// Charsets are owner character sets the census does not hold, which a
+	// caller can still hand either package: what OwnerNameMayContain answers
+	// for each probe character, 1 or 0 in order.
+	Charsets []charsetAnswer `json:"charsets"`
+}
+
+type charsetAnswer struct {
+	Characters          []string `json:"characters"`
+	OwnerNameMayContain string   `json:"owner_name_may_contain"`
+}
+
+// probeCharsets are character sets in and out of the census's rule: ASCII
+// characters and ranges each package reads alike, and items it must read as
+// unreadable, so that any character may occur.
+var probeCharsets = [][]string{
+	{"a-z"}, {"A-Z", "a-z", "0-9", "-", "_"}, {"--/"}, {"z-a"}, {"a-\u00e9"}, {"\u00e9"}, {"a-z", "\u00e9"},
+	{"\u20ac"}, {"a\u00e9"}, {"ab"}, {""}, {"a-"},
 }
 
 type probes struct {
@@ -1033,18 +1083,28 @@ func goAnswers() answers {
 		for _, tenant := range tenants {
 			a.ControlledTenant[tenant] = pair(t.ControlledTenant(tenant))
 		}
-		var b strings.Builder
-		for _, r := range out.Probes.Characters {
-			if t.OwnerNameMayContain(r) {
-				b.WriteByte('1')
-			} else {
-				b.WriteByte('0')
-			}
-		}
-		a.OwnerNameMayContain = b.String()
+		a.OwnerNameMayContain = mayContain(t, out.Probes.Characters)
 		out.Entries = append(out.Entries, a)
 	}
+	for _, cs := range probeCharsets {
+		out.Charsets = append(out.Charsets, charsetAnswer{Characters: cs,
+			OwnerNameMayContain: mayContain(tenancy.Issuer{OwnerNameCharacters: cs}, out.Probes.Characters)})
+	}
 	return out
+}
+
+// mayContain is 1 or 0 for each probe character, in order: whether it can
+// occur in an owner name.
+func mayContain(t tenancy.Issuer, probe string) string {
+	var b strings.Builder
+	for _, r := range probe {
+		if t.OwnerNameMayContain(r) {
+			b.WriteByte('1')
+		} else {
+			b.WriteByte('0')
+		}
+	}
+	return b.String()
 }
 
 // Every reader, on every entry, answers as the shared file says. The Python
@@ -1082,6 +1142,9 @@ func TestGoAndPythonAgree(t *testing.T) {
 	}
 	if matched < 29 {
 		t.Fatalf("%d entries' own issuers matched; the census has at least 29 an issuer can match", matched)
+	}
+	if len(got.Charsets) == 0 {
+		t.Fatal("no invented character set was probed, so nothing holds the packages to one reading of them")
 	}
 }
 

@@ -295,7 +295,7 @@ def projection(entry: Mapping[str, Any]) -> dict:
             forms.append(form)
         t["subject_forms"] = forms
     oc = entry.get("owner_charset") or {}
-    if oc.get("value") == "verified":
+    if oc.get("value") == "verified" and oc.get("characters"):
         t["owner_name_characters"] = list(oc["characters"])
     if settled((entry.get("names_unique_regardless_of_case") or {}).get("value")):
         t["names_unique_regardless_of_case"] = entry["names_unique_regardless_of_case"]["value"]
