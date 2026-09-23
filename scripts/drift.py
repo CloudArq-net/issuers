@@ -6,7 +6,7 @@ became an issuer in its own right during 2026. A census nobody re-checks is a
 snapshot that quietly becomes wrong, which is what happened to the last public
 one.
 
-Exits 1 when anything drifted, so a scheduled job can open a pull request.
+Exits 1 when anything drifted, so a scheduled job can open an issue.
 
 It only fetches URLs already recorded in the census, and only public unauthenticated
 metadata. It never follows a host derived from anywhere else.
@@ -35,7 +35,7 @@ def fetch(url):
 
 
 def main():
-    census = json.loads((ROOT / 'issuers.json').read_text())
+    census = json.loads((ROOT / 'issuers.json').read_text(encoding='utf-8'))
     drift, checked, skipped = [], 0, 0
 
     for e in census['issuers']:
