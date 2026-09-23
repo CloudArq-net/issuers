@@ -7,30 +7,42 @@ on:
     - cron: '23 6 * * *'   # minute offset on purpose; do not tidy it to 0
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
+# Every action is pinned to the commit its release tag named when it was
+# resolved with git ls-remote; the tag is in the comment beside it. The token
+# starts with no permission; the one job that opens an issue asks for that.
+permissions: {}
 
 jobs:
   drift:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write   # the last step opens an issue when something moved; nothing else writes
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
 
+      # The status is read from the script itself. Read after a pipe into tee,
+      # as it was, it is tee's, which is 0 whatever the script found.
       - name: re-fetch every verified discovery document
         id: drift
         run: |
           set +e
-          python3 scripts/drift.py | tee drift.txt
-          echo "changed=$?" >> "$GITHUB_OUTPUT"
+          python3 scripts/drift.py > drift.txt
+          status=$?
+          set -e
+          cat drift.txt
+          echo "changed=$status" >> "$GITHUB_OUTPUT"
 
       # A human writes the entry. The job only says something moved -- it never
       # edits the census, because a field here means somebody looked.
       - name: open an issue when something moved
         if: steps.drift.outputs.changed == '1'
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const fs = require('fs');
