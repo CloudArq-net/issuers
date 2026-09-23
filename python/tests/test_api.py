@@ -26,14 +26,28 @@ def test_lookup_by_host_and_url_agree():
 
 
 def test_unverified_audience_is_never_true():
-    """The safety property. An unknown must not read as a boundary."""
+    """The safety property. An unknown must not read as a boundary.
+
+    audience_is_boundary answers by host, for the entry get() returns. Several
+    entries may share a host (GitHub's enterprise path shares GitHub's), so the
+    answer is held to that entry, and the entry itself is held to the property.
+    """
+    examined = 0
     for e in ci.issuers():
         u = e.get("issuer") or e.get("issuer_pattern")
         got = ci.audience_is_boundary(u)
-        if e["aud_controlled_by"] == "unverified":
+        owner = ci.get(u)
+        if owner is None:
             assert got is None, e["name"]
-        if e["aud_controlled_by"] == "workload":
+            continue
+        examined += 1
+        if owner["aud_controlled_by"] == "unverified":
+            assert got is None, e["name"]
+        if owner["aud_controlled_by"] == "workload":
             assert got is False, e["name"]
+        if e["aud_controlled_by"] in ("unverified", "workload"):
+            assert got is not True, e["name"]
+    assert examined >= 30, f"examined {examined} entries with a host"
 
 
 def test_multi_tenant_hosts_are_bare_hostnames():
