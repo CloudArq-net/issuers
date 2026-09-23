@@ -342,8 +342,12 @@ type NotAControlledTenant struct {
 // tokens naming it.
 type TenantMembership struct {
 	// Value is "controlled" or "unverified".
-	Value    string `json:"value"`
+	Value string `json:"value"`
+	// Basis is "chain" when no single sentence states the value and it
+	// follows from the sentences in Chain, read in order.
+	Basis    string `json:"basis,omitempty"`
 	Evidence []Fact `json:"evidence,omitempty"`
+	Chain    []Fact `json:"chain,omitempty"`
 	Context  []Fact `json:"context,omitempty"`
 	// Notes are conclusions drawn from the facts; a derived one says so.
 	Notes []string `json:"notes,omitempty"`

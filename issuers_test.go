@@ -301,7 +301,7 @@ func TestMatchReturnsTheWholeEntry(t *testing.T) {
 	if !ok || eks.Name != "Amazon EKS (Kubernetes service account issuer / IRSA)" || tenant != "EXAMPLED539D4633E53DE1B71EXAMPLE" {
 		t.Fatalf("EKS: %q, tenant %q, %v", eks.Name, tenant, ok)
 	}
-	if eks.TenantMembership.Value != "controlled" || len(eks.TenantMembership.Evidence) == 0 || eks.SubjectFormat == "" {
+	if eks.TenantMembership.Value != "controlled" || len(eks.TenantMembership.Chain) == 0 || eks.SubjectFormat == "" {
 		t.Errorf("EKS: the entry came back without its facts: %+v", eks.TenantMembership)
 	}
 	gh, tenant, ok := Match("https://token.actions.githubusercontent.com/octocorp")
@@ -398,7 +398,7 @@ func TestAnswersAreCopies(t *testing.T) {
 	if e, ok := Get(github); !ok || e.Name != "GitHub Actions" || !reflect.DeepEqual(e, byName(t, "GitHub Actions", "")) {
 		t.Error("an edit to an earlier answer reached Get")
 	}
-	if e, _, ok := Match(eks); !ok || len(e.TenantMembership.Evidence) == 0 || e.TenantMembership.Evidence[0].Quote == "scribbled" {
+	if e, _, ok := Match(eks); !ok || len(e.TenantMembership.Chain) == 0 || e.TenantMembership.Chain[0].Quote == "scribbled" {
 		t.Error("an edit to an earlier answer reached Match")
 	}
 }
@@ -494,6 +494,7 @@ func facts(e Issuer) map[string][]Fact {
 		add("match.not_a_controlled_tenant."+x.Tenant+".context", x.Context...)
 	}
 	add("tenant_membership.evidence", e.TenantMembership.Evidence...)
+	add("tenant_membership.chain", e.TenantMembership.Chain...)
 	add("tenant_membership.context", e.TenantMembership.Context...)
 	add("built_in.evidence", e.BuiltIn.Evidence...)
 	add("built_in.discrepancy", e.BuiltIn.Discrepancy...)
@@ -647,10 +648,10 @@ var recorded = map[string]struct {
 	"Spacelift": {map[string]int{"anonymous_tokens": 1, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1, "match": 1,
-		"tenant_membership": 4}, []string{"population", "sources"}},
+		"tenant_membership": 8}, []string{"population", "sources"}},
 	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3, "match": 2,
-		"tenant_membership": 4}, []string{"population", "sources"}},
-	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "match": 4, "tenant_membership": 4},
+		"tenant_membership": 8}, []string{"population", "sources"}},
+	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "match": 4, "tenant_membership": 8},
 		[]string{"population", "sources"}},
 	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "match": 1, "tenant_membership": 1},
 		[]string{"population", "sources"}},
@@ -800,11 +801,14 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 		if a.Value == "unverified" && e.Researched == "in_release" && a.WhyUnverified == "" {
 			t.Errorf("%s: researched, and anonymous_tokens unverified with no why", n)
 		}
-		if e.TenantMembership.Value == "controlled" {
+		if m := e.TenantMembership; m.Value == "controlled" {
 			controlled++
-			if len(e.TenantMembership.Evidence) == 0 || e.Match.Value != "verified" {
-				t.Errorf("%s: a controlled tenant needs its evidence and a verified pattern", n)
+			if len(m.Evidence)+len(m.Chain) == 0 || e.Match.Value != "verified" {
+				t.Errorf("%s: a controlled tenant needs its evidence or its chain, and a verified pattern", n)
 			}
+		}
+		if m := e.TenantMembership; m.Basis == "chain" && (len(m.Chain) == 0 || m.Value != "controlled") {
+			t.Errorf("%s: membership basis chain on %q with %d links", n, m.Value, len(m.Chain))
 		}
 		for _, c := range e.TenancyClaims.Claims {
 			if (c.Immutable == "yes" || c.Immutable == "no") && len(c.ImmutableEvidence) == 0 {
@@ -1056,6 +1060,47 @@ func TestAChainedValueIsMarked(t *testing.T) {
 	}
 	if gh := byName(t, "GitHub Actions", ""); len(gh.AnonymousTokens.Chain) != 5 {
 		t.Errorf("GitHub's chain has %d links; the research recorded five", len(gh.AnonymousTokens.Chain))
+	}
+}
+
+// A cluster issues a service account's token to whoever its authorization
+// lets create one, or lets create a workload that runs as the account, and
+// each platform's own sentence says that authorization is administered by
+// whoever owns the cluster. No single sentence says the owner decides who
+// obtains a token, so a cluster's controlled membership rests on that chain,
+// marked as one, with both halves quoted.
+func TestAClusterIsControlledOnAChain(t *testing.T) {
+	kubernetes := []string{
+		"Users with create rights on serviceaccounts/token can create TokenRequests to issue tokens for existing service accounts.",
+		"granting permission to create workloads also implicitly grants the API access levels of any service account in that namespace.",
+	}
+	owners := map[string]struct{ docs, says string }{
+		"Amazon EKS (Kubernetes service account issuer / IRSA)": {"https://docs.aws.amazon.com/eks/",
+			"you can manage users with the same tools that you created the cluster with"},
+		"Azure Kubernetes Service (AKS workload identity)": {"https://learn.microsoft.com/en-us/azure/aks/",
+			"to manage access to namespaces and cluster resources"},
+		"Google Kubernetes Engine (GKE)": {"https://docs.cloud.google.com/kubernetes-engine/",
+			"to control access to your GKE cluster"},
+	}
+	for name, owner := range owners {
+		m := byName(t, name, "").TenantMembership
+		if m.Value != "controlled" || m.Basis != "chain" || len(m.Evidence) != 0 {
+			t.Errorf("%s: membership %q, basis %q, %d facts of evidence; a cluster is controlled on a chain alone",
+				name, m.Value, m.Basis, len(m.Evidence))
+		}
+		chain := quotes(m.Chain...)
+		for _, s := range kubernetes {
+			if !strings.Contains(chain, s) {
+				t.Errorf("%s: the chain does not say who a cluster issues tokens to: %q", name, s)
+			}
+		}
+		administered := false
+		for _, f := range m.Chain {
+			administered = administered || strings.HasPrefix(f.Source, owner.docs) && strings.Contains(f.Quote, owner.says)
+		}
+		if !administered {
+			t.Errorf("%s: no link from %s says the cluster's owner administers its authorization", name, owner.docs)
+		}
 	}
 }
 

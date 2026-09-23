@@ -539,11 +539,16 @@ def check_match(c, m, issuer):
 
 
 def check_tenant_membership(c, t, match):
+    """Controlled rests on a sentence that says the owner decides, or on a
+    chain of sentences marked as one; unverified carries what was read as
+    context only, so nothing beside it passes for support."""
     w = 'tenant_membership'
-    if not c.keys(w, t, {'value', 'evidence', 'context', 'notes', 'unverified', 'looked_in'}, ['value']):
+    if not c.keys(w, t, {'value', 'basis', 'evidence', 'chain', 'context', 'notes', 'unverified', 'looked_in'},
+                  ['value']):
         return
     c.one_of(f"{w}.value", t['value'], {'controlled', 'unverified'})
-    c.facts(f"{w}.evidence", t.get('evidence'), required=t['value'] == 'controlled')
+    for k in ('evidence', 'chain'):
+        c.facts(f"{w}.{k}", t.get(k))
     c.context(f"{w}.context", t.get('context'))
     for k in ('notes', 'unverified'):
         items = t.get(k) or []
@@ -554,8 +559,19 @@ def check_tenant_membership(c, t, match):
             c.text(f"{w}.{k}[{i}]", x)
     if 'looked_in' in t:
         c.urls(f"{w}.looked_in", t['looked_in'])
-    if t['value'] == 'controlled' and (match or {}).get('value') != 'verified':
-        c.fail(w, "a controlled membership belongs to a verified pattern: it is a tenant's")
+    if t['value'] == 'controlled':
+        if not t.get('evidence') and not t.get('chain'):
+            c.fail(w, "'controlled' with no evidence and no chain")
+        if (match or {}).get('value') != 'verified':
+            c.fail(w, "a controlled membership belongs to a verified pattern: it is a tenant's")
+    else:
+        for k in ('basis', 'evidence', 'chain'):
+            if k in t:
+                c.fail(w, f"an unverified value carries {k}; what was read goes in context")
+    if 'basis' in t:
+        c.one_of(f"{w}.basis", t['basis'], {'chain'})
+        if not t.get('chain'):
+            c.fail(w, "basis: chain with no chain")
 
 
 def check_built_in(c, b):

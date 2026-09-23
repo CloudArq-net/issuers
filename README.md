@@ -109,10 +109,16 @@ customer (`tenant_recyclable`; GitHub's enterprise slug can). Nine patterns are 
 EKS clusters and GitHub's enterprise issuer path among them.
 
 **`tenant_membership`** — whether the tenant's owner controls who obtains tokens naming
-it. Seven of the nine patterns record `controlled`. Spacelift and Bitbucket Pipelines read
+it. Six of the nine patterns record `controlled`. Three are clusters, EKS, AKS and GKE,
+and rest on a chain marked `basis: chain`: Kubernetes issues a service account's token to
+whoever the cluster's authorization lets request one, and each platform's own sentence says
+the cluster's owner administers that authorization. Spacelift and Bitbucket Pipelines read
 `unverified`: the sentences this release carries say which runs or pipelines hold a token,
-not who can cause one. `not_a_controlled_tenant` lists the tenants anyone can join although
-the pattern matches them: Microsoft Entra's personal-account tenant.
+not who can cause one. So does Microsoft Entra ID: by default every user of a work tenant,
+guests included, can invite external users and consent to applications.
+`not_a_controlled_tenant` lists the tenants anyone can join although the pattern matches
+them: Microsoft Entra's personal-account tenant, which reads as known open whatever the
+issuer's membership.
 
 **`built_in`** — the four providers AWS STS accepts with no identity provider in the
 role's account: Amazon Cognito, Google, Login with Amazon and Facebook, as AWS's reference

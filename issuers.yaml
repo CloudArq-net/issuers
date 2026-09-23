@@ -2159,19 +2159,51 @@ issuers:
       verified_at: '2026-09-23'
   tenant_membership:
     value: controlled
-    evidence:
+    basis: chain
+    chain:
     - source: https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
       quote: Amazon EKS hosts a public OIDC discovery endpoint for each cluster that contains the signing
         keys for the `ProjectedServiceAccountToken` JSON web tokens so external systems, such as IAM, can
         validate and accept the OIDC tokens that are issued by Kubernetes.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: the issuer is one cluster's, and the cluster's Kubernetes issues its tokens
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
         in a Kubernetes cluster.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: a token names one of that cluster's service accounts
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: Service accounts exist as ServiceAccount objects in the API server.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: the service accounts are objects in the cluster's own API server
+    - source: https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+      quote: Users with create rights on serviceaccounts/token can create TokenRequests to issue tokens for
+        existing service accounts.
+      verified_at: '2026-09-24'
+      role: 'Kubernetes: a service account''s token is issued to whoever the cluster''s authorization gives
+        create on serviceaccounts/token'
+    - source: https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+      quote: Additionally, since Pods can run as any ServiceAccount, granting permission to create workloads
+        also implicitly grants the API access levels of any service account in that namespace.
+      verified_at: '2026-09-24'
+      role: 'Kubernetes: and to whoever it lets create workloads in the account''s namespace'
+    - source: https://docs.aws.amazon.com/eks/latest/userguide/grant-k8s-access.html
+      quote: The IAM principal that created the cluster is the initial user that can access the cluster by
+        using `kubectl`. The initial user must add other users to the list in the `aws-auth` `ConfigMap`
+        and assign permissions that affect the other users within the cluster.
+      verified_at: '2026-09-24'
+      role: 'AWS: in the ConfigMap authentication mode, whoever created the cluster decides who else is authorized
+        in it'
+    - source: https://docs.aws.amazon.com/eks/latest/userguide/grant-k8s-access.html
+      quote: You can add and manage access to the cluster by using the EKS API, AWS Command Line Interface,
+        AWS SDKs, AWS CloudFormation, and AWS Management Console. This means you can manage users with the
+        same tools that you created the cluster with.
+      verified_at: '2026-09-24'
+      role: 'AWS: with access entries, the cluster''s owner manages who is authorized in it'
+    notes:
+    - no single sentence says the owner decides; read in order, the links say the cluster's tokens issue to
+      whoever the cluster's authorization lets request them, and the cluster's owner administers that
+      authorization
     context:
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: Application Pods, system components, and entities inside and outside the cluster can use a
@@ -2183,6 +2215,8 @@ issuers:
     - https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
     - https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
     - https://kubernetes.io/docs/concepts/security/service-accounts/
+    - https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+    - https://docs.aws.amazon.com/eks/latest/userguide/grant-k8s-access.html
 - name: Azure Kubernetes Service (AKS workload identity)
   category: runtime
   issuer: https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/
@@ -2254,19 +2288,48 @@ issuers:
       verified_at: '2026-09-23'
   tenant_membership:
     value: controlled
-    evidence:
+    basis: chain
+    chain:
     - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
       quote: You can enable the OIDC issuer on your AKS clusters, which allows Microsoft Entra ID (or another
         cloud provider's identity and access management platform) to discover the API server's public signing
         keys.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: the issuer is one cluster's API server
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
         in a Kubernetes cluster.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: a token names one of that cluster's service accounts
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: Service accounts exist as ServiceAccount objects in the API server.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: the service accounts are objects in the cluster's own API server
+    - source: https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+      quote: Users with create rights on serviceaccounts/token can create TokenRequests to issue tokens for
+        existing service accounts.
+      verified_at: '2026-09-24'
+      role: 'Kubernetes: a service account''s token is issued to whoever the cluster''s authorization gives
+        create on serviceaccounts/token'
+    - source: https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+      quote: Additionally, since Pods can run as any ServiceAccount, granting permission to create workloads
+        also implicitly grants the API access levels of any service account in that namespace.
+      verified_at: '2026-09-24'
+      role: 'Kubernetes: and to whoever it lets create workloads in the account''s namespace'
+    - source: https://learn.microsoft.com/en-us/azure/aks/kubernetes-rbac-entra-id
+      quote: Once authenticated, you can use the built-in Kubernetes role-based access control (RBAC) to manage
+        access to namespaces and cluster resources based on a user's identity or group membership.
+      verified_at: '2026-09-24'
+      role: 'Microsoft: with Kubernetes RBAC, the cluster''s owner manages who is authorized in it'
+    - source: https://learn.microsoft.com/en-us/azure/aks/entra-id-authorization
+      quote: AKS Automatic clusters are preconfigured with Azure RBAC for Kubernetes authorization, so you
+        can focus on assigning the right Microsoft Entra role assignments to users, groups, and service principals.
+      verified_at: '2026-09-24'
+      role: 'Microsoft: with Azure RBAC, the cluster''s owner assigns who is authorized in it'
+    notes:
+    - no single sentence says the owner decides; read in order, the links say the cluster's tokens issue to
+      whoever the cluster's authorization lets request them, and the cluster's owner administers that
+      authorization
     context:
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: Application Pods, system components, and entities inside and outside the cluster can use a
@@ -2277,6 +2340,9 @@ issuers:
     sources:
     - https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
     - https://kubernetes.io/docs/concepts/security/service-accounts/
+    - https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+    - https://learn.microsoft.com/en-us/azure/aks/kubernetes-rbac-entra-id
+    - https://learn.microsoft.com/en-us/azure/aks/entra-id-authorization
 - name: Cloudflare Access
   category: runtime
   issuer: https://<team-name>.cloudflareaccess.com
@@ -2368,18 +2434,47 @@ issuers:
       verified_at: '2026-09-23'
   tenant_membership:
     value: controlled
-    evidence:
+    basis: chain
+    chain:
     - source: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/service-accounts
       quote: The short-lived bearer token is a JSON web token (JWT) that's signed by the API server, which
         is an OpenID Connect (OIDC) provider.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: the issuer is one cluster's API server
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: A service account is a type of non-human account that, in Kubernetes, provides a distinct identity
         in a Kubernetes cluster.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: a token names one of that cluster's service accounts
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: Service accounts exist as ServiceAccount objects in the API server.
-      verified_at: '2026-09-23'
+      verified_at: '2026-09-24'
+      role: the service accounts are objects in the cluster's own API server
+    - source: https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+      quote: Users with create rights on serviceaccounts/token can create TokenRequests to issue tokens for
+        existing service accounts.
+      verified_at: '2026-09-24'
+      role: 'Kubernetes: a service account''s token is issued to whoever the cluster''s authorization gives
+        create on serviceaccounts/token'
+    - source: https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+      quote: Additionally, since Pods can run as any ServiceAccount, granting permission to create workloads
+        also implicitly grants the API access levels of any service account in that namespace.
+      verified_at: '2026-09-24'
+      role: 'Kubernetes: and to whoever it lets create workloads in the account''s namespace'
+    - source: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control
+      quote: 'You can use both Identity and Access Management (IAM) and Kubernetes RBAC to control access to
+        your GKE cluster:'
+      verified_at: '2026-09-24'
+      role: 'Google: the cluster''s owner controls who is authorized in it, through IAM and Kubernetes RBAC'
+    - source: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control
+      quote: In GKE, IAM and Kubernetes RBAC are integrated to authorize users to perform actions if they
+        have sufficient permissions according to either tool.
+      verified_at: '2026-09-24'
+      role: 'Google: either grant authorizes, so both are the owner''s to administer'
+    notes:
+    - no single sentence says the owner decides; read in order, the links say the cluster's tokens issue to
+      whoever the cluster's authorization lets request them, and the cluster's owner administers that
+      authorization
     context:
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: Application Pods, system components, and entities inside and outside the cluster can use a
@@ -2400,6 +2495,8 @@ issuers:
     - https://kubernetes.io/docs/concepts/security/service-accounts/
     - https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects
     - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster
+    - https://kubernetes.io/docs/concepts/security/rbac-good-practices/
+    - https://docs.cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control
 - name: HashiCorp Vault (as an OIDC provider)
   category: runtime
   issuer: https://<vault-addr>/v1/identity/oidc/provider/<provider_name>

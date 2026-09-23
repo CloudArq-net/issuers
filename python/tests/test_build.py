@@ -223,6 +223,14 @@ REFUSALS = {
     "an observation behind a pattern": (put(f"{PER_TENANT}.match", "evidence", [OBSERVATION]), SETTLES_NOTHING),
     "an observation behind a controlled membership": (put(f"{PER_TENANT}.tenant_membership", "evidence",
                                                           [OBSERVATION]), SETTLES_NOTHING),
+    "an observation in a membership's chain": (put(f"{PER_TENANT}", "tenant_membership", {
+        "value": "controlled", "basis": "chain", "chain": [fact(), OBSERVATION]}), SETTLES_NOTHING),
+    "a controlled membership with nothing behind it": (drop(f"{PER_TENANT}.tenant_membership", "evidence"),
+                                                       "with no evidence and no chain"),
+    "a chained membership with no links": (put(f"{PER_TENANT}.tenant_membership", "basis", "chain"),
+                                           "basis: chain with no chain"),
+    "an unverified membership carrying evidence": (put(f"{PER_TENANT}", "tenant_membership", {
+        "value": "unverified", "evidence": [fact()]}), "what was read goes in context"),
     "YAML's unquoted no": (put(f"{SHARED}.anonymous_tokens", "value", False), "is not one of"),
     "a settled value with nothing behind it": (drop(f"{SHARED}.anonymous_tokens", "evidence"),
                                                "with no evidence and no chain"),
@@ -336,6 +344,17 @@ def test_the_build_refuses_a_key_given_twice(tmp_path, name):
     assert status == 1 and "given twice" in err, f"{name}: exit {status}\n{err}"
     assert "Traceback" not in err, err
     assert not (tree / "issuers.json").exists(), f"{name}: the build wrote a census it refused"
+
+
+def test_a_membership_may_rest_on_a_chain(tmp_path):
+    """No single sentence need say a tenant's owner decides who obtains its
+    tokens: a chain of them, read in order and marked as one, may."""
+    doc = valid_census()
+    doc["issuers"][1]["tenant_membership"] = {"value": "controlled", "basis": "chain", "chain": [fact(), fact()]}
+    status, err, tree = build(tmp_path, doc)
+    assert status == 0, err
+    sub = json.loads((tree / "tenancy" / "tenancy.json").read_text(encoding="utf-8"))
+    assert sub["issuers"][1]["tenant_membership"] == "controlled"
 
 
 def test_several_entries_may_share_a_host(tmp_path):

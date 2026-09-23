@@ -359,6 +359,33 @@ def test_the_researched_facts_are_the_census_s():
     assert [x["tenant"] for x in entra["not_a_controlled_tenant"]] == [PERSONAL_MSA]
 
 
+def test_a_cluster_is_controlled_on_a_chain():
+    """A cluster issues a service account's token to whoever its authorization
+    lets create one, or lets create a workload that runs as the account, and
+    each platform's own sentence says the cluster's owner administers that
+    authorization. No single sentence says the owner decides, so the value
+    rests on the chain, marked as one."""
+    kubernetes = ("Users with create rights on serviceaccounts/token can create TokenRequests to issue tokens "
+                  "for existing service accounts.",
+                  "granting permission to create workloads also implicitly grants the API access levels of any "
+                  "service account in that namespace.")
+    owners = {
+        "Amazon EKS (Kubernetes service account issuer / IRSA)":
+            ("https://docs.aws.amazon.com/eks/", "you can manage users with the same tools that you created the cluster with"),
+        "Azure Kubernetes Service (AKS workload identity)":
+            ("https://learn.microsoft.com/en-us/azure/aks/", "to manage access to namespaces and cluster resources"),
+        "Google Kubernetes Engine (GKE)":
+            ("https://docs.cloud.google.com/kubernetes-engine/", "to control access to your GKE cluster"),
+    }
+    for name, (docs, says) in owners.items():
+        m = by_name(name)["tenant_membership"]
+        assert (m["value"], m.get("basis"), m.get("evidence")) == ("controlled", "chain", None), name
+        chain = "\n".join(f["quote"] for f in m["chain"])
+        for s in kubernetes:
+            assert s in chain, (name, s)
+        assert any(f["source"].startswith(docs) and says in f["quote"] for f in m["chain"]), name
+
+
 def test_every_entry_says_whether_it_was_researched():
     """Every entry carries researched and every tenancy field, and an entry
     this release did not research holds only unverified."""
