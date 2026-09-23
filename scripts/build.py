@@ -388,7 +388,10 @@ def check_not_tenancy(c, t, tenancy_claims):
         c.context(f"{w}.context", x.get('context'))
         if 'looked_in' in x:
             c.urls(f"{w}.looked_in", x['looked_in'])
-        if x['claim'] in seen or x['claim'] in tenancy_claims:
+        # A name ending in * stands for every claim that begins with the rest.
+        covers = [t for t in tenancy_claims
+                  if t == x['claim'] or x['claim'].endswith('*') and t.startswith(x['claim'][:-1])]
+        if x['claim'] in seen or covers:
             c.fail(w, f"{x['claim']!r} is listed twice, or is also a tenancy claim")
         seen.add(x['claim'])
 
@@ -465,8 +468,16 @@ def check_subject_forms(c, s):
             # A subject led by this literal never pins, as one led by a literal
             # the entry does not list never does.
             c.fact(f"{w}.evidence", n['evidence'], settles=False)
-            if n['leading_literal'] in literals:
-                c.fail(w, f"{n['leading_literal']!r} both leads a form and never pins")
+            lit = n['leading_literal']
+            if lit in literals:
+                c.fail(w, f"{lit!r} both leads a form and never pins")
+            # A subject led by the longer of the two would be read by the form
+            # and refused by the literal, or the reverse: the census would say
+            # two things about one subject.
+            for lead in sorted(literals):
+                if lit != lead and (lit.startswith(lead) or lead.startswith(lit)):
+                    c.fail(w, f"{lit!r} and the lead {lead!r}: one begins the other, so one subject would both "
+                              f"pin and never pin")
 
 
 def check_owner_charset(c, o):

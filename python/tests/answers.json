@@ -302,6 +302,25 @@
       "scope": "enterprise"
      }
     ],
+    "not_tenancy": [
+     "actor",
+     "actor_id",
+     "job_workflow_ref",
+     "job_workflow_sha",
+     "enterprise",
+     "workflow_ref",
+     "environment",
+     "ref",
+     "event_name",
+     "runner_environment",
+     "repository_visibility",
+     "workflow",
+     "head_ref",
+     "base_ref",
+     "repo_property_*",
+     "aud",
+     "issuer_scope"
+    ],
     "subject_forms": [
      {
       "leading_literal": "repo:",
@@ -352,6 +371,10 @@
        }
       ]
      }
+    ],
+    "never_pin": [
+     "job_workflow_ref:",
+     "repo_property_"
     ],
     "owner_name_characters": [
      "A-Z",
@@ -1411,7 +1434,11 @@
    "tenancy": {
     "name": "Amazon Cognito identity pools",
     "issuer": "cognito-identity.amazonaws.com",
-    "anonymous_tokens": "yes"
+    "anonymous_tokens": "yes",
+    "not_tenancy": [
+     "amr",
+     "aud"
+    ]
    }
   },
   {

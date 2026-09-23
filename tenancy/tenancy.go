@@ -60,10 +60,17 @@ type Issuer struct {
 	// TenancyClaims are the claims whose single value names an owner, a
 	// repository or an enterprise. A claim not listed names no tenant.
 	TenancyClaims []Claim `json:"tenancy_claims,omitempty"`
+	// NotTenancy are claims that look as if they name a tenant and never pin
+	// one. A name ending in * stands for every claim whose name begins with
+	// the text before it. The census lists no tenancy claim here.
+	NotTenancy []string `json:"not_tenancy,omitempty"`
 	// SubjectForms are the forms of sub that lead with a tenant, each a
 	// leading literal and the tenant's parts in order. A sub led by anything
 	// else names no tenant.
 	SubjectForms []SubjectForm `json:"subject_forms,omitempty"`
+	// NeverPin are leading literals whose subjects name no tenant of the
+	// token's. None begins a form's leading literal or is begun by one.
+	NeverPin []string `json:"never_pin,omitempty"`
 	// OwnerNameCharacters is the character set of owner names, as single
 	// characters and ranges such as "a-z". A delimiter outside it cannot
 	// occur inside a name, which is what lets a subject form's delimiter end
@@ -190,6 +197,8 @@ func (i Issuer) NamesCompareWithoutCase() (withoutCase, known bool) {
 func (i Issuer) clone() Issuer {
 	i.NotAControlledTenant = slices.Clone(i.NotAControlledTenant)
 	i.TenancyClaims = slices.Clone(i.TenancyClaims)
+	i.NotTenancy = slices.Clone(i.NotTenancy)
+	i.NeverPin = slices.Clone(i.NeverPin)
 	i.OwnerNameCharacters = slices.Clone(i.OwnerNameCharacters)
 	if i.SubjectForms != nil {
 		forms := make([]SubjectForm, len(i.SubjectForms))

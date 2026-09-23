@@ -284,6 +284,9 @@ def projection(entry: Mapping[str, Any]) -> dict:
             claims.append(claim)
         if claims:
             t["tenancy_claims"] = claims
+    nt = entry.get("not_tenancy") or {}
+    if nt.get("value") == "verified" and nt.get("claims"):
+        t["not_tenancy"] = [c["claim"] for c in nt["claims"]]
     sf = entry.get("subject_forms") or {}
     if sf.get("value") == "verified" and sf.get("forms"):
         forms = []
@@ -294,6 +297,8 @@ def projection(entry: Mapping[str, Any]) -> dict:
                     form[side] = [{"kind": p["kind"], "delimiter_after": p["delimiter_after"]} for p in f[side]]
             forms.append(form)
         t["subject_forms"] = forms
+    if sf.get("value") == "verified" and sf.get("never_pin"):
+        t["never_pin"] = [n["leading_literal"] for n in sf["never_pin"]]
     oc = entry.get("owner_charset") or {}
     if oc.get("value") == "verified" and oc.get("characters"):
         t["owner_name_characters"] = list(oc["characters"])

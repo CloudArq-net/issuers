@@ -141,7 +141,9 @@ def test_the_sub_package_carries_only_what_is_settled(tmp_path):
     assert sub["issuers"] == [
         {"name": "Shared", "issuer": "https://token.example.com", "anonymous_tokens": "no",
          "tenancy_claims": [{"claim": "owner_id", "kind": "id", "scope": "owner"}],
+         "not_tenancy": ["actor", "scope"],
          "subject_forms": [{"leading_literal": "org:", "owner_parts": [{"kind": "name", "delimiter_after": ":"}]}],
+         "never_pin": ["job:"],
          "owner_name_characters": ["a-z", "-"]},
         {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenant_placeholder": "<tenant>",
          "tenant_kind": "name", "tenant_membership": "controlled"},
@@ -248,6 +250,13 @@ REFUSALS = {
                                       "must be one character"),
     "a literal that leads a form and never pins": (put(f"{SHARED}.subject_forms", "never_pin", [
         {"leading_literal": "org:", "why": "names something else", "evidence": fact()}]), "never pins"),
+    "a literal that never pins, extending a lead": (put(f"{SHARED}.subject_forms", "never_pin", [
+        {"leading_literal": "org:acme/", "why": "names something else", "evidence": fact()}]),
+        "one begins the other"),
+    "a lead extending a literal that never pins": (put(f"{SHARED}.subject_forms", "never_pin", [
+        {"leading_literal": "or", "why": "names something else", "evidence": fact()}]), "one begins the other"),
+    "a claim not tenancy by a trailing * that covers a tenancy claim": (
+        put(f"{SHARED}.not_tenancy.claims.0", "claim", "owner_*"), "also a tenancy claim"),
     "a backwards range": (put(f"{SHARED}.owner_charset", "characters", ["z-a"]), "neither one character nor a range"),
     "an owner character outside ASCII": (put(f"{SHARED}.owner_charset", "characters", ["a-z", "é"]),
                                          "neither one character nor a range"),

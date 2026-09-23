@@ -404,6 +404,16 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 	if want := []string{"A-Z", "a-z", "0-9", "-", "_"}; !slices.Equal(gh.OwnerNameCharacters, want) {
 		t.Errorf("GitHub owner name characters = %q, want %q", gh.OwnerNameCharacters, want)
 	}
+	// What never pins reaches the classifier too, or a census value the
+	// classifier guards against would do nothing outside a test.
+	if want := []string{"job_workflow_ref:", "repo_property_"}; !slices.Equal(gh.NeverPin, want) {
+		t.Errorf("GitHub never_pin = %q, want %q", gh.NeverPin, want)
+	}
+	for _, c := range []string{"actor", "actor_id", "job_workflow_ref", "enterprise", "workflow_ref", "repo_property_*", "aud", "issuer_scope"} {
+		if !slices.Contains(gh.NotTenancy, c) {
+			t.Errorf("GitHub not_tenancy %q does not carry %q", gh.NotTenancy, c)
+		}
+	}
 
 	// GitLab.com, HCP Terraform and Buildkite carry anonymous_tokens only, and
 	// no sentence in this release settles it.
@@ -520,6 +530,7 @@ func TestTheSubPackageCarriesOnlyTheClassifiersFields(t *testing.T) {
 		"tenant_recyclable": true,
 		"tenant_membership": true, "not_a_controlled_tenant": true, "anonymous_tokens": true,
 		"tenancy_claims": true, "subject_forms": true, "owner_name_characters": true, "names_unique_regardless_of_case": true,
+		"not_tenancy": true, "never_pin": true,
 	}
 	for _, e := range doc.Issuers {
 		for k := range e {

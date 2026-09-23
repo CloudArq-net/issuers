@@ -427,6 +427,25 @@ func TestTheTenancySubPackageIsInStepWithTheCensus(t *testing.T) {
 	}
 }
 
+// What never pins is carried whole: every claim a verified not_tenancy list
+// holds, and every literal a verified subject_forms list says never pins, so
+// the classifier reads the census's guards and not only its tests'.
+func TestTenancyCarriesWhatNeverPins(t *testing.T) {
+	e := Issuer{Name: "invented", Issuer: "https://example.com",
+		NotTenancy: NotTenancy{Value: "verified", Claims: []NotTenancyClaim{{Claim: "actor"}, {Claim: "prop_*"}}},
+		SubjectForms: SubjectForms{Value: "verified", Forms: []SubjectForm{{LeadingLiteral: "org:"}},
+			NeverPin: []NeverPin{{LeadingLiteral: "job:"}}},
+	}
+	got := e.Tenancy()
+	if !slices.Equal(got.NotTenancy, []string{"actor", "prop_*"}) || !slices.Equal(got.NeverPin, []string{"job:"}) {
+		t.Errorf("Tenancy() carries not_tenancy %q and never_pin %q; want [actor prop_*] and [job:]", got.NotTenancy, got.NeverPin)
+	}
+	e.NotTenancy.Value, e.SubjectForms.Value = "unverified", "unverified"
+	if got := e.Tenancy(); got.NotTenancy != nil || got.NeverPin != nil {
+		t.Errorf("Tenancy() carries not_tenancy %q and never_pin %q from unverified lists", got.NotTenancy, got.NeverPin)
+	}
+}
+
 // The projection keeps what a classifier may rely on and nothing it must not:
 // no unverified value, no multi-valued claim, no claim of unknown cardinality,
 // and nothing from a list that is itself unverified.

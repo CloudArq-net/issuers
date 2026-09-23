@@ -443,10 +443,18 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 			}
 		}
 	}
+	if i.NotTenancy.Value == "verified" {
+		for _, c := range i.NotTenancy.Claims {
+			t.NotTenancy = append(t.NotTenancy, c.Claim)
+		}
+	}
 	if i.SubjectForms.Value == "verified" {
 		for _, f := range i.SubjectForms.Forms {
 			t.SubjectForms = append(t.SubjectForms, tenancy.SubjectForm{
 				LeadingLiteral: f.LeadingLiteral, OwnerParts: parts(f.OwnerParts), RepositoryParts: parts(f.RepositoryParts)})
+		}
+		for _, n := range i.SubjectForms.NeverPin {
+			t.NeverPin = append(t.NeverPin, n.LeadingLiteral)
 		}
 	}
 	if i.OwnerCharset.Value == "verified" {

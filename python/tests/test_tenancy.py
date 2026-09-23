@@ -359,6 +359,15 @@ def test_the_researched_facts_are_the_census_s():
     assert [x["tenant"] for x in entra["not_a_controlled_tenant"]] == [PERSONAL_MSA]
 
 
+def test_what_never_pins_reaches_the_classifier():
+    """The classifier reads the census's guards, not only its tests do."""
+    gh = ci.tenancy(by_name("GitHub Actions"))
+    assert gh["never_pin"] == ["job_workflow_ref:", "repo_property_"]
+    assert {"actor", "actor_id", "job_workflow_ref", "enterprise", "workflow_ref", "repo_property_*", "aud",
+            "issuer_scope"} <= set(gh["not_tenancy"])
+    assert ci.tenancy(by_name("Amazon Cognito identity pools"))["not_tenancy"] == ["amr", "aud"]
+
+
 def test_a_chain_to_no_ends_on_the_tenant_being_an_account():
     """A token is minted for a tenant, never for whoever caused the run, so a
     no rests on the tenant being an account, in the vendor's own words."""
