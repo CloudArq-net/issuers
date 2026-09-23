@@ -43,6 +43,7 @@ never means ``"absent"``.
 
 from __future__ import annotations
 
+import copy
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -128,8 +129,11 @@ CENSUS_DATE: str = _census()["census_date"]
 
 
 def issuers() -> tuple[Mapping[str, Any], ...]:
-    """Every entry in the census."""
-    return tuple(_census()["issuers"])
+    """Every entry in the census, in census order.
+
+    Every answer this module gives is the caller's own copy: edit it however
+    deep, and the next answer is still the census's."""
+    return tuple(copy.deepcopy(e) for e in _census()["issuers"])
 
 
 def get(host_or_url: str) -> Optional[Mapping[str, Any]]:
@@ -140,7 +144,8 @@ def get(host_or_url: str) -> Optional[Mapping[str, Any]]:
     the host, it returns the one whose issuer is the host itself; ``match``
     reads the path as well.
     """
-    return _by_host().get(host_of(host_or_url))
+    e = _by_host().get(host_of(host_or_url))
+    return None if e is None else copy.deepcopy(e)
 
 
 def match(issuer: str) -> Optional[tuple[Mapping[str, Any], str]]:
@@ -160,7 +165,8 @@ def match(issuer: str) -> Optional[tuple[Mapping[str, Any], str]]:
     most characters outside placeholders wins, and of those the first in census
     order. These are the Go ``tenancy.Match`` rules, held to the same cases.
     """
-    return _matcher().match(issuer)
+    got = _matcher().match(issuer)
+    return None if got is None else (copy.deepcopy(got[0]), got[1])
 
 
 def tenancy(entry: Mapping[str, Any]) -> dict:

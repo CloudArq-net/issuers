@@ -116,6 +116,10 @@ without_case, known = ci.names_compare_without_case(entry)
 ci.owner_name_may_contain(entry, "/")                         # True when nothing is recorded
 ```
 
+`issuers`, `get` and `match` hand out copies: edit an entry however deep and the next
+answer is still the census's. Hosts compare without ASCII case and no other, so a
+look-alike such as one spelled with the Kelvin sign is not a census host.
+
 `match` reads an issuer URL's path as well as its host, and returns the entry and the tenant
 the URL names, or `None` for an issuer nobody surveyed: never a sign that it is safe. Each
 reader returns an `Answer`, a `(value, known)` pair; when `known` is false the value is the

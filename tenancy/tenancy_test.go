@@ -520,6 +520,58 @@ func TestTheSubPackageCarriesOnlyTheClassifiersFields(t *testing.T) {
 	}
 }
 
+// scribble writes over every string and every element of every slice an
+// answer lets its holder reach, and returns how many values it wrote.
+func scribble(v reflect.Value) int {
+	switch v.Kind() {
+	case reflect.String:
+		if v.CanSet() {
+			v.SetString("scribbled")
+			return 1
+		}
+	case reflect.Struct:
+		n := 0
+		for i := 0; i < v.NumField(); i++ {
+			n += scribble(v.Field(i))
+		}
+		return n
+	case reflect.Slice:
+		n := 0
+		for i := 0; i < v.Len(); i++ {
+			n += scribble(v.Index(i))
+		}
+		return n
+	}
+	return 0
+}
+
+// Every field All and Match hand out, found by reflection rather than listed,
+// is the caller's: a field added to Issuer later and left out of clone fails
+// here.
+func TestEveryFieldOfAnAnswerIsACopy(t *testing.T) {
+	var pristine struct {
+		Issuers []Issuer `json:"issuers"`
+	}
+	if err := json.Unmarshal(raw, &pristine); err != nil {
+		t.Fatal(err)
+	}
+	written := 0
+	all := All()
+	for i := range all {
+		written += scribble(reflect.ValueOf(&all[i]).Elem())
+	}
+	for _, issuer := range []string{github, "https://login.microsoftonline.com/11111111-2222-3333-4444-555555555555/v2.0"} {
+		e, _, _ := Match(issuer)
+		written += scribble(reflect.ValueOf(&e).Elem())
+	}
+	if written < 100 {
+		t.Fatalf("wrote over %d values; the sub-package's answers hold more, so this test examined too little", written)
+	}
+	if !reflect.DeepEqual(All(), pristine.Issuers) {
+		t.Fatal("an edit to an earlier answer reached the census All reads")
+	}
+}
+
 // What Match and All hand out is the caller's to edit: the next answer is the
 // census's, not the last caller's.
 func TestAnswersAreCopies(t *testing.T) {

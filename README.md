@@ -164,7 +164,10 @@ anonymous, known = ci.issues_anonymous_tokens(ci.get("gitlab.com"))   # True, Fa
 ```
 
 `match` reads the path as well as the host: of several entries on one host, the most
-specific pattern wins, and a host without the pattern's tenant is no match. The readers
+specific pattern wins, and a host without the pattern's tenant is no match. Hosts compare
+without ASCII case and no other, in `get` and `Get` as in `match`, so a look-alike spelled
+with the Kelvin sign is not a census host. Every entry either package hands out is the
+caller's own copy: edit it however deep and the next answer is still the census's. The readers
 (`issues_anonymous_tokens`, `controlled_tenant`, `tenant_is_recyclable`,
 `names_compare_without_case`) return an `Answer`, a `(value, known)` pair; when `known`
 is false the value is the cautious one. An `Answer` refuses to be read as true or false,

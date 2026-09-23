@@ -472,41 +472,61 @@ func matchKey(e Issuer) (string, bool) {
 	return e.Issuer, true
 }
 
-type census struct {
-	CensusDate string   `json:"census_date"`
-	Issuers    []Issuer `json:"issuers"`
-}
-
 var (
 	once       sync.Once
-	parsed     census
-	byHost     map[string]Issuer
-	byMatchKey map[string]Issuer
+	censusDate string
+	// entries holds each entry as the census wrote it. Every answer is
+	// decoded from it afresh, so what a caller is handed is its own, however
+	// deep it edits: the census the next caller reads cannot change.
+	entries     []json.RawMessage
+	byHost      map[string]int
+	byMatchKey  map[string]int
+	multiTenant []string
 )
 
 func load() {
 	once.Do(func() {
-		if err := json.Unmarshal(raw, &parsed); err != nil {
+		var doc struct {
+			CensusDate string            `json:"census_date"`
+			Issuers    []json.RawMessage `json:"issuers"`
+		}
+		if err := json.Unmarshal(raw, &doc); err != nil {
 			panic("issuers: embedded census is not valid JSON: " + err.Error())
 		}
-		byHost = make(map[string]Issuer, len(parsed.Issuers))
-		byMatchKey = make(map[string]Issuer, len(parsed.Issuers))
-		for _, e := range parsed.Issuers {
+		censusDate, entries = doc.CensusDate, doc.Issuers
+		byHost = make(map[string]int, len(entries))
+		byMatchKey = make(map[string]int, len(entries))
+		shared := map[string]bool{}
+		for n := range entries {
+			e := entry(n)
 			if key, ok := matchKey(e); ok {
-				byMatchKey[key] = e
+				byMatchKey[key] = n
 			}
-			h := foldASCII(e.Host())
+			h := e.Host()
 			if h == "" {
 				continue
+			}
+			if (e.TenancyModel == "shared" || e.TenancyModel == "per_tenant_path") && !shared[h] {
+				shared[h] = true
+				multiTenant = append(multiTenant, h)
 			}
 			// Several entries can share a host, told apart by path. A lookup
 			// by host alone answers with the host's own issuer, as it did
 			// before any host had two entries, and otherwise with the first.
-			if prev, seen := byHost[h]; !seen || !ownsHost(prev) && ownsHost(e) {
-				byHost[h] = e
+			if prev, seen := byHost[foldASCII(h)]; !seen || !ownsHost(entry(prev)) && ownsHost(e) {
+				byHost[foldASCII(h)] = n
 			}
 		}
 	})
+}
+
+// entry decodes the nth entry of the census afresh.
+func entry(n int) Issuer {
+	var e Issuer
+	if err := json.Unmarshal(entries[n], &e); err != nil {
+		panic("issuers: embedded census entry is not valid JSON: " + err.Error())
+	}
+	return e
 }
 
 // ownsHost reports whether the entry's issuer is its host alone, with no path.
@@ -517,13 +537,16 @@ func ownsHost(e Issuer) bool {
 
 // CensusDate is the date the embedded snapshot was taken, as YYYY-MM-DD.
 // Facts added since carry their own verified_at.
-func CensusDate() string { load(); return parsed.CensusDate }
+func CensusDate() string { load(); return censusDate }
 
-// All returns every entry. The slice is a copy; callers may sort it.
+// All returns every entry, in census order. Everything in it is the caller's
+// own: sort it or edit it, and the next answer is still the census's.
 func All() []Issuer {
 	load()
-	out := make([]Issuer, len(parsed.Issuers))
-	copy(out, parsed.Issuers)
+	out := make([]Issuer, len(entries))
+	for n := range entries {
+		out[n] = entry(n)
+	}
 	return out
 }
 
@@ -538,8 +561,11 @@ func Get(hostOrURL string) (Issuer, bool) {
 	if n := strings.IndexByte(h, '/'); n >= 0 {
 		h = h[:n]
 	}
-	e, ok := byHost[foldASCII(h)]
-	return e, ok
+	n, ok := byHost[foldASCII(h)]
+	if !ok {
+		return Issuer{}, false
+	}
+	return entry(n), true
 }
 
 // foldASCII lower-cases ASCII letters only. strings.ToLower also folds the
@@ -564,11 +590,11 @@ func Match(issuer string) (e Issuer, tenant string, ok bool) {
 		return Issuer{}, "", false
 	}
 	load()
-	e, ok = byMatchKey[t.Issuer]
+	n, ok := byMatchKey[t.Issuer]
 	if !ok {
 		return Issuer{}, "", false
 	}
-	return e, tenant, true
+	return entry(n), tenant, true
 }
 
 // MultiTenantHosts returns the hostnames of every issuer shared between the
@@ -580,21 +606,5 @@ func Match(issuer string) (e Issuer, tenant string, ok bool) {
 // This is a drop-in for a hard-coded set of the same shape.
 func MultiTenantHosts() []string {
 	load()
-	seen := map[string]struct{}{}
-	out := []string{}
-	for _, e := range parsed.Issuers {
-		if e.TenancyModel != "shared" && e.TenancyModel != "per_tenant_path" {
-			continue
-		}
-		h := e.Host()
-		if h == "" {
-			continue
-		}
-		if _, dup := seen[h]; dup {
-			continue
-		}
-		seen[h] = struct{}{}
-		out = append(out, h)
-	}
-	return out
+	return append([]string{}, multiTenant...)
 }

@@ -310,6 +310,99 @@ func TestMatchReturnsTheWholeEntry(t *testing.T) {
 	}
 }
 
+// scribble writes over everything an answer lets its holder reach: every
+// string, every element of every slice and every value in every map, however
+// deep. It returns how many values it wrote, so a test over an answer with
+// nothing in it can say so.
+func scribble(v reflect.Value) int {
+	switch v.Kind() {
+	case reflect.String:
+		if v.CanSet() {
+			v.SetString("scribbled")
+			return 1
+		}
+	case reflect.Struct:
+		n := 0
+		for i := 0; i < v.NumField(); i++ {
+			n += scribble(v.Field(i))
+		}
+		return n
+	case reflect.Slice, reflect.Array:
+		n := 0
+		for i := 0; i < v.Len(); i++ {
+			n += scribble(v.Index(i))
+		}
+		return n
+	case reflect.Map:
+		n := 0
+		for _, k := range v.MapKeys() {
+			if elem := v.MapIndex(k); elem.Kind() == reflect.Interface && !elem.IsNil() &&
+				(elem.Elem().Kind() == reflect.Map || elem.Elem().Kind() == reflect.Slice) {
+				n += scribble(elem.Elem())
+				continue
+			}
+			v.SetMapIndex(k, reflect.ValueOf("scribbled").Convert(v.Type().Elem()))
+			n++
+		}
+		return n
+	case reflect.Interface:
+		if v.IsNil() {
+			return 0
+		}
+		if inner := v.Elem(); inner.Kind() == reflect.Map || inner.Kind() == reflect.Slice || inner.Kind() == reflect.Pointer {
+			return scribble(inner)
+		}
+		if v.CanSet() {
+			v.Set(reflect.ValueOf("scribbled"))
+			return 1
+		}
+	case reflect.Pointer:
+		if !v.IsNil() {
+			return scribble(v.Elem())
+		}
+	}
+	return 0
+}
+
+// What All, Get and Match hand out is the caller's to edit, however deep:
+// the next answer is the census's, not the last caller's. Handed the census's
+// own slices and maps, one caller's edit would change what every later caller
+// in the process reads, such as a claim's multi_valued turned to yes, which
+// empties the sub-package's projection of it.
+func TestAnswersAreCopies(t *testing.T) {
+	var pristine census
+	if err := json.Unmarshal(raw, &pristine); err != nil {
+		t.Fatal(err)
+	}
+	const github, eks = "https://token.actions.githubusercontent.com",
+		"https://oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"
+	written := 0
+	all := All()
+	for i := range all {
+		written += scribble(reflect.ValueOf(&all[i]).Elem())
+	}
+	got, _ := Get(github)
+	written += scribble(reflect.ValueOf(&got).Elem())
+	matched, _, _ := Match(eks)
+	written += scribble(reflect.ValueOf(&matched).Elem())
+	if written < 1000 {
+		t.Fatalf("wrote over %d values; the census's answers hold far more, so this test examined too little", written)
+	}
+	if again := All(); !reflect.DeepEqual(again, pristine.Issuers) {
+		for i := range again {
+			if !reflect.DeepEqual(again[i], pristine.Issuers[i]) {
+				t.Errorf("an edit to an earlier answer reached All()[%d], %s", i, pristine.Issuers[i].Name)
+			}
+		}
+	}
+	if e, ok := Get(github); !ok || e.Name != "GitHub Actions" || !reflect.DeepEqual(e, byName(t, "GitHub Actions", "")) {
+		t.Error("an edit to an earlier answer reached Get")
+	}
+	if e, _, ok := Match(eks); !ok || len(e.TenantMembership.Evidence) == 0 || e.TenantMembership.Evidence[0].Quote == "scribbled" {
+		t.Error("an edit to an earlier answer reached Match")
+	}
+}
+
 // The sub-package is generated from this census by scripts/build.py. Each of
 // its entries must be the Tenancy projection of one census entry, in census
 // order, and every entry the census can match must be in it.
@@ -519,6 +612,12 @@ func TestEveryFactHasASourceAQuoteAndADate(t *testing.T) {
 		t.Fatalf("examined %d facts, %d of them observations; the tenancy research recorded more than 150, and observations",
 			examined, observations)
 	}
+}
+
+// census is the embedded file as the Go type reads it.
+type census struct {
+	CensusDate string   `json:"census_date"`
+	Issuers    []Issuer `json:"issuers"`
 }
 
 // The embedded census decodes into Issuer with no key left over, so no field

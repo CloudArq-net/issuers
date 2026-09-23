@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import cloudarq_issuers as ci
 
 
@@ -89,3 +92,40 @@ def test_unsurveyed_host_is_none_not_false():
     """Not in the census means unsurveyed, never safe."""
     assert ci.audience_is_boundary("nobody.surveyed.this") is None
     assert ci.subjects_are_recyclable("nobody.surveyed.this") is None
+
+
+def scribble(value):
+    """Write over every value a caller can reach in ``value``, however deep,
+    and return how many it wrote."""
+    written = 0
+    if isinstance(value, dict):
+        for k, v in list(value.items()):
+            if isinstance(v, (dict, list)):
+                written += scribble(v)
+            else:
+                value[k] = "scribbled"
+                written += 1
+    elif isinstance(value, list):
+        for i, v in enumerate(value):
+            if isinstance(v, (dict, list)):
+                written += scribble(v)
+            else:
+                value[i] = "scribbled"
+                written += 1
+    return written
+
+
+def test_answers_are_copies():
+    """What issuers, get and match hand out is the caller's to edit: the next
+    answer is the census's. Handed the census's own dicts, one caller's edit
+    would change every later answer in the process, such as a cautious
+    anonymous_tokens turned into a known no."""
+    data = Path(ci.__file__).with_name("issuers.json").read_text(encoding="utf-8")
+    pristine = json.loads(data)["issuers"]
+    written = sum(scribble(e) for e in ci.issuers())
+    written += scribble(ci.get("token.actions.githubusercontent.com"))
+    written += scribble(ci.match("https://agent.buildkite.com")[0])
+    assert written > 1000, f"wrote over {written} values; the census holds more"
+    assert list(ci.issuers()) == pristine
+    assert ci.get("token.actions.githubusercontent.com") == pristine[[e["name"] for e in pristine].index("GitHub Actions")]
+    assert ci.issues_anonymous_tokens(ci.match("https://agent.buildkite.com")[0]) == (True, False)
