@@ -49,7 +49,8 @@
     "issuer": "https://api.bitbucket.org/2.0/workspaces/\u003cworkspace\u003e/pipelines-config/identity/oidc",
     "tenant_placeholder": "\u003cworkspace\u003e",
     "tenant_kind": "name",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "platform": "Bitbucket"
    }
   },
   {
@@ -131,7 +132,8 @@
     "tenant_placeholder": "\u003corganization_id\u003e",
     "tenant_kind": "id",
     "tenant_membership": "controlled",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "platform": "CircleCI"
    }
   },
   {
@@ -410,7 +412,9 @@
      "0-9",
      "-",
      "_"
-    ]
+    ],
+    "platform": "GitHub",
+    "declaration_namespace": "github"
    }
   },
   {
@@ -456,7 +460,8 @@
     "tenant_kind": "name",
     "tenant_recyclable": "yes",
     "tenant_membership": "controlled",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "platform": "GitHub"
    }
   },
   {
@@ -1453,7 +1458,8 @@
    "tenancy": {
     "name": "Google (accounts.google.com)",
     "issuer": "https://accounts.google.com",
-    "anonymous_tokens": "no"
+    "anonymous_tokens": "no",
+    "platform": "Google"
    }
   },
   {

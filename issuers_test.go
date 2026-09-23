@@ -518,6 +518,7 @@ func facts(e Issuer) map[string][]Fact {
 	add("tenant_membership.evidence", e.TenantMembership.Evidence...)
 	add("tenant_membership.chain", e.TenantMembership.Chain...)
 	add("tenant_membership.context", e.TenantMembership.Context...)
+	add("accounts.evidence", e.Accounts.Evidence...)
 	add("built_in.evidence", e.BuiltIn.Evidence...)
 	add("built_in.discrepancy", e.BuiltIn.Discrepancy...)
 	researchFacts(e.Research, "research", out)
@@ -654,16 +655,16 @@ var recorded = map[string]struct {
 	facts    map[string]int
 	research []string
 }{
-	"Bitbucket Pipelines": {map[string]int{"anonymous_tokens": 4, "match": 1, "tenant_membership": 4},
+	"Bitbucket Pipelines": {map[string]int{"accounts": 1, "anonymous_tokens": 4, "match": 1, "tenant_membership": 4},
 		[]string{"population", "sources"}},
 	"Buildkite": {map[string]int{}, nil},
-	"CircleCI": {map[string]int{"anonymous_tokens": 3, "match": 1, "tenant_membership": 2},
+	"CircleCI": {map[string]int{"accounts": 1, "anonymous_tokens": 3, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
-	"GitHub Actions": {map[string]int{"anonymous_tokens": 5, "names_unique_regardless_of_case": 2, "not_tenancy": 20,
+	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "names_unique_regardless_of_case": 2, "not_tenancy": 20,
 		"owner_charset": 7, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
 		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
 			"population_evidence", "sources"}},
-	"GitHub Actions (enterprise issuer path)": {map[string]int{"anonymous_tokens": 7, "match": 7, "tenant_membership": 1},
+	"GitHub Actions (enterprise issuer path)": {map[string]int{"accounts": 1, "anonymous_tokens": 7, "match": 7, "tenant_membership": 1},
 		[]string{"population", "sources"}},
 	"GitLab.com":                      {map[string]int{}, nil},
 	"HCP Terraform (Terraform Cloud)": {map[string]int{}, nil},
@@ -677,7 +678,7 @@ var recorded = map[string]struct {
 		[]string{"population", "sources"}},
 	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "match": 1, "tenant_membership": 1},
 		[]string{"population", "sources"}},
-	"Google (accounts.google.com)": {map[string]int{"anonymous_tokens": 9, "built_in": 3}, []string{"sources"}},
+	"Google (accounts.google.com)": {map[string]int{"accounts": 1, "anonymous_tokens": 9, "built_in": 3}, []string{"sources"}},
 	"Amazon Cognito identity pools": {map[string]int{"anonymous_tokens": 9, "built_in": 3, "not_tenancy": 4,
 		"research": 6, "subject_forms": 2}, []string{"aws", "population", "sources"}},
 	"Login with Amazon": {map[string]int{"anonymous_tokens": 3, "built_in": 3, "research": 1},
@@ -752,7 +753,8 @@ func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 			t.Errorf("%s: anonymous_tokens %q, basis %q", n, e.AnonymousTokens.Value, e.AnonymousTokens.Basis)
 		}
 		for field, v := range map[string]string{"tenancy_claims": e.TenancyClaims.Value, "not_tenancy": e.NotTenancy.Value,
-			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value, "match": e.Match.Value} {
+			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value, "match": e.Match.Value,
+			"accounts": e.Accounts.Value} {
 			if !oneOf(v, "verified", "unverified") {
 				t.Errorf("%s: %s value %q", n, field, v)
 			}
@@ -864,6 +866,10 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 		if e.BuiltIn.Value == "yes" && (len(e.BuiltIn.Evidence) == 0 || e.BuiltIn.Principal == "") {
 			t.Errorf("%s: built_in with no evidence or no principal", n)
 		}
+		if a := e.Accounts; a.Value == "verified" && (a.Platform == "" || len(a.Evidence) == 0) ||
+			a.Value != "verified" && (a.Platform != "" || a.DeclarationNamespace != "") {
+			t.Errorf("%s: accounts %+v; a platform needs its evidence, and an unverified block names none", n, a)
+		}
 	}
 	// Nine patterns, and six tenants whose owner the vendor says controls who
 	// obtains tokens: no sentence in this release says who can cause a
@@ -885,7 +891,7 @@ func TestEveryEntrySaysWhetherItWasResearched(t *testing.T) {
 		t.Fatal(err)
 	}
 	fields := []string{"anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-		"names_unique_regardless_of_case", "match", "tenant_membership", "built_in"}
+		"names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts"}
 	var inRelease []string
 	unresearched := 0
 	for _, e := range doc.Issuers {

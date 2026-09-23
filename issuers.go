@@ -136,6 +136,7 @@ type Issuer struct {
 	Match                       MatchRule        `json:"match"`
 	TenantMembership            TenantMembership `json:"tenant_membership"`
 	BuiltIn                     BuiltIn          `json:"built_in"`
+	Accounts                    Accounts         `json:"accounts"`
 	// Research keeps the rest of what the tenancy research read for this
 	// entry, as the research recorded it: context a reader checking a value
 	// wants beside it. Every fact inside it carries its source like any other.
@@ -374,6 +375,22 @@ type BuiltIn struct {
 	Note        string `json:"note,omitempty"`
 }
 
+// Accounts records the platform whose accounts hold the issuer's tenants,
+// and the namespace a consumer declares its owners in.
+type Accounts struct {
+	// Value is "verified" or "unverified".
+	Value string `json:"value"`
+	// Platform is how the vendor's sentence names the platform, such as
+	// "GitHub": where the accounts are, not the product that mints tokens.
+	Platform string `json:"platform,omitempty"`
+	// DeclarationNamespace is the prefix a consumer declares this issuer's
+	// owners under by name, such as github in github:acme. Only an issuer
+	// whose claims name owners has one, and no two entries share one.
+	DeclarationNamespace string `json:"declaration_namespace,omitempty"`
+	Evidence             []Fact `json:"evidence,omitempty"`
+	Note                 string `json:"note,omitempty"`
+}
+
 // Host is the issuer's hostname, with no scheme and no path. For a per-tenant
 // issuer whose tenant sits in the path, this is the shared host. It is empty
 // when the issuer field holds a note, such as "unverified", rather than an
@@ -461,6 +478,9 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 		t.OwnerNameCharacters = slices.Clone(i.OwnerCharset.Characters)
 	}
 	t.NamesUniqueRegardlessOfCase = settled(i.NamesUniqueRegardlessOfCase.Value)
+	if i.Accounts.Value == "verified" {
+		t.Platform, t.DeclarationNamespace = i.Accounts.Platform, i.Accounts.DeclarationNamespace
+	}
 	return t
 }
 

@@ -365,6 +365,36 @@ func TestTenantIsRecyclable(t *testing.T) {
 	}
 }
 
+// Where an issuer's tenants hold their accounts, and where a consumer declares
+// its owners, are census facts, so a classifier names no issuer in its code.
+// GitHub's owners alone are declared by name, under github: a name under
+// another issuer is another owner's.
+func TestThePlatformAndTheDeclarationNamespaceAreData(t *testing.T) {
+	want := map[string][2]string{
+		github:    {"GitHub", "github"},
+		githubEnt: {"GitHub", ""},
+		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc": {"Bitbucket", ""},
+		"https://oidc.circleci.com/org/<organization_id>":                                     {"CircleCI", ""},
+		"https://accounts.google.com":                                                         {"Google", ""},
+	}
+	namespaces := map[string]string{}
+	for _, e := range All() {
+		w := want[e.Issuer]
+		if e.Platform != w[0] || e.DeclarationNamespace != w[1] {
+			t.Errorf("%s: platform %q, declaration namespace %q; want %q, %q", e.Name, e.Platform, e.DeclarationNamespace, w[0], w[1])
+		}
+		if e.DeclarationNamespace != "" {
+			if other, twice := namespaces[e.DeclarationNamespace]; twice {
+				t.Errorf("%s and %s both declare owners under %q", other, e.Name, e.DeclarationNamespace)
+			}
+			namespaces[e.DeclarationNamespace] = e.Name
+		}
+	}
+	if len(namespaces) != 1 {
+		t.Fatalf("examined %d declaration namespaces; the census records 1", len(namespaces))
+	}
+}
+
 // A claim's value can pass to someone else unless a vendor sentence says it
 // cannot. GitHub's enterprise_id is an id whose immutability no sentence
 // settles, so it reads recyclable and not known, whatever its kind.
@@ -557,7 +587,7 @@ func TestTheSubPackageCarriesOnlyTheClassifiersFields(t *testing.T) {
 		"tenant_recyclable": true,
 		"tenant_membership": true, "not_a_controlled_tenant": true, "anonymous_tokens": true,
 		"tenancy_claims": true, "subject_forms": true, "owner_name_characters": true, "names_unique_regardless_of_case": true,
-		"not_tenancy": true, "never_pin": true,
+		"not_tenancy": true, "never_pin": true, "platform": true, "declaration_namespace": true,
 	}
 	for _, e := range doc.Issuers {
 		for k := range e {

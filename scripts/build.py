@@ -82,7 +82,7 @@ KEEP = ['name', 'vendor', 'category', 'issuer', 'issuer_pattern', 'tenancy_model
 # entry the YAML does not mark `researched: in_release` holds none of them in the
 # YAML, and each is written unverified.
 TENANCY_FIELDS = ['anonymous_tokens', 'tenancy_claims', 'not_tenancy', 'subject_forms', 'owner_charset',
-                  'names_unique_regardless_of_case', 'match', 'tenant_membership', 'built_in']
+                  'names_unique_regardless_of_case', 'match', 'tenant_membership', 'built_in', 'accounts']
 
 # A field must have one shape across every entry. A field that is a string on
 # one entry and a map on another silently breaks any typed consumer -- Go
@@ -114,6 +114,10 @@ SCOPE = {'owner', 'repository', 'enterprise'}
 # NOT_AN_ISSUER has no key set to fetch, which is what its jwks_status n/a says.
 NOT_AN_ISSUER = 'not an OIDC issuer'
 NOTES = {'unverified', NOT_AN_ISSUER}
+
+# A declaration namespace is written the way a consumer types it before the
+# colon, as in github:acme.
+NAMESPACE = re.compile(r'[a-z]+')
 
 FACT = {'source', 'quote', 'verified_at', 'role'}
 OBSERVATION = {'observed', 'method', 'at', 'result'}
@@ -607,6 +611,30 @@ def check_built_in(c, b):
     c.facts('built_in.discrepancy', b.get('discrepancy'))
 
 
+def check_accounts(c, a, names_owners):
+    """The platform whose accounts hold the issuer's tenants, as the vendor's
+    sentence names it, and the namespace a consumer declares its owners in,
+    which only an issuer whose claims name owners has."""
+    w = 'accounts'
+    if not c.keys(w, a, {'value', 'platform', 'declaration_namespace', 'evidence', 'note'}, ['value']):
+        return
+    c.one_of(f"{w}.value", a['value'], LISTED)
+    if a['value'] != 'verified':
+        if len(a) > 1:
+            c.fail(w, "an unverified block carries nothing else")
+        return
+    if not (isinstance(a.get('platform'), str) and a['platform'].strip()):
+        c.fail(w, "a verified block names no platform")
+    c.facts(f"{w}.evidence", a.get('evidence'), required=True)
+    ns = a.get('declaration_namespace')
+    if ns is not None:
+        if not (isinstance(ns, str) and NAMESPACE.fullmatch(ns)):
+            c.fail(f"{w}.declaration_namespace", f"{ns!r} is not lower-case ASCII letters")
+        if not names_owners:
+            c.fail(f"{w}.declaration_namespace", "the issuer names no owner by a verified claim, so it has none to "
+                                                 "declare")
+
+
 def check_entry(e):
     """Everything wrong with one entry of the YAML."""
     if not isinstance(e, dict):
@@ -663,6 +691,11 @@ def check_entry(e):
         check_tenant_membership(c, e['tenant_membership'], e.get('match'))
     if 'built_in' in e:
         check_built_in(c, e['built_in'])
+    if 'accounts' in e:
+        tc = e.get('tenancy_claims') or {}
+        names_owners = tc.get('value') == 'verified' and any(
+            isinstance(x, dict) and x.get('scope') == 'owner' for x in tc.get('claims') or [])
+        check_accounts(c, e['accounts'], names_owners)
     if 'research' in e:
         c.research('research', e['research'])
     return c.errors
@@ -734,6 +767,14 @@ def check_census(entries):
                 rules.append(tenancy.compile_rule(e['name'], key, placeholder, syntax))
             except ValueError as x:
                 errs.append(f"{e['name']}: {x}")
+    declared = {}
+    for e in entries:
+        ns = (e.get('accounts') or {}).get('declaration_namespace')
+        if ns in declared:
+            errs.append(f"{e['name']} and {declared[ns]} both declare owners under {ns!r}: a declaration there "
+                        f"would make an owner of either one's")
+        elif ns:
+            declared[ns] = e['name']
     seen = {}
     for r in rules:
         if r.key in seen:

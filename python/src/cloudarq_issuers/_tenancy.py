@@ -304,4 +304,9 @@ def projection(entry: Mapping[str, Any]) -> dict:
         t["owner_name_characters"] = list(oc["characters"])
     if settled((entry.get("names_unique_regardless_of_case") or {}).get("value")):
         t["names_unique_regardless_of_case"] = entry["names_unique_regardless_of_case"]["value"]
+    ac = entry.get("accounts") or {}
+    if ac.get("value") == "verified":
+        t["platform"] = ac["platform"]
+        if ac.get("declaration_namespace"):
+            t["declaration_namespace"] = ac["declaration_namespace"]
     return t

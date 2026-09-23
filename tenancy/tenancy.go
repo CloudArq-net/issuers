@@ -79,6 +79,15 @@ type Issuer struct {
 	// NamesUniqueRegardlessOfCase is "yes" when the vendor documents that two
 	// owners' names never differ only in case.
 	NamesUniqueRegardlessOfCase string `json:"names_unique_regardless_of_case,omitempty"`
+	// Platform is where the issuer's tenants hold their accounts, as a vendor
+	// sentence names it, such as "GitHub": the platform, not the product that
+	// mints the tokens. Empty when no sentence in this release names it.
+	Platform string `json:"platform,omitempty"`
+	// DeclarationNamespace is the prefix a consumer declares this issuer's
+	// owners under by name, such as github in github:acme. No two entries
+	// share one, since the same name under another issuer is another owner;
+	// it is empty for an issuer whose owners are not declared by name.
+	DeclarationNamespace string `json:"declaration_namespace,omitempty"`
 }
 
 // Claim is one claim that names a tenant.

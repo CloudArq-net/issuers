@@ -74,6 +74,11 @@
 #                           obtains tokens naming it.
 #   built_in                value: yes | unverified. A provider STS accepts with no identity
 #                           provider in the role's account.
+#   accounts                value: verified | unverified. The platform whose accounts hold the
+#                           issuer's tenants, as the vendor's sentence names it (platform), and, for
+#                           an issuer whose claims name owners, the declaration_namespace a consumer
+#                           declares those owners under, as github in github:acme. No two entries share
+#                           a namespace: the same name under another issuer is another owner.
 #   research                the rest of what the research read beside the values.
 #
 # A list-valued field reads {value: verified, ...} or {value: unverified}. A fact is the vendor's
@@ -158,6 +163,14 @@ issuers:
     note: no single sentence says only; read in order, the links say a token is minted for the pipelines
       of a repository in the workspace the issuer names, and a workspace is created and joined by Bitbucket
       accounts
+  accounts:
+    value: verified
+    platform: Bitbucket
+    evidence:
+    - source: https://support.atlassian.com/bitbucket-cloud/docs/create-your-workspace/
+      quote: To join or create a workspace, you need an individual Bitbucket account.
+      verified_at: '2026-09-24'
+      role: a workspace's people hold Bitbucket accounts
   match:
     value: verified
     issuer_pattern: https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc
@@ -384,6 +397,15 @@ issuers:
       role: an organization is itself an account
     note: no single sentence says only; read in order, the links say a token is provided to a job, by the
       provider of one organization, which is an account
+  accounts:
+    value: verified
+    platform: CircleCI
+    evidence:
+    - source: https://circleci.com/docs/guides/permissions-authentication/users-organizations-and-integrations-guide/
+      quote: An organization in CircleCI is a top-level account that serves as a container for your team's
+        projects, settings, permissions, and billing.
+      verified_at: '2026-09-24'
+      role: an organization is an account on CircleCI
   match:
     value: verified
     issuer_pattern: https://oidc.circleci.com/org/<organization_id>
@@ -697,6 +719,25 @@ issuers:
       verified_at: '2026-09-23'
     note: no single sentence says only; the chain names whom a token is minted for, a repository's owner,
       which is an account
+  accounts:
+    value: verified
+    platform: GitHub
+    declaration_namespace: github
+    evidence:
+    - source: https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+      quote: Your user account can own resources such as repositories, packages, and projects.
+      verified_at: '2026-09-24'
+      role: a repository's owner can be a user account on GitHub
+    - source: https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+      quote: Like user accounts, organizations can own resources such as repositories, packages, and projects.
+      verified_at: '2026-09-24'
+      role: or an organization account on GitHub
+    - source: https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+      quote: Every person who uses GitHub signs in to a user account.
+      verified_at: '2026-09-24'
+      role: the accounts are GitHub's
+    note: the owners the tenancy claims and subject forms name are accounts on GitHub; github names that set
+      of accounts, and an owner of the same name under any other issuer is another owner
   tenancy_claims:
     value: verified
     claims:
@@ -1345,6 +1386,16 @@ issuers:
       quote: Every person who uses GitHub signs in to a user account.
       verified_at: '2026-09-23'
     note: the same tokens as GitHub Actions with the updated iss, so GitHub Actions' chain applies
+  accounts:
+    value: verified
+    platform: GitHub
+    evidence:
+    - source: https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+      quote: Every person who uses GitHub signs in to a user account. An organization account enhances collaboration
+        between multiple users, and an enterprise account allows central management of multiple organizations.
+      verified_at: '2026-09-24'
+      role: an enterprise is an account on GitHub, whose people sign in to GitHub user accounts
+    note: an enterprise is declared by its issuer URL, not by name, so it has no declaration namespace
   match:
     value: verified
     issuer_pattern: https://token.actions.githubusercontent.com/<enterpriseSlug>
@@ -2858,6 +2909,14 @@ issuers:
       and workforce identity pool principals. The two kinds issued as https://accounts.google.com authenticate
       a user or a service account; agent identity ID tokens carry their pool as issuer. No single sentence
       says only.
+  accounts:
+    value: verified
+    platform: Google
+    evidence:
+    - source: https://developers.google.com/identity/openid-connect/openid-connect
+      quote: An identifier for the user, unique among all Google Accounts and never reused.
+      verified_at: '2026-09-24'
+      role: the users Google's ID tokens name hold Google Accounts
   built_in:
     value: 'yes'
     principal: '{"Federated": "accounts.google.com"}'

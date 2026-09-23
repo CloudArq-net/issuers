@@ -34,7 +34,7 @@ RESEARCHED = {
     "Amazon Cognito identity pools", "Login with Amazon", "Facebook", "Microsoft Entra ID",
 }
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in")
+                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts")
 
 
 def match_key(entry):
@@ -372,6 +372,20 @@ def test_the_researched_facts_are_the_census_s():
     entra = by_key(ENTRA)["match"]
     assert entra["tenant_syntax"] == "guid"
     assert [x["tenant"] for x in entra["not_a_controlled_tenant"]] == [PERSONAL_MSA]
+
+
+def test_the_platform_and_the_declaration_namespace_are_data():
+    """Where an issuer's tenants hold their accounts, and where a consumer
+    declares its owners, are census facts: GitHub's owners alone are declared
+    by name, under github."""
+    want = {"GitHub Actions": ("GitHub", "github"), "GitHub Actions (enterprise issuer path)": ("GitHub", None),
+            "Bitbucket Pipelines": ("Bitbucket", None), "CircleCI": ("CircleCI", None),
+            "Google (accounts.google.com)": ("Google", None)}
+    for e in ci.issuers():
+        t = ci.tenancy(e)
+        assert (t.get("platform"), t.get("declaration_namespace")) == want.get(e["name"], (None, None)), e["name"]
+        if e["name"] in want:
+            assert e["accounts"]["value"] == "verified" and e["accounts"]["evidence"], e["name"]
 
 
 def test_what_never_pins_reaches_the_classifier():

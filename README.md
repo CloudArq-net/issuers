@@ -128,6 +128,13 @@ role's account: Amazon Cognito, Google, Login with Amazon and Facebook, as AWS's
 for the `Principal` element names them. Two other AWS pages name three, leaving out Login
 with Amazon; the census records them beside the four.
 
+**`accounts`** — the platform whose accounts hold the issuer's tenants, as the vendor's own
+sentence names it: GitHub for GitHub Actions and its enterprise path, Bitbucket, CircleCI
+and Google. That is where a platform's population lives, not the product that mints the
+token. GitHub Actions also carries a `declaration_namespace`, `github`: the prefix a
+consumer declares an owner under by name, as in `github:acme`. No two entries share a
+namespace, since the same name under another issuer is another owner.
+
 **`researched`** — `in_release` for the 17 entries this release researched, and
 `not_in_this_release` for the rest.
 

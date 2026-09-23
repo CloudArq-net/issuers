@@ -23,7 +23,7 @@ FACT = {"source": "https://example.com/doc", "quote": "A sentence the vendor wro
 OBSERVATION = {"observed": "https://example.com/.well-known/openid-configuration", "method": "curl",
                "at": "2026-09-23T00:12Z", "result": "claims_supported includes x"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in")
+                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts")
 
 # Python raises on any file it reads or writes in the locale's encoding when
 # run this way, so a build that forgot to say UTF-8 fails here, whatever the
@@ -67,6 +67,8 @@ def valid_census():
                  "never_pin": [{"leading_literal": "job:", "why": "names the called job", "evidence": fact()}]},
              "owner_charset": {"value": "verified", "characters": ["a-z", "-"],
                                "description": "lower-case letters and dashes", "evidence": [fact()]},
+             "accounts": {"value": "verified", "platform": "Example", "declaration_namespace": "example",
+                          "evidence": [fact()]},
              "research": {"population": "anyone with an account", "nested": {"read": fact()},
                           "live": {"observed": observation()}}},
             {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenancy_model": "per_tenant_host",
@@ -144,7 +146,7 @@ def test_the_sub_package_carries_only_what_is_settled(tmp_path):
          "not_tenancy": ["actor", "scope"],
          "subject_forms": [{"leading_literal": "org:", "owner_parts": [{"kind": "name", "delimiter_after": ":"}]}],
          "never_pin": ["job:"],
-         "owner_name_characters": ["a-z", "-"]},
+         "owner_name_characters": ["a-z", "-"], "platform": "Example", "declaration_namespace": "example"},
         {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenant_placeholder": "<tenant>",
          "tenant_kind": "name", "tenant_membership": "controlled"},
         {"name": "Unresearched", "issuer": "https://other.example.net"},
@@ -263,6 +265,24 @@ REFUSALS = {
     "a range that ends outside ASCII": (put(f"{SHARED}.owner_charset", "characters", ["a-é"]),
                                         "neither one character nor a range"),
     "a character set with nothing behind it": (drop(f"{SHARED}.owner_charset", "evidence"), "non-empty list of facts"),
+    "a platform with nothing behind it": (drop(f"{SHARED}.accounts", "evidence"), "non-empty list of facts"),
+    "a verified accounts block that names no platform": (drop(f"{SHARED}.accounts", "platform"),
+                                                         "names no platform"),
+    "an observation behind a platform": (put(f"{SHARED}.accounts", "evidence", [OBSERVATION]), SETTLES_NOTHING),
+    "an unverified accounts block naming a platform": (put(f"{SHARED}.accounts", "value", "unverified"),
+                                                       "carries nothing else"),
+    "a declaration namespace in capitals": (put(f"{SHARED}.accounts", "declaration_namespace", "Example"),
+                                            "lower-case ASCII letters"),
+    "a declaration namespace on an issuer whose claims name no owner": (put(f"{PER_TENANT}", "accounts", {
+        "value": "verified", "platform": "Example", "declaration_namespace": "other", "evidence": [fact()]}),
+        "names no owner"),
+    "one declaration namespace on two entries": (append_entry({
+        **unresearched("Shared twin", "https://twin.example.com"), "researched": "in_release",
+        "tenancy_claims": {"value": "verified", "claims": [{"claim": "owner_id", "kind": "id", "scope": "owner",
+                                                             "multi_valued": "no", "immutable": "unverified",
+                                                             "evidence": fact()}]},
+        "accounts": {"value": "verified", "platform": "Example", "declaration_namespace": "example",
+                     "evidence": [fact()]}}), "declare owners under 'example'"),
     "a misspelt key": (put(f"{SHARED}.anonymous_tokens", "evidnce", [fact()]), "unknown key 'evidnce'"),
     "a tenant spelled from no placeholder of the pattern": (put(f"{PER_TENANT}.match", "tenant_placeholder", "<t>"),
                                                             "does not compile"),
