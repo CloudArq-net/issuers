@@ -160,12 +160,13 @@ record; both compare names without ASCII case, as AWS does.
 Each key also says whether it is `multivalued`. AWS's entry for `amr`, on the Default tab
 and again on Amazon Cognito's, says "The key is multivalued, meaning that you test it in a
 policy using condition set operators.", and that a signed-in user's `amr` holds
-`authenticated` and the name of the login provider. A condition on it without a set operator
-does not compare one string, so the ten issuers whose keys include `amr` record it `yes` on
-that sentence, quoted from AWS's page. Every other key reads `unverified`: AWS's reference
-says of no other of these keys that it is multivalued, and of none that it holds one value.
-The build refuses a `yes` without AWS's sentence for that key, and an `unverified` key whose
-sentence the census quotes. `aws_condition_key_is_multivalued` and `IsMultivalued` read it.
+`authenticated` and the name of the login provider. What a condition on it without a set
+operator compares, AWS does not document. The ten issuers whose keys include `amr` record it
+`yes` on that sentence, quoted from AWS's page. Every other key reads `unverified`: AWS's
+reference says of no other of these keys that it is multivalued, and of none that it holds one
+value. The build refuses a `yes` without AWS's sentence for that key, and an `unverified` key
+whose sentence the census quotes. `aws_condition_key_is_multivalued` and `IsMultivalued` read
+it.
 
 **`researched`** — `in_release` for the 17 entries this release researched, and
 `not_in_this_release` for the rest.

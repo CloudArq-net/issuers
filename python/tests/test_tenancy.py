@@ -467,8 +467,8 @@ def test_aws_documents_amr_as_multivalued():
     """AWS says of amr, on its Default tab and on Amazon Cognito's, "The key is
     multivalued, meaning that you test it in a policy using condition set
     operators.", and that an authenticated user's amr holds authenticated and
-    the provider the user signed in with. A condition on it without a set
-    operator does not compare one string, so every issuer whose keys include
+    the provider the user signed in with. What a condition on it without a set
+    operator compares, AWS does not document. Every issuer whose keys include
     amr carries it as multivalued. AWS's reference for these keys says it of
     no other key, and says of none that it holds one value: each other key
     reads not known, and the cautious answer beside it is that it may hold

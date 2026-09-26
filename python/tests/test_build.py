@@ -33,8 +33,8 @@ KEYS_EXAMPLE = {"source": "https://example.com/keys", "quote": '"token.example.c
                 "verified_at": "2026-09-23"}
 # AWS's entry for a key it documents as multivalued, as its page renders it:
 # the key's name, the operators it works with, and the sentence. A request may
-# carry several values for such a key, so a condition on it without a set
-# operator does not compare one string.
+# carry several values for such a key, and what a condition on it without a set
+# operator compares, AWS does not document.
 AWS_KEYS_PAGE = "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html"
 MULTIVALUED = {"source": AWS_KEYS_PAGE,
                "quote": "amr Works with string operators. The key is multivalued, meaning that you test it in a policy "
