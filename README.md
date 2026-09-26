@@ -118,7 +118,8 @@ whoever the cluster's authorization lets request one, and each platform's own se
 the cluster's owner administers that authorization. Spacelift and Bitbucket Pipelines read
 `unverified`: the sentences this release carries say which runs or pipelines hold a token,
 not who can cause one. So does Microsoft Entra ID: by default every user of a work tenant,
-guests included, can invite external users and consent to applications.
+guests included, can invite external users, and all users can consent to applications for
+permissions that don't require administrator consent.
 `not_a_controlled_tenant` lists the tenants anyone can join although the pattern matches
 them: Microsoft Entra's personal-account tenant, which reads as known open whatever the
 issuer's membership.
@@ -239,9 +240,9 @@ k, ok := gh.Tenancy().AWSConditionKey("oaud")
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
 instead. It carries the values a classifier reads and none of the sentences: 7,555 bytes of
-data against the root package's 201,683. Built with go1.27.1 for `js/wasm`, a small program
+data against the root package's 201,751. Built with go1.27.1 for `js/wasm`, a small program
 that matches the issuer given on its command line through `tenancy` and prints the entry's
-name came out 230,217 bytes smaller (43,594 after `gzip -9`) than the same program through
+name came out 230,285 bytes smaller (43,604 after `gzip -9`) than the same program through
 the root package, and it does not contain the root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
 fails when it is out of step.
 

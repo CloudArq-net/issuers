@@ -1285,6 +1285,56 @@ func TestTheReadmeCountsTheConditionKeyListsTheCensusHolds(t *testing.T) {
 	}
 }
 
+// clauseEnd ends a clause: a sentence's end, a semicolon or colon, or ", and"
+// before the next clause of a list.
+var clauseEnd = regexp.MustCompile(`[.;:] |, and `)
+
+// clauses are a text's clauses, lower-cased, with its whitespace collapsed.
+func clauses(text string) []string {
+	return clauseEnd.Split(strings.ToLower(strings.Join(strings.Fields(text), " ")), -1)
+}
+
+// Microsoft's sentences say that by default all users, B2B collaboration
+// guest users included, can invite external users, and that all users can
+// consent to applications. None says guests can consent, so no clause of a
+// readme or of a membership's notes puts guests and consent together.
+func TestGuestsAreNotSaidToConsentWhereNoQuoteSaysSo(t *testing.T) {
+	saysGuestsConsent := func(c string) bool { return strings.Contains(c, "guest") && strings.Contains(c, "consent") }
+	for _, e := range All() {
+		for where, fs := range facts(e) {
+			for _, f := range fs {
+				if slices.ContainsFunc(clauses(f.Quote), saysGuestsConsent) {
+					t.Fatalf("%s %s quotes guests consenting, %q; this test holds that no quote does", e.Name, where, f.Quote)
+				}
+			}
+		}
+	}
+	texts := map[string][]string{}
+	for _, path := range []string{"README.md", "python/README.md"} {
+		texts[path] = []string{string(mustRead(t, path))}
+	}
+	for _, e := range All() {
+		m := e.TenantMembership
+		texts[e.Name+" tenant_membership"] = slices.Concat(m.Notes, m.Unverified)
+	}
+	namingGuests := map[string]int{}
+	for where, ts := range texts {
+		for _, text := range ts {
+			for _, c := range clauses(text) {
+				if strings.Contains(c, "guest") {
+					namingGuests[where]++
+				}
+				if saysGuestsConsent(c) {
+					t.Errorf("%s says guests can consent, and no quoted sentence does: %q", where, c)
+				}
+			}
+		}
+	}
+	if namingGuests["README.md"] == 0 || namingGuests["Microsoft Entra ID tenant_membership"] == 0 {
+		t.Fatalf("clauses naming guests, by where they are: %v; the readme and Entra's membership each name them", namingGuests)
+	}
+}
+
 // GitHub's enterprise slug is verified recyclable; every other researched
 // tenant's recyclability is unverified, which reads as recyclable.
 func TestTheEnterpriseSlugIsRecyclable(t *testing.T) {
