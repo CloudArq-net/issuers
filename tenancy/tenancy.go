@@ -222,10 +222,10 @@ func (i Issuer) AWSMapsConditionKey(key string) (mapped, known bool) {
 // Keys compare without ASCII case, as in AWSMapsConditionKey. ok is false
 // when AWS documents no such key for the issuer, or when the census does not
 // record its keys; AWSMapsConditionKey tells the two apart.
-func (i Issuer) AWSConditionKey(key string) (k ConditionKey, ok bool) {
-	for _, k := range i.AWSConditionKeys {
-		if equalFoldASCII(k.Key, key) {
-			return k, true
+func (i Issuer) AWSConditionKey(key string) (record ConditionKey, ok bool) {
+	for _, c := range i.AWSConditionKeys {
+		if equalFoldASCII(c.Key, key) {
+			return c, true
 		}
 	}
 	return ConditionKey{}, false
