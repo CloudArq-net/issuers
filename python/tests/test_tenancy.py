@@ -445,6 +445,75 @@ def test_aws_reads_each_condition_key_from_its_claim():
     assert ci.aws_condition_key({"name": "x"}, "sub") is None
 
 
+# AWS's sentence for amr, which its reference for OIDC condition keys prints on
+# the Default tab and again on Amazon Cognito's, and the example that tells the
+# two tabs apart.
+AMR_IS_MULTIVALUED = ("amr Works with string operators. The key is multivalued, meaning that you test it in a policy "
+                      "using condition set operators.")
+DEFAULT_TAB_EXAMPLE = "Example: token.actions.githubusercontent.com:amr"
+COGNITO_TAB_EXAMPLE = "Example – cognito-identity.amazonaws.com:amr"
+AWS_KEYS_PAGE = "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html"
+# Every researched issuer whose AWS keys include amr: those that read by the
+# Default tab, and Amazon Cognito by its own.
+AMR_ISSUERS = {
+    "Bitbucket Pipelines", "GitHub Actions", "Spacelift", "Amazon EKS (Kubernetes service account issuer / IRSA)",
+    "Azure Kubernetes Service (AKS workload identity)", "Google Kubernetes Engine (GKE)",
+    "AWS (outbound identity federation)", "Google (accounts.google.com)", "Amazon Cognito identity pools",
+    "Microsoft Entra ID",
+}
+
+
+def test_aws_documents_amr_as_multivalued():
+    """AWS says of amr, on its Default tab and on Amazon Cognito's, "The key is
+    multivalued, meaning that you test it in a policy using condition set
+    operators.", and that an authenticated user's amr holds authenticated and
+    the provider the user signed in with. A condition on it without a set
+    operator does not compare one string, so every issuer whose keys include
+    amr carries it as multivalued. AWS's reference for these keys says it of
+    no other key, and says of none that it holds one value: each other key
+    reads not known, and the cautious answer beside it is that it may hold
+    several values."""
+    carrying, examined = set(), 0
+    for e in ci.issuers():
+        for k in ci.tenancy(e).get("aws_condition_keys", []):
+            examined += 1
+            answer = ci.aws_condition_key_is_multivalued(e, k["key"])
+            if k["key"] == "amr":
+                carrying.add(e["name"])
+                assert k.get("multivalued") == "yes" and answer == (True, True), (e["name"], k, answer)
+                assert ci.aws_condition_key_is_multivalued(e, "AMR") == (True, True), e["name"]
+            else:
+                assert "multivalued" not in k and answer == (True, False), (e["name"], k, answer)
+    assert carrying == AMR_ISSUERS, carrying ^ AMR_ISSUERS
+    assert examined == 66, f"examined {examined} condition keys; the census records 66"
+    # A key AWS does not document for the issuer, and any key of an issuer
+    # whose keys are not recorded, is not known either.
+    for name, key in (("GitHub Actions", "repository_owner"), ("GitLab.com", "amr"),
+                      ("GitHub Actions (enterprise issuer path)", "amr")):
+        assert ci.aws_condition_key_is_multivalued(by_name(name), key) == (True, False), (name, key)
+    assert ci.aws_condition_key_is_multivalued({"name": "x"}, "amr") == (True, False)
+
+
+def test_each_multivalued_key_rests_on_its_tab_s_sentence():
+    """The census keeps AWS's sentence behind each multivalued key, from the
+    tab the issuer reads by: Amazon Cognito's for Cognito, the Default tab's for
+    every other. Each key it records says yes or unverified, and Cognito's own
+    guide, which calls amr "the multi-value amr claim", stays beside it."""
+    for e in ci.issuers():
+        block = e["aws_condition_keys"]
+        for k in block.get("keys", []):
+            assert k["multivalued"] == ("yes" if k["key"] == "amr" else "unverified"), (e["name"], k)
+        if e["name"] not in AMR_ISSUERS:
+            continue
+        example = COGNITO_TAB_EXAMPLE if e["name"] == "Amazon Cognito identity pools" else DEFAULT_TAB_EXAMPLE
+        said = [f for f in block["evidence"] if f["quote"].startswith(f"{AMR_IS_MULTIVALUED} {example} ")]
+        assert len(said) == 1 and said[0]["source"] == AWS_KEYS_PAGE, (e["name"], said)
+    context = "\n".join(f["quote"] for f in by_name("Amazon Cognito identity pools")["aws_condition_keys"]["context"])
+    assert "one of the array members of the multi-value amr claim of the token issued by the Amazon Cognito " \
+           "GetOpenIdToken API operation" in context
+    assert "If amr is authenticated, the token includes any providers used during authentication." in context
+
+
 def test_a_claim_no_token_is_known_to_carry_is_not_handed_out():
     """AWS's Google tab writes the claim behind google/organization_number as
     google:organization_number, and Google's own reference says the token
@@ -735,6 +804,8 @@ def test_go_and_python_agree(n):
         want["aws_maps_condition_key"]
     assert {k: ci.aws_condition_key(entry, k) for k in ANSWERS["probes"]["condition_keys"]} == \
         want["aws_condition_key"]
+    assert {k: list(ci.aws_condition_key_is_multivalued(entry, k)) for k in ANSWERS["probes"]["condition_keys"]} == \
+        want["aws_condition_key_is_multivalued"]
     chars = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
     assert chars == want["owner_name_may_contain"]
     assert ci.tenancy(entry) == want["tenancy"]
@@ -743,3 +814,9 @@ def test_go_and_python_agree(n):
 def test_the_shared_answers_cover_the_census():
     matched = sum(1 for _, want in entries_in_census_order() if want["match"] is not None)
     assert matched >= 29, f"{matched} entries' own issuers matched; the census has at least 29 an issuer can match"
+    # The multivalued answers are held on both spellings of amr, and on the
+    # issuers whose amr is known multivalued as well as on those whose is not.
+    for probe in ("amr", "AMR"):
+        known = [w["name"] for _, w in entries_in_census_order()
+                 if w["aws_condition_key_is_multivalued"][probe] == [True, True]]
+        assert set(known) == AMR_ISSUERS, (probe, known)

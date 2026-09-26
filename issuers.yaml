@@ -82,7 +82,12 @@
 #                           tokens carry it as the table spells it; the key then keeps that spelling in
 #                           table_claim and says why, and no claim reaches a classifier for it. A key
 #                           AWS writes out only in an example policy names no claim and is not listed.
-#                           What a condition on a key not listed tests, AWS does not document.
+#                           What a condition on a key not listed tests, AWS does not document. Each key
+#                           says whether it is multivalued (yes | unverified): yes where AWS's own entry
+#                           for the key, quoted from AWS's page, says "The key is multivalued, meaning
+#                           that you test it in a policy using condition set operators.", as it says of
+#                           amr; unverified elsewhere, since no AWS sentence here says a key holds one
+#                           value. A key whose sentence the census quotes is never unverified.
 #   accounts                value: verified | unverified. The platform whose accounts hold the
 #                           issuer's tenants, as the vendor's sentence names it (platform), and, for
 #                           an issuer whose claims name owners, the declaration_namespace a consumer
@@ -222,15 +227,20 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'Use this mapping if your IdP is not listed in the tab options.'
@@ -242,6 +252,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     context:
     - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       method: curl
@@ -477,6 +497,7 @@ issuers:
     keys:
     - key: oidc.circleci.com/project-id
       claim: oidc.circleci.com/project-id
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'This tab explains how CircleCI maps OIDC claims to AWS STS condition context keys in AWS.'
@@ -1241,35 +1262,50 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     - key: actor
       claim: actor
+      multivalued: unverified
     - key: actor_id
       claim: actor_id
+      multivalued: unverified
     - key: job_workflow_ref
       claim: job_workflow_ref
+      multivalued: unverified
     - key: repository
       claim: repository
+      multivalued: unverified
     - key: repository_id
       claim: repository_id
+      multivalued: unverified
     - key: repository_owner_id
       claim: repository_owner_id
+      multivalued: unverified
     - key: workflow
       claim: workflow
+      multivalued: unverified
     - key: ref
       claim: ref
+      multivalued: unverified
     - key: environment
       claim: environment
+      multivalued: unverified
     - key: enterprise_id
       claim: enterprise_id
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'GitHub Actions workflows and Google are some examples of IdPs that use the default
@@ -1282,6 +1318,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'This tab explains how GitHub Actions maps OIDC claims to AWS STS condition context keys in AWS.'
       verified_at: '2026-09-24'
@@ -2300,15 +2346,20 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'Use this mapping if your IdP is not listed in the tab options.'
@@ -2320,6 +2371,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     context:
     - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       method: curl
@@ -2519,15 +2580,20 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'Use this mapping if your IdP is not listed in the tab options.'
@@ -2539,6 +2605,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     context:
     - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       method: curl
@@ -2698,15 +2774,20 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'Use this mapping if your IdP is not listed in the tab options.'
@@ -2718,6 +2799,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     context:
     - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       method: curl
@@ -2885,15 +2976,20 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'Use this mapping if your IdP is not listed in the tab options.'
@@ -2905,6 +3001,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     context:
     - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       method: curl
@@ -3099,15 +3205,20 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'Use this mapping if your IdP is not listed in the tab options.'
@@ -3119,6 +3230,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     context:
     - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       method: curl
@@ -3293,21 +3414,27 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     - key: google/organization_number
       claim: unverified
       table_claim: 'google:organization_number'
       why: AWS's table spells the claim google:organization_number. Google's reference says the token
         carries a google.organization_number claim and prints it as organization_number inside a google
         object, and no page read says which of the two AWS reads the key from.
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'GitHub Actions workflows and Google are some examples of IdPs that use the default
@@ -3320,6 +3447,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'This tab explains how Google maps OIDC claims to AWS STS condition context keys in AWS.'
       verified_at: '2026-09-24'
@@ -3463,12 +3600,16 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: aud
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'This tab explains how Amazon Cognito maps OIDC claims to AWS STS condition context keys in AWS.'
@@ -3480,6 +3621,27 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
         is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example – cognito-identity.amazonaws.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (cognito-identity.amazonaws.com).'
+      verified_at: '2026-09-27'
+      role: 'the tab''s amr as the page renders it: AWS documents the key as multivalued, and a signed-in
+        user''s holds authenticated and the provider'
+    context:
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+      quote: 'Finally, the policy specifies that one of the array members of the multi-value amr claim of the
+        token issued by the Amazon Cognito GetOpenIdToken API operation has the value unauthenticated.'
+      verified_at: '2026-09-27'
+      role: 'Cognito: a token''s amr is a list'
+    - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+      quote: 'When Amazon Cognito creates a token, it sets the amr of the token as either unauthenticated or
+        authenticated. If amr is authenticated, the token includes any providers used during authentication.'
+      verified_at: '2026-09-27'
+      role: 'Cognito: a signed-in user''s amr names the providers as well as authenticated'
   research:
     aws:
       shared_issuer_row:
@@ -3580,10 +3742,13 @@ issuers:
     keys:
     - key: app_id
       claim: 'Application ID'
+      multivalued: unverified
     - key: sub
       claim: 'User ID'
+      multivalued: unverified
     - key: user_id
       claim: 'User ID'
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'This tab explains how Login with Amazon maps OIDC claims to AWS STS condition context keys in
@@ -3666,8 +3831,10 @@ issuers:
     keys:
     - key: app_id
       claim: 'Application ID'
+      multivalued: unverified
     - key: id
       claim: id
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'This tab explains how Facebook maps OIDC claims to AWS STS condition context keys in AWS.'
@@ -3856,15 +4023,20 @@ issuers:
     keys:
     - key: amr
       claim: amr
+      multivalued: 'yes'
     - key: aud
       claim: azp
       fallback_claim: aud
+      multivalued: unverified
     - key: email
       claim: email
+      multivalued: unverified
     - key: oaud
       claim: aud
+      multivalued: unverified
     - key: sub
       claim: sub
+      multivalued: unverified
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'Use this mapping if your IdP is not listed in the tab options.'
@@ -3876,6 +4048,16 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
         whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-09-27'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
     context:
     - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       method: curl

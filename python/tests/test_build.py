@@ -27,17 +27,26 @@ OBSERVATION = {"observed": "https://example.com/.well-known/openid-configuration
 # policy, which names the key and no claim.
 KEYS_TABLE = {"source": "https://example.com/keys",
               "quote": "Condition key Claim sub sub Yes owner_id owner_id No renamed other No aud azp If no value is "
-                       "set for azp, the aud condition key maps to the aud claim. Yes",
+                       "set for azp, the aud condition key maps to the aud claim. Yes amr amr Yes mr mr No",
               "verified_at": "2026-09-23"}
 KEYS_EXAMPLE = {"source": "https://example.com/keys", "quote": '"token.example.com:email": "a@example.com",',
                 "verified_at": "2026-09-23"}
+# AWS's entry for a key it documents as multivalued, as its page renders it:
+# the key's name, the operators it works with, and the sentence. A request may
+# carry several values for such a key, so a condition on it without a set
+# operator does not compare one string.
+AWS_KEYS_PAGE = "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html"
+MULTIVALUED = {"source": AWS_KEYS_PAGE,
+               "quote": "amr Works with string operators. The key is multivalued, meaning that you test it in a policy "
+                        "using condition set operators. Example: token.example.com:amr",
+               "verified_at": "2026-09-27"}
 # A row whose claim is spelled as no claim of the issuer's tokens is known to
 # be spelled, which the census keeps as the table writes it and reads as no
 # claim.
 NESTED_ROW = {"source": "https://example.com/keys", "quote": "Condition key Claim org/number org:number No",
               "verified_at": "2026-09-23"}
 UNREAD_KEY = {"key": "org/number", "claim": "unverified", "table_claim": "org:number",
-              "why": "the issuer's own page prints the number inside an org claim"}
+              "why": "the issuer's own page prints the number inside an org claim", "multivalued": "unverified"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
                   "aws_condition_keys")
@@ -86,11 +95,12 @@ def valid_census():
                                "description": "lower-case letters and dashes", "evidence": [fact()]},
              "accounts": {"value": "verified", "platform": "Example", "declaration_namespace": "example",
                           "evidence": [fact()]},
-             "aws_condition_keys": {"value": "verified", "keys": [{"key": "sub", "claim": "sub"},
-                                                                   {"key": "owner_id", "claim": "owner_id"},
-                                                                   {"key": "aud", "claim": "azp",
-                                                                    "fallback_claim": "aud"}],
-                                    "evidence": [KEYS_TABLE]},
+             "aws_condition_keys": {"value": "verified", "keys": [
+                 {"key": "sub", "claim": "sub", "multivalued": "unverified"},
+                 {"key": "owner_id", "claim": "owner_id", "multivalued": "unverified"},
+                 {"key": "aud", "claim": "azp", "fallback_claim": "aud", "multivalued": "unverified"},
+                 {"key": "amr", "claim": "amr", "multivalued": "yes"}],
+                                    "evidence": [KEYS_TABLE, dict(MULTIVALUED)]},
              "research": {"population": "anyone with an account", "nested": {"read": fact()},
                           "live": {"observed": observation()}}},
             {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenancy_model": "per_tenant_host",
@@ -170,7 +180,8 @@ def test_the_sub_package_carries_only_what_is_settled(tmp_path):
          "never_pin": ["job:"],
          "owner_name_characters": ["a-z", "-"], "platform": "Example", "declaration_namespace": "example",
          "aws_condition_keys": [{"key": "sub", "claim": "sub"}, {"key": "owner_id", "claim": "owner_id"},
-                                {"key": "aud", "claim": "azp", "fallback_claim": "aud"}]},
+                                {"key": "aud", "claim": "azp", "fallback_claim": "aud"},
+                                {"key": "amr", "claim": "amr", "multivalued": "yes"}]},
         {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenant_placeholder": "<tenant>",
          "tenant_kind": "name", "tenant_membership": "controlled"},
         {"name": "Unresearched", "issuer": "https://other.example.net"},
@@ -291,7 +302,7 @@ REFUSALS = {
     "a character set with nothing behind it": (drop(f"{SHARED}.owner_charset", "evidence"), "non-empty list of facts"),
     "a platform with nothing behind it": (drop(f"{SHARED}.accounts", "evidence"), "non-empty list of facts"),
     "a condition key no row shows": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
-        {"key": "extra", "claim": "extra"}), "no quoted row shows 'extra' carrying 'extra'"),
+        {"key": "extra", "claim": "extra", "multivalued": "unverified"}), "no quoted row shows 'extra' carrying 'extra'"),
     "a condition key with a claim no row gives it": (put(f"{SHARED}.aws_condition_keys.keys.0", "claim", "subject"),
                                                     "no quoted row shows 'sub' carrying 'subject'"),
     "a condition key recorded without its claim, although an example writes it out": (
@@ -302,7 +313,7 @@ REFUSALS = {
     "a fallback claim no sentence gives this key": (put(f"{SHARED}.aws_condition_keys.keys.2", "fallback_claim",
                                                         "email"), "no quoted sentence says 'aud' reads 'email'"),
     "a condition key listed twice": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
-        {"key": "sub", "claim": "sub"}), "listed twice"),
+        {"key": "sub", "claim": "sub", "multivalued": "unverified"}), "listed twice"),
     "an unverified claim without AWS's spelling beside it": (
         lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
             {k: v for k, v in UNREAD_KEY.items() if k != "table_claim"}), "missing 'table_claim'"),
@@ -324,8 +335,40 @@ REFUSALS = {
         or at(doc, f"{SHARED}.aws_condition_keys.evidence").append(NESTED_ROW),
         "a fallback claim is read only in place of a claim, and this key's claim is unverified"),
     "a tenancy claim AWS carries under another claim's name": (
-        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").__setitem__(1, {"key": "renamed", "claim": "other"})
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").__setitem__(
+            1, {"key": "renamed", "claim": "other", "multivalued": "unverified"})
         or at(doc, f"{SHARED}.tenancy_claims.claims.0").__setitem__("claim", "renamed"), "under another claim's name"),
+    "a condition key that does not say whether it is multivalued": (
+        drop(f"{SHARED}.aws_condition_keys.keys.0", "multivalued"), "missing 'multivalued'"),
+    "a key read as holding one value, which no sentence can say": (
+        put(f"{SHARED}.aws_condition_keys.keys.0", "multivalued", "no"), "'no' is not one of unverified, yes"),
+    "YAML's unquoted yes on a multivalued key": (put(f"{SHARED}.aws_condition_keys.keys.3", "multivalued", True),
+                                                 "True is not one of unverified, yes"),
+    "a multivalued key with no sentence that says so": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.evidence").pop(),
+        "no quoted sentence of AWS's says 'amr' is multivalued"),
+    "a multivalued key resting on another key's sentence": (
+        put(f"{SHARED}.aws_condition_keys.keys.0", "multivalued", "yes"),
+        "no quoted sentence of AWS's says 'sub' is multivalued"),
+    "a multivalued key resting on the sentence of a key its name ends": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
+            {"key": "mr", "claim": "mr", "multivalued": "yes"}),
+        "no quoted sentence of AWS's says 'mr' is multivalued"),
+    "a multivalued key resting on a sentence from a page not AWS's": (
+        put(f"{SHARED}.aws_condition_keys.evidence.1", "source", "https://example.com/keys"),
+        "no quoted sentence of AWS's says 'amr' is multivalued"),
+    "a multivalued key whose sentence is only context": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys").__setitem__(
+            "context", [at(doc, f"{SHARED}.aws_condition_keys.evidence").pop()]),
+        "no quoted sentence of AWS's says 'amr' is multivalued"),
+    "a key AWS's sentence calls multivalued, recorded unverified": (
+        put(f"{SHARED}.aws_condition_keys.keys.3", "multivalued", "unverified"),
+        "a quoted sentence of AWS's says 'amr' is multivalued, and it is recorded unverified"),
+    "a key AWS's sentence in context calls multivalued, recorded unverified": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys.3").__setitem__("multivalued", "unverified")
+        or at(doc, f"{SHARED}.aws_condition_keys").__setitem__(
+            "context", [at(doc, f"{SHARED}.aws_condition_keys.evidence").pop()]),
+        "a quoted sentence of AWS's says 'amr' is multivalued, and it is recorded unverified"),
     "a condition key with no sentence behind it": (drop(f"{SHARED}.aws_condition_keys", "evidence"),
                                                    "with no evidence and no chain"),
     "an observation behind a condition key": (put(f"{SHARED}.aws_condition_keys", "evidence", [OBSERVATION]),
@@ -489,6 +532,28 @@ def test_a_key_s_claim_may_be_unverified_beside_aws_s_spelling(tmp_path):
     assert census["issuers"][0]["aws_condition_keys"]["keys"][-1] == UNREAD_KEY
     sub = json.loads((tree / "tenancy" / "tenancy.json").read_text(encoding="utf-8"))
     assert sub["issuers"][0]["aws_condition_keys"][-1] == {"key": "org/number", "table_claim": "org:number"}
+
+
+def test_a_multivalued_key_says_so_whatever_its_claim(tmp_path):
+    """Whether a request may carry several values for a key is AWS's sentence
+    about the key, not about the claim it reads, so a key whose claim is
+    unverified carries it to the sub-package as well. The census keeps every
+    key's record, unverified included; the sub-package carries yes alone."""
+    doc = valid_census()
+    keys = doc["issuers"][0]["aws_condition_keys"]
+    keys["keys"].append({**UNREAD_KEY, "multivalued": "yes"})
+    keys["evidence"] += [NESTED_ROW, {**MULTIVALUED, "quote": "org/number Works with numeric operators. The key is "
+                                      "multivalued, meaning that you test it in a policy using condition set "
+                                      "operators."}]
+    status, err, tree = build(tmp_path, doc)
+    assert status == 0, err
+    census = json.loads((tree / "issuers.json").read_text(encoding="utf-8"))
+    assert [k["multivalued"] for k in census["issuers"][0]["aws_condition_keys"]["keys"]] == [
+        "unverified", "unverified", "unverified", "yes", "yes"]
+    sub = json.loads((tree / "tenancy" / "tenancy.json").read_text(encoding="utf-8"))
+    assert sub["issuers"][0]["aws_condition_keys"][-2:] == [
+        {"key": "amr", "claim": "amr", "multivalued": "yes"},
+        {"key": "org/number", "table_claim": "org:number", "multivalued": "yes"}]
 
 
 def test_several_entries_may_share_a_host(tmp_path):

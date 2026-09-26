@@ -139,6 +139,22 @@ type ConditionKey struct {
 	// FallbackClaim is the claim AWS reads the key from when the token sets
 	// no value for Claim; empty when AWS's table names no other.
 	FallbackClaim string `json:"fallback_claim,omitempty"`
+	// Multivalued is "yes" when AWS's sentence says the key is multivalued,
+	// as it says of amr: "The key is multivalued, meaning that you test it in
+	// a policy using condition set operators." A request may then carry
+	// several values for the key, as an authenticated user's amr holds
+	// authenticated and the provider the user signed in with. Empty when no
+	// AWS sentence says so.
+	Multivalued string `json:"multivalued,omitempty"`
+}
+
+// IsMultivalued reports whether a request may carry several values for the
+// key. known is false unless AWS's sentence says the key is multivalued: the
+// census records no sentence saying a key holds one value, so an unknown
+// answer is the cautious one, true, since a key AWS has not said holds one
+// value may hold several.
+func (c ConditionKey) IsMultivalued() (multivalued, known bool) {
+	return true, c.Multivalued == "yes"
 }
 
 // SubjectForm is one way an issuer spells sub with a tenant at its head.
@@ -224,7 +240,8 @@ func (i Issuer) AWSMapsConditionKey(key string) (mapped, known bool) {
 }
 
 // AWSConditionKey is AWS's record of key for the issuer: the claim AWS reads
-// it from, and the one it reads when the token sets no value for that claim.
+// it from, the one it reads when the token sets no value for that claim, and
+// whether AWS says the key is multivalued, which IsMultivalued reads.
 // A record with no claim is a key AWS documents whose claim no sentence says
 // a token carries as AWS spells it, so what a token carries for the key is
 // not known.

@@ -157,6 +157,16 @@ tab for GitLab.com and one for Buildkite, and its page on OIDC roles names the c
 answer whether a key is one, and `aws_condition_key` and `AWSConditionKey` return its
 record; both compare names without ASCII case, as AWS does.
 
+Each key also says whether it is `multivalued`. AWS's entry for `amr`, on the Default tab
+and again on Amazon Cognito's, says "The key is multivalued, meaning that you test it in a
+policy using condition set operators.", and that a signed-in user's `amr` holds
+`authenticated` and the name of the login provider. A condition on it without a set operator
+does not compare one string, so the ten issuers whose keys include `amr` record it `yes` on
+that sentence, quoted from AWS's page. Every other key reads `unverified`: AWS's reference
+says of no other of these keys that it is multivalued, and of none that it holds one value.
+The build refuses a `yes` without AWS's sentence for that key, and an `unverified` key whose
+sentence the census quotes. `aws_condition_key_is_multivalued` and `IsMultivalued` read it.
+
 **`researched`** — `in_release` for the 17 entries this release researched, and
 `not_in_this_release` for the rest.
 
@@ -169,6 +179,7 @@ absent, and every reader in both packages answers it the cautious way:
 - an issuer may mint tokens to people with no account;
 - a claim or a `sub` prefix pins no tenant;
 - any character may occur in an owner name, and names compare exactly;
+- a condition key may hold several values;
 - a tenant is not known to control who joins it, and its name may pass to another
   customer;
 - an issuer URL with no verified pattern matches its exact issuer only, and one the
@@ -213,7 +224,8 @@ without ASCII case and no other, in `get` and `Get` as in `match`, so a look-ali
 with the Kelvin sign is not a census host. Every entry either package hands out is the
 caller's own copy: edit it however deep and the next answer is still the census's. The readers
 (`issues_anonymous_tokens`, `controlled_tenant`, `tenant_is_recyclable`,
-`claim_is_recyclable`, `aws_maps_condition_key`, `names_compare_without_case`) return an
+`claim_is_recyclable`, `aws_maps_condition_key`, `aws_condition_key_is_multivalued`,
+`names_compare_without_case`) return an
 `Answer`, a `(value, known)` pair; when `known` is false the value is the cautious one.
 `aws_condition_key` returns the key's record, or `None` when AWS documents no such key or
 the census does not record the issuer's keys. A claim's value is recyclable
@@ -236,13 +248,16 @@ anonymous, known := e.Tenancy().IssuesAnonymousTokens()
 gh, _, _ := issuers.Match("https://token.actions.githubusercontent.com")
 k, ok := gh.Tenancy().AWSConditionKey("oaud")
 // k.Claim is "aud": AWS reads the oaud condition key from the aud claim.
+amr, _ := gh.Tenancy().AWSConditionKey("amr")
+multivalued, known := amr.IsMultivalued()
+// true, true: AWS documents amr as multivalued. Of oaud, k.IsMultivalued() is true, false.
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 7,555 bytes of
-data against the root package's 201,751. Built with go1.27.1 for `js/wasm`, a small program
-that matches the issuer given on its command line through `tenancy` and prints the entry's
-name came out 230,285 bytes smaller (43,604 after `gzip -9`) than the same program through
+instead. It carries the values a classifier reads and none of the sentences: 7,755 bytes of
+data against the root package's 212,277. Built with go1.27.1 for `js/wasm` with `-trimpath`,
+a small program that matches the issuer given on its command line through `tenancy` and
+prints the entry's name came out 242,169 bytes smaller (44,862 after `gzip -9`) than the same program through
 the root package, and it does not contain the root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
 fails when it is out of step.
 

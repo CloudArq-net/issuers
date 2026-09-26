@@ -110,6 +110,10 @@ YES_NO = {'yes', 'no', 'unverified'}
 LISTED = {'verified', 'unverified'}
 KIND = {'name', 'id'}
 SCOPE = {'owner', 'repository', 'enterprise'}
+# A condition key is multivalued on AWS's sentence, or unverified: AWS's
+# reference for OIDC condition keys says of none that it holds one value.
+MULTIVALUED = {'yes', 'unverified'}
+AWS_DOCS = 'https://docs.aws.amazon.com/'
 
 # What an issuer field holds when it holds no issuer. An entry whose issuer is
 # NOT_AN_ISSUER has no key set to fetch, which is what its jwks_status n/a says.
@@ -636,6 +640,15 @@ def check_accounts(c, a, names_owners):
                                                  "declare")
 
 
+def multivalued_sentence(key):
+    """AWS's entry for a key it documents as multivalued, as its reference
+    renders it: the key's name, the operators the key works with, and the
+    sentence. A key whose name another's ends, as mr ends amr, is not named by
+    the longer key's entry."""
+    return re.compile(r'(?<!\S)' + re.escape(key) + r' Works with [a-z]+ operators\. The key is multivalued, '
+                      r'meaning that you test it in a policy using condition set operators\.')
+
+
 def check_aws_condition_keys(c, a, pinned):
     """The condition keys AWS documents for the issuer, each with the claim
     AWS reads it from, tied to the table row that maps it as the page renders
@@ -647,7 +660,13 @@ def check_aws_condition_keys(c, a, pinned):
     reads when the token sets no value for the claim, rests on AWS's sentence
     saying so. A key that names a tenancy claim, or sub where the issuer's
     subject names a tenant, must carry that claim under its own name, or a pin
-    would read another claim's value."""
+    would read another claim's value.
+
+    Each key says whether it is multivalued: yes rests on AWS's sentence
+    saying so, quoted from AWS's page among the evidence or the chain, and
+    unverified is written where the census holds no such sentence. A key whose
+    sentence the census holds, even as context, is never unverified: read as
+    holding one value, it would narrow what a condition on it admits."""
     w = 'aws_condition_keys'
     if not c.keys(w, a, {'value', 'basis', 'keys', 'evidence', 'chain', 'context', 'note'}, ['value']):
         return
@@ -672,13 +691,26 @@ def check_aws_condition_keys(c, a, pinned):
         return
     quotes = [f['quote'] for f in (a.get('evidence') or []) + (a.get('chain') or [])
               if isinstance(f, dict) and isinstance(f.get('quote'), str)]
+
+    def aws_quotes(*parts):
+        return [f['quote'] for part in parts for f in (a.get(part) or [])
+                if isinstance(f, dict) and isinstance(f.get('quote'), str)
+                and isinstance(f.get('source'), str) and f['source'].startswith(AWS_DOCS)]
+    aws_settles, aws_read = aws_quotes('evidence', 'chain'), aws_quotes('evidence', 'chain', 'context')
     seen = set()
     for i, k in enumerate(keys):
         kw = f"{w}.keys[{i}]"
         unread = isinstance(k, dict) and k.get('claim') == 'unverified'
-        if not c.keys(kw, k, {'key', 'claim', 'fallback_claim', 'table_claim', 'why'},
-                      ['key', 'claim'] + (['table_claim', 'why'] if unread else [])):
+        if not c.keys(kw, k, {'key', 'claim', 'fallback_claim', 'table_claim', 'why', 'multivalued'},
+                      ['key', 'claim', 'multivalued'] + (['table_claim', 'why'] if unread else [])):
             continue
+        c.one_of(f"{kw}.multivalued", k['multivalued'], MULTIVALUED)
+        if isinstance(k['key'], str):
+            says = multivalued_sentence(k['key'])
+            if k['multivalued'] == 'yes' and not any(says.search(q) for q in aws_settles):
+                c.fail(kw, f"no quoted sentence of AWS's says {k['key']!r} is multivalued")
+            elif k['multivalued'] == 'unverified' and any(says.search(q) for q in aws_read):
+                c.fail(kw, f"a quoted sentence of AWS's says {k['key']!r} is multivalued, and it is recorded unverified")
         for part in ('key', 'claim', 'fallback_claim', 'table_claim', 'why'):
             if part in k:
                 c.text(f"{kw}.{part}", k[part])

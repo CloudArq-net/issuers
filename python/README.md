@@ -85,7 +85,10 @@ the page, the sentence verbatim, and the date it was read.
   Google's `google/organization_number` has no `claim`, only AWS's spelling in `table_claim`:
   Google's reference prints the number inside a `google` claim, and no page says which AWS
   reads. AWS does not document what a condition on a key it does not list tests; read as
-  unread, such a condition never pins and never narrows, whichever it tests.
+  unread, such a condition never pins and never narrows, whichever it tests. Each key says
+  whether it is `multivalued`: `amr` is, on AWS's sentence "The key is multivalued, meaning
+  that you test it in a policy using condition set operators.", since a signed-in user's
+  `amr` holds `authenticated` and the login provider; every other key reads `unverified`.
 - `accounts`: the platform whose accounts hold the issuer's tenants, as the vendor names it,
   and, for GitHub Actions, the namespace a consumer declares its owners under, `github`.
 - `researched`: whether this release researched the entry at all.
@@ -99,8 +102,9 @@ from *"there is nothing there"*. No field is inferred from another field.
 In a tenancy field, `unverified` means exactly that no vendor sentence establishes the value
 in this release, whatever the reason, and every reader answers it the cautious way: an issuer
 may mint tokens to people with no account, no claim or `sub` prefix pins a tenant, any
-character may occur in an owner name, names compare exactly, and a tenant is not known to
-control who joins it, and its name may pass to someone else.
+character may occur in an owner name, names compare exactly, a condition key may hold
+several values, and a tenant is not known to control who joins it, and its name may pass
+to someone else.
 
 The API keeps that distinction. `audience_is_boundary` returns `None`, never `False`, for
 anything unconfirmed, because a caller that reads an unknown as a boundary has widened its
@@ -132,6 +136,8 @@ gh = ci.get("token.actions.githubusercontent.com")
 ci.claim_is_recyclable(gh, "enterprise_id")        # (True, False): no sentence says it cannot pass on
 ci.aws_maps_condition_key(gh, "repository_owner")  # (False, True): AWS's GitHub tab has no such key
 ci.aws_condition_key(gh, "oaud")                   # {"key": "oaud", "claim": "aud"}: AWS reads oaud from aud
+ci.aws_condition_key_is_multivalued(gh, "amr")     # (True, True): AWS documents amr as multivalued
+ci.aws_condition_key_is_multivalued(gh, "oaud")    # (True, False): not known, so it may hold several
 ci.owner_name_may_contain(entry, "/")                         # True when nothing is recorded
 ```
 

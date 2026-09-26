@@ -426,6 +426,10 @@ type AWSConditionKey struct {
 	// no value for Claim, where AWS's sentence says so: the Default tab's aud
 	// reads azp, or aud.
 	FallbackClaim string `json:"fallback_claim,omitempty"`
+	// Multivalued is "yes" when AWS's sentence says the key is multivalued,
+	// quoted among the facts behind the key list, and "unverified" when the
+	// census holds no AWS sentence saying so.
+	Multivalued string `json:"multivalued"`
 }
 
 // Host is the issuer's hostname, with no scheme and no path. For a per-tenant
@@ -520,6 +524,9 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 			key := tenancy.ConditionKey{Key: k.Key, Claim: k.Claim, FallbackClaim: k.FallbackClaim}
 			if k.Claim == "unverified" {
 				key = tenancy.ConditionKey{Key: k.Key, TableClaim: k.TableClaim}
+			}
+			if k.Multivalued == "yes" {
+				key.Multivalued = "yes"
 			}
 			t.AWSConditionKeys = append(t.AWSConditionKeys, key)
 		}

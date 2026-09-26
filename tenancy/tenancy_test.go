@@ -523,6 +523,69 @@ func TestAClaimNoTokenIsKnownToCarryIsNotHandedOut(t *testing.T) {
 	}
 }
 
+// AWS says of amr, on its Default tab and on Amazon Cognito's, "The key is
+// multivalued, meaning that you test it in a policy using condition set
+// operators.", and that an authenticated user's amr holds authenticated and
+// the provider the user signed in with. A reader that compared a plain
+// operator's value with one string would find no token meeting two such
+// conditions on amr, and read a Cognito role that requires both values as
+// admitting nobody. So every issuer whose keys include amr carries it as
+// multivalued, and no other key does: AWS's reference for these keys says it
+// of no other key, and says of none that it holds one value, so each other
+// key reads not known, with the cautious answer beside it.
+func TestAWSDocumentsWhichConditionKeysAreMultivalued(t *testing.T) {
+	amrIssuers := []string{github, entra, "cognito-identity.amazonaws.com", "https://accounts.google.com",
+		"https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>",
+		"https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/",
+		"https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>",
+		"https://<account>.app.spacelift.io",
+		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc",
+		"https://<tenant_uuid>.tokens.sts.global.api.aws"}
+	for _, issuer := range amrIssuers {
+		e := find(t, issuer)
+		for _, key := range []string{"amr", "AMR"} {
+			record, ok := e.AWSConditionKey(key)
+			if multivalued, known := record.IsMultivalued(); !ok || record.Multivalued != "yes" || !multivalued || !known {
+				t.Errorf("%s AWSConditionKey(%q) = %+v, %v, multivalued %v, known %v; AWS documents amr as multivalued",
+					e.Name, key, record, ok, multivalued, known)
+			}
+		}
+	}
+	var carrying []string
+	examined := 0
+	for _, e := range All() {
+		for _, k := range e.AWSConditionKeys {
+			examined++
+			multivalued, known := k.IsMultivalued()
+			switch {
+			case k.Key == "amr":
+				carrying = append(carrying, e.Issuer)
+			case k.Multivalued != "" || !multivalued || known:
+				t.Errorf("%s: %+v reads multivalued %v, known %v; no AWS sentence says either way", e.Name, k, multivalued, known)
+			}
+		}
+	}
+	if !slices.Equal(slices.Sorted(slices.Values(carrying)), slices.Sorted(slices.Values(amrIssuers))) {
+		t.Errorf("the issuers whose amr the sub-package carries: %q; want %q", carrying, amrIssuers)
+	}
+	if examined != 66 {
+		t.Fatalf("examined %d condition keys; the census records 66", examined)
+	}
+	// A key AWS does not document, and any key of an issuer whose keys are not
+	// recorded, is not known either.
+	for issuer, key := range map[string]string{github: "repository_owner", githubEnt: "amr", "https://gitlab.com": "amr"} {
+		record, _ := find(t, issuer).AWSConditionKey(key)
+		if multivalued, known := record.IsMultivalued(); !multivalued || known {
+			t.Errorf("%s %q reads multivalued %v, known %v; want true, false", issuer, key, multivalued, known)
+		}
+	}
+	// The sub-package spells the fact yes, and never unverified.
+	if n := strings.Count(string(raw), `"multivalued":"yes"`); n != len(amrIssuers) || strings.Count(string(raw), `"multivalued"`) != n {
+		t.Errorf("the sub-package carries %d multivalued keys, and %d multivalued fields; want %d of each",
+			n, strings.Count(string(raw), `"multivalued"`), len(amrIssuers))
+	}
+}
+
 // Where an issuer's tenants hold their accounts, and where a consumer declares
 // its owners, are census facts, so a classifier names no issuer in its code.
 // GitHub's owners alone are declared by name, under github: a name under

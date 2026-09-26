@@ -471,6 +471,32 @@ func TestTenancyKeepsOnlyWhatIsVerified(t *testing.T) {
 	}
 }
 
+// A key's record reaches the sub-package with multivalued yes where AWS's
+// sentence says so, whatever its claim, and with nothing where the census
+// records it unverified, which the sub-package reads as not known.
+func TestTenancyCarriesAMultivaluedKeyAsYesAlone(t *testing.T) {
+	e := Issuer{Name: "invented", Issuer: "https://example.com", AWSConditionKeys: AWSConditionKeys{Value: "verified",
+		Keys: []AWSConditionKey{
+			{Key: "amr", Claim: "amr", Multivalued: "yes"},
+			{Key: "sub", Claim: "sub", Multivalued: "unverified"},
+			{Key: "org/number", Claim: "unverified", TableClaim: "org:number", Why: "nested", Multivalued: "yes"},
+			{Key: "org/name", Claim: "unverified", TableClaim: "org:name", Why: "nested", Multivalued: "unverified"},
+		}}}
+	want := []tenancy.ConditionKey{
+		{Key: "amr", Claim: "amr", Multivalued: "yes"},
+		{Key: "sub", Claim: "sub"},
+		{Key: "org/number", TableClaim: "org:number", Multivalued: "yes"},
+		{Key: "org/name", TableClaim: "org:name"},
+	}
+	if got := e.Tenancy().AWSConditionKeys; !reflect.DeepEqual(got, want) {
+		t.Errorf("Tenancy().AWSConditionKeys = %+v, want %+v", got, want)
+	}
+	e.AWSConditionKeys.Value = "unverified"
+	if got := e.Tenancy().AWSConditionKeys; got != nil {
+		t.Errorf("an unverified key list reaches the sub-package as %+v", got)
+	}
+}
+
 // facts gathers every Fact an entry's tenancy fields carry, with where it sits.
 func facts(e Issuer) map[string][]Fact {
 	out := map[string][]Fact{}
@@ -658,14 +684,14 @@ var recorded = map[string]struct {
 	facts    map[string]int
 	research []string
 }{
-	"Bitbucket Pipelines": {map[string]int{"accounts": 1, "anonymous_tokens": 4, "aws_condition_keys": 3,
+	"Bitbucket Pipelines": {map[string]int{"accounts": 1, "anonymous_tokens": 4, "aws_condition_keys": 4,
 		"match": 1, "tenant_membership": 4},
 		[]string{"population", "sources"}},
 	"Buildkite": {map[string]int{}, nil},
 	"CircleCI": {map[string]int{"accounts": 1, "anonymous_tokens": 3, "aws_condition_keys": 4, "match": 1,
 		"tenant_membership": 2},
 		[]string{"population", "sources"}},
-	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "aws_condition_keys": 4,
+	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "aws_condition_keys": 5,
 		"names_unique_regardless_of_case": 2, "not_tenancy": 20,
 		"owner_charset": 7, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
 		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
@@ -675,23 +701,23 @@ var recorded = map[string]struct {
 		[]string{"population", "sources"}},
 	"GitLab.com":                      {map[string]int{}, nil},
 	"HCP Terraform (Terraform Cloud)": {map[string]int{}, nil},
-	"Spacelift": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 3, "match": 1, "tenant_membership": 2},
+	"Spacelift": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 4, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1,
-		"aws_condition_keys": 3, "match": 2,
+		"aws_condition_keys": 4, "match": 2,
 		"tenant_membership": 8}, []string{"population", "sources"}},
 	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3,
-		"aws_condition_keys": 3, "match": 2,
+		"aws_condition_keys": 4, "match": 2,
 		"tenant_membership": 12}, []string{"population", "sources"}},
-	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 3,
+	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 4,
 		"match": 4, "tenant_membership": 8},
 		[]string{"population", "sources"}},
-	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 3,
+	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 4,
 		"match": 1, "tenant_membership": 1},
 		[]string{"population", "sources"}},
 	"Google (accounts.google.com)": {map[string]int{"accounts": 1, "anonymous_tokens": 9,
-		"aws_condition_keys": 6, "built_in": 3}, []string{"sources"}},
-	"Amazon Cognito identity pools": {map[string]int{"anonymous_tokens": 9, "aws_condition_keys": 2,
+		"aws_condition_keys": 7, "built_in": 3}, []string{"sources"}},
+	"Amazon Cognito identity pools": {map[string]int{"anonymous_tokens": 9, "aws_condition_keys": 5,
 		"built_in": 3, "not_tenancy": 4,
 		"research": 6, "subject_forms": 2}, []string{"aws", "population", "sources"}},
 	"Login with Amazon": {map[string]int{"anonymous_tokens": 3, "aws_condition_keys": 2, "built_in": 3,
@@ -699,7 +725,7 @@ var recorded = map[string]struct {
 		[]string{"sources", "token_kind"}},
 	"Facebook": {map[string]int{"anonymous_tokens": 3, "aws_condition_keys": 2, "built_in": 3, "research": 1},
 		[]string{"sources", "token_kind"}},
-	"Microsoft Entra ID": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 3, "match": 7,
+	"Microsoft Entra ID": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 4, "match": 7,
 		"tenant_membership": 7},
 		[]string{"population", "sources"}},
 }
@@ -758,7 +784,7 @@ func oneOf(v string, allowed ...string) bool { return slices.Contains(allowed, v
 
 func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 	threeWay := []string{"yes", "no", "unverified"}
-	claims := 0
+	claims, keys := 0, 0
 	for _, e := range All() {
 		n := e.Name
 		if !oneOf(e.Researched, "in_release", "not_in_this_release") {
@@ -812,6 +838,12 @@ func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 				t.Errorf("%s: owner character item %q is neither one character nor a range", n, c)
 			}
 		}
+		for _, k := range e.AWSConditionKeys.Keys {
+			keys++
+			if !oneOf(k.Multivalued, "yes", "unverified") {
+				t.Errorf("%s: condition key %s multivalued %q", n, k.Key, k.Multivalued)
+			}
+		}
 		if m := e.Match; m.Value == "verified" {
 			if !oneOf(m.TenantKind, "name", "id") || !oneOf(m.TenantSyntax, "", "guid") ||
 				!oneOf(m.TenantImmutable, "", "yes", "no", "unverified") || !oneOf(m.TenantRecyclable, threeWay...) {
@@ -819,8 +851,8 @@ func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 			}
 		}
 	}
-	if claims == 0 {
-		t.Fatal("no tenancy claim examined")
+	if claims == 0 || keys == 0 {
+		t.Fatalf("examined %d tenancy claims and %d condition keys; the census holds both", claims, keys)
 	}
 }
 
@@ -1262,6 +1294,53 @@ func TestNoAWSSentenceNamesTheEnterprisePathsKeys(t *testing.T) {
 	}
 }
 
+// multivaluedSentence is AWS's entry for key as its reference renders it when
+// it documents the key as multivalued: the key's name, the operators it works
+// with, and the sentence. A key whose name another's ends, as mr ends amr, is
+// not named by the longer key's entry.
+func multivaluedSentence(key string) *regexp.Regexp {
+	return regexp.MustCompile(`(?:^|\s)` + regexp.QuoteMeta(key) + ` Works with [a-z]+ operators\. The key is ` +
+		`multivalued, meaning that you test it in a policy using condition set operators\.`)
+}
+
+// A key is multivalued in the census only on AWS's sentence saying so, quoted
+// from AWS's page among the facts behind the key list, and a key whose
+// sentence the census holds, even as context, is not recorded unverified:
+// read as holding one value, it would narrow what a condition on it admits.
+// scripts/build.py refuses a census that breaks either rule; this holds the
+// census that was built.
+func TestEachMultivaluedKeyRestsOnAWSsSentence(t *testing.T) {
+	const awsDocs = "https://docs.aws.amazon.com/"
+	multivalued, unverified := 0, 0
+	for _, e := range All() {
+		k := e.AWSConditionKeys
+		for _, key := range k.Keys {
+			says := multivaluedSentence(key.Key)
+			said := func(fs []Fact) bool {
+				return slices.ContainsFunc(fs, func(f Fact) bool { return strings.HasPrefix(f.Source, awsDocs) && says.MatchString(f.Quote) })
+			}
+			switch key.Multivalued {
+			case "yes":
+				multivalued++
+				if !said(slices.Concat(k.Evidence, k.Chain)) {
+					t.Errorf("%s: %s is recorded multivalued, and no quoted sentence of AWS's says so", e.Name, key.Key)
+				}
+			case "unverified":
+				unverified++
+				if said(slices.Concat(k.Evidence, k.Chain, k.Context)) {
+					t.Errorf("%s: %s is recorded unverified, and a quoted sentence of AWS's says it is multivalued", e.Name, key.Key)
+				}
+			default:
+				t.Errorf("%s: %s is recorded multivalued %q; the census writes yes or unverified", e.Name, key.Key, key.Multivalued)
+			}
+		}
+	}
+	if multivalued != 10 || unverified != 56 {
+		t.Fatalf("examined %d keys recorded multivalued and %d recorded unverified; the census records 10 and 56",
+			multivalued, unverified)
+	}
+}
+
 // The README says how many researched entries carry AWS's condition keys, and
 // the number is the census's, so a list written unverified cannot leave the
 // README counting it.
@@ -1616,6 +1695,10 @@ type entryAnswer struct {
 	// null where it reads none.
 	AWSMapsConditionKey map[string][2]bool               `json:"aws_maps_condition_key"`
 	AWSConditionKey     map[string]*tenancy.ConditionKey `json:"aws_condition_key"`
+	// AWSConditionKeyIsMultivalued is what IsMultivalued says of the record
+	// AWSConditionKey reads for each probe key, or of no record where it
+	// reads none.
+	AWSConditionKeyIsMultivalued map[string][2]bool `json:"aws_condition_key_is_multivalued"`
 	// OwnerNameMayContain holds 1 or 0 for each probe character, in order.
 	OwnerNameMayContain string         `json:"owner_name_may_contain"`
 	Tenancy             tenancy.Issuer `json:"tenancy"`
@@ -1659,8 +1742,8 @@ func goAnswers() answers {
 			"(go test . -run TestGoAndPythonAgree -update) and checked by the Go and the Python tests alike. " +
 			"scripts/build.py copies it to python/tests/answers.json.",
 		Probes: probes{Characters: "/@:-_.%aZ09 é", Tenants: []string{"acme", personalMSA},
-			ConditionKeys: []string{"sub", "aud", "oaud", "OAUD", "amr", "repository_owner", "repository_owner_id", "id",
-				"user_id", "oidc.circleci.com/project-id", "google/organization_number"}},
+			ConditionKeys: []string{"sub", "aud", "oaud", "OAUD", "amr", "AMR", "repository_owner", "repository_owner_id",
+				"id", "user_id", "oidc.circleci.com/project-id", "google/organization_number"}},
 	}
 	for _, e := range All() {
 		t := e.Tenancy()
@@ -1671,12 +1754,15 @@ func goAnswers() answers {
 		}
 		a.AWSMapsConditionKey = map[string][2]bool{}
 		a.AWSConditionKey = map[string]*tenancy.ConditionKey{}
+		a.AWSConditionKeyIsMultivalued = map[string][2]bool{}
 		for _, k := range out.Probes.ConditionKeys {
 			a.AWSMapsConditionKey[k] = pair(t.AWSMapsConditionKey(k))
 			a.AWSConditionKey[k] = nil
-			if key, ok := t.AWSConditionKey(k); ok {
+			key, ok := t.AWSConditionKey(k)
+			if ok {
 				a.AWSConditionKey[k] = &key
 			}
+			a.AWSConditionKeyIsMultivalued[k] = pair(key.IsMultivalued())
 		}
 		tenants := slices.Clone(out.Probes.Tenants)
 		if got, tenant, ok := Match(a.Instance); ok {
@@ -1750,6 +1836,15 @@ func TestGoAndPythonAgree(t *testing.T) {
 	}
 	if matched < 29 {
 		t.Fatalf("%d entries' own issuers matched; the census has at least 29 an issuer can match", matched)
+	}
+	knownMultivalued := 0
+	for _, e := range got.Entries {
+		if e.AWSConditionKeyIsMultivalued["amr"] == [2]bool{true, true} && e.AWSConditionKeyIsMultivalued["AMR"] == [2]bool{true, true} {
+			knownMultivalued++
+		}
+	}
+	if knownMultivalued != 10 {
+		t.Fatalf("%d entries read amr as known multivalued; the census records 10, so the shared file holds the answer both ways", knownMultivalued)
 	}
 	if len(got.Charsets) == 0 {
 		t.Fatal("no invented character set was probed, so nothing holds the packages to one reading of them")

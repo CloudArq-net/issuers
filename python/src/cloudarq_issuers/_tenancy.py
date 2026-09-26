@@ -254,10 +254,16 @@ def settled(value: Any) -> Optional[str]:
 def condition_key(k: Mapping[str, Any]) -> dict:
     """A condition key as the projection keeps it. A claim the census writes
     unverified is left out, so a reader looks up no claim for the key, and
-    AWS's spelling of it goes beside the key as ``table_claim``."""
+    AWS's spelling of it goes beside the key as ``table_claim``. A key AWS's
+    sentence calls multivalued says ``"multivalued": "yes"``, whatever its
+    claim; an unverified one says nothing, which reads as not known."""
     if k["claim"] == "unverified":
-        return {"key": k["key"], "table_claim": k["table_claim"]}
-    return {part: k[part] for part in ("key", "claim", "fallback_claim") if part in k}
+        out = {"key": k["key"], "table_claim": k["table_claim"]}
+    else:
+        out = {part: k[part] for part in ("key", "claim", "fallback_claim") if part in k}
+    if k.get("multivalued") == "yes":
+        out["multivalued"] = "yes"
+    return out
 
 
 def projection(entry: Mapping[str, Any]) -> dict:

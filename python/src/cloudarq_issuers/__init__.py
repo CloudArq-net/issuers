@@ -67,6 +67,7 @@ __all__ = [
     "claim_is_recyclable",
     "aws_maps_condition_key",
     "aws_condition_key",
+    "aws_condition_key_is_multivalued",
     "owner_name_may_contain",
     "names_compare_without_case",
     "host_of",
@@ -330,7 +331,9 @@ def aws_condition_key(entry: Mapping[str, Any], key: str) -> Optional[dict]:
     sentence says the issuer's tokens carry as AWS spells it, and
     ``"table_claim"`` holds that spelling: Google's reference nests the number
     AWS spells ``google:organization_number`` inside a ``google`` claim, so
-    what a token carries for the key is not known. Keys compare without ASCII
+    what a token carries for the key is not known. ``"multivalued": "yes"``
+    marks a key AWS's sentence calls multivalued, read by
+    ``aws_condition_key_is_multivalued``. Keys compare without ASCII
     case, as in ``aws_maps_condition_key``. ``None`` when AWS documents no
     such key for the issuer, or when the census does not record its keys:
     ``aws_maps_condition_key`` tells the two apart."""
@@ -339,6 +342,21 @@ def aws_condition_key(entry: Mapping[str, Any], key: str) -> Optional[dict]:
         if _tenancy.lower_ascii(k["key"]) == folded:
             return k
     return None
+
+
+def aws_condition_key_is_multivalued(entry: Mapping[str, Any], key: str) -> Answer:
+    """Whether a request may carry several values for ``key``, as AWS says of
+    amr: "The key is multivalued, meaning that you test it in a policy using
+    condition set operators." An authenticated user's amr holds
+    ``authenticated`` and the provider the user signed in with. Not known
+    unless AWS's sentence says the key is multivalued: the census records no
+    sentence saying a key holds one value, so an unknown answer is the
+    cautious one, ``True``, since a key AWS has not said holds one value may
+    hold several. Keys compare without ASCII case, as in
+    ``aws_maps_condition_key``; a key AWS does not document for the issuer,
+    or any key of an issuer whose keys are not recorded, is not known."""
+    record = aws_condition_key(entry, key)
+    return Answer(True, record is not None and record.get("multivalued") == "yes")
 
 
 def names_compare_without_case(entry: Mapping[str, Any]) -> Answer:
