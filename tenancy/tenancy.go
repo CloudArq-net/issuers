@@ -80,9 +80,9 @@ type Issuer struct {
 	// owners' names never differ only in case.
 	NamesUniqueRegardlessOfCase string `json:"names_unique_regardless_of_case,omitempty"`
 	// AWSConditionKeys are the condition keys AWS documents for the issuer,
-	// each with the claim AWS reads it from: a trust policy's condition on
-	// <provider>:<key> reads a claim only for a key listed here. Empty when
-	// the census does not record them.
+	// each with the claim AWS reads it from. What a trust policy's condition
+	// on <provider>:<key> tests for a key not listed here, AWS does not
+	// document. Empty when the census does not record them.
 	AWSConditionKeys []ConditionKey `json:"aws_condition_keys,omitempty"`
 	// Platform is where the issuer's tenants hold their accounts, as a vendor
 	// sentence names it, such as "GitHub": the platform, not the product that

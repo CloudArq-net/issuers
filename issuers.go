@@ -393,9 +393,9 @@ type Accounts struct {
 }
 
 // AWSConditionKeys records the condition keys AWS documents for the issuer,
-// each with the claim AWS's table says it reads the key from. A trust
-// policy's condition on <provider>:<key> reads a claim only for a key listed
-// here.
+// each with the claim AWS's table says it reads the key from. What a trust
+// policy's condition on <provider>:<key> tests for a key not listed here, AWS
+// does not document.
 type AWSConditionKeys struct {
 	// Value is "verified" or "unverified".
 	Value string `json:"value"`

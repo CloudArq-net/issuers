@@ -1262,6 +1262,29 @@ func TestNoAWSSentenceNamesTheEnterprisePathsKeys(t *testing.T) {
 	}
 }
 
+// The README says how many researched entries carry AWS's condition keys, and
+// the number is the census's, so a list written unverified cannot leave the
+// README counting it.
+func TestTheReadmeCountsTheConditionKeyListsTheCensusHolds(t *testing.T) {
+	m := regexp.MustCompile(`Recorded\s+for\s+(\d+)\s+of\s+the\s+(\d+)\s+researched\s+entries`).FindSubmatch(mustRead(t, "README.md"))
+	if m == nil {
+		t.Fatal("README.md does not say how many of the researched entries carry AWS's condition keys")
+	}
+	lists, researched := 0, 0
+	for _, e := range All() {
+		if e.Researched == "in_release" {
+			researched++
+			if e.AWSConditionKeys.Value == "verified" {
+				lists++
+			}
+		}
+	}
+	if said := fmt.Sprintf("%s of %s", m[1], m[2]); said != fmt.Sprintf("%d of %d", lists, researched) {
+		t.Errorf("README.md says the keys are recorded for %s researched entries; the census records them for %d of %d",
+			said, lists, researched)
+	}
+}
+
 // GitHub's enterprise slug is verified recyclable; every other researched
 // tenant's recyclability is unverified, which reads as recyclable.
 func TestTheEnterpriseSlugIsRecyclable(t *testing.T) {

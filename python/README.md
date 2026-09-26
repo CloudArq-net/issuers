@@ -78,9 +78,12 @@ the page, the sentence verbatim, and the date it was read.
   record that it does, the three clusters on a chain of Kubernetes' and each platform's
   sentences; Spacelift's, Bitbucket Pipelines' and Microsoft Entra ID's read `unverified`.
 - `built_in`: the providers AWS STS accepts with no identity provider in the account.
-- `aws_condition_keys`: the condition keys AWS documents for the issuer, each with the claim
-  AWS's table says it carries. A condition on any other key tests a key AWS does not put in
-  the request context: GitHub's tab has `repository_owner_id` and no `repository_owner`.
+- `aws_condition_keys`: the condition keys AWS documents for the issuer, each with the `claim`
+  AWS's table says AWS reads it from, which is not always the key's own name (`oaud` reads
+  `aud`), and a `fallback_claim` where AWS reads another claim when the token sets none (`aud`
+  reads `azp`, or `aud`). GitHub's tab has `repository_owner_id` and no `repository_owner`.
+  AWS does not document what a condition on a key it does not list tests; read as unread,
+  such a condition never pins and never narrows, whichever it tests.
 - `accounts`: the platform whose accounts hold the issuer's tenants, as the vendor names it,
   and, for GitHub Actions, the namespace a consumer declares its owners under, `github`.
 - `researched`: whether this release researched the entry at all.
@@ -126,6 +129,7 @@ without_case, known = ci.names_compare_without_case(entry)
 gh = ci.get("token.actions.githubusercontent.com")
 ci.claim_is_recyclable(gh, "enterprise_id")        # (True, False): no sentence says it cannot pass on
 ci.aws_maps_condition_key(gh, "repository_owner")  # (False, True): AWS's GitHub tab has no such key
+ci.aws_condition_key(gh, "oaud")                   # {"key": "oaud", "claim": "aud"}: AWS reads oaud from aud
 ci.owner_name_may_contain(entry, "/")                         # True when nothing is recorded
 ```
 

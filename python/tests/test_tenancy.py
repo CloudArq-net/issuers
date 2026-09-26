@@ -376,9 +376,10 @@ def test_the_researched_facts_are_the_census_s():
 
 
 def test_aws_condition_keys_are_recorded_per_issuer():
-    """AWS puts a claim in the request context only under a key it documents
-    for the issuer; a key the census does not record for a recorded issuer is
-    known unmapped, and an issuer with no recorded keys is not known."""
+    """The census records the condition keys AWS documents per issuer. A key
+    it does not record for a recorded issuer is known unmapped, since AWS does
+    not document what a condition on it tests, and an issuer with no recorded
+    keys is not known."""
     gh = by_name("GitHub Actions")
     assert [k["key"] for k in ci.tenancy(gh)["aws_condition_keys"]] == [
         "amr", "aud", "email", "oaud", "sub", "actor", "actor_id", "job_workflow_ref", "repository", "repository_id",

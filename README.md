@@ -135,14 +135,22 @@ token. GitHub Actions also carries a `declaration_namespace`, `github`: the pref
 consumer declares an owner under by name, as in `github:acme`. No two entries share a
 namespace, since the same name under another issuer is another owner.
 
-**`aws_condition_keys`** — the condition keys AWS documents for the issuer, each with the
-claim AWS's table says it carries, from AWS's reference for OIDC condition keys: its
-Default tab for an issuer with no tab of its own, and the issuer's own tab where it has
-one. AWS puts a claim in the request context only under a key it documents, so a trust
-policy's condition on any other key tests a key the context does not hold: GitHub's tab
-has `repository_owner_id` and no `repository_owner`. Recorded for the 14 researched
-issuers whose tokens AWS reads; `aws_maps_condition_key` and `AWSMapsConditionKey` answer
-whether a key is one, comparing names without ASCII case as AWS does.
+**`aws_condition_keys`** — the condition keys AWS documents for the issuer, from AWS's
+reference for OIDC condition keys: its Default tab for an issuer with no tab of its own,
+and the issuer's own tab where it has one. Each key carries the `claim` AWS's table says
+AWS reads it from, which is not always the key's own name: on the Default tab `oaud` reads
+`aud`, and `aud` reads `azp`, or `aud` when the token sets no `azp`, which the key's
+`fallback_claim` records. GitHub's tab has `repository_owner_id` and no `repository_owner`.
+AWS does not document what a condition on a key it does not list tests; read as unread,
+such a condition never pins and never narrows, whichever it tests. Recorded for 13 of the
+17 researched entries. GitHub's enterprise path reads `unverified`: AWS names a condition
+key by the provider, and no AWS sentence names a provider at that path. GitLab.com, HCP
+Terraform and Buildkite read `unverified` because this release researched them for
+`anonymous_tokens` alone, not because AWS does not read their tokens: AWS's reference has a
+tab for GitLab.com and one for Buildkite, and its page on OIDC roles names the condition key
+`app.terraform.io:sub` for HCP Terraform. `aws_maps_condition_key` and `AWSMapsConditionKey`
+answer whether a key is one, and `aws_condition_key` and `AWSConditionKey` return its
+record; both compare names without ASCII case, as AWS does.
 
 **`researched`** — `in_release` for the 17 entries this release researched, and
 `not_in_this_release` for the rest.
@@ -201,7 +209,9 @@ with the Kelvin sign is not a census host. Every entry either package hands out 
 caller's own copy: edit it however deep and the next answer is still the census's. The readers
 (`issues_anonymous_tokens`, `controlled_tenant`, `tenant_is_recyclable`,
 `claim_is_recyclable`, `aws_maps_condition_key`, `names_compare_without_case`) return an
-`Answer`, a `(value, known)` pair; when `known` is false the value is the cautious one. A claim's value is recyclable
+`Answer`, a `(value, known)` pair; when `known` is false the value is the cautious one.
+`aws_condition_key` returns the key's record, or `None` when AWS documents no such key or
+the census does not record the issuer's keys. A claim's value is recyclable
 unless a vendor sentence says it cannot pass to someone else, whatever its kind: GitHub's
 `enterprise_id` is an id, and no sentence settles it. An `Answer` refuses to be read as true or false,
 so an unknown cannot pass for an answer by accident.
@@ -217,13 +227,17 @@ issuers.MultiTenantHosts()
 e, tenant, ok := issuers.Match("https://token.actions.githubusercontent.com/octocorp")
 // e is the enterprise issuer path's entry, with every fact behind it; tenant is "octocorp".
 anonymous, known := e.Tenancy().IssuesAnonymousTokens()
+
+gh, _, _ := issuers.Match("https://token.actions.githubusercontent.com")
+k, ok := gh.Tenancy().AWSConditionKey("oaud")
+// k.Claim is "aud": AWS reads the oaud condition key from the aud claim.
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 5,917 bytes of
-data against the root package's 198,284. Built with go1.27.1 for `js/wasm`, a small program
+instead. It carries the values a classifier reads and none of the sentences: 7,549 bytes of
+data against the root package's 200,580. Built with go1.27.1 for `js/wasm`, a small program
 that matches the issuer given on its command line through `tenancy` and prints the entry's
-name came out 226,755 bytes smaller (42,989 after `gzip -9`) than the same program through
+name came out 229,056 bytes smaller (43,515 after `gzip -9`) than the same program through
 the root package, and it does not contain the root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
 fails when it is out of step.
 

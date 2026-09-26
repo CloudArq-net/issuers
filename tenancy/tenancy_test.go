@@ -365,11 +365,10 @@ func TestTenantIsRecyclable(t *testing.T) {
 	}
 }
 
-// AWS puts a claim in the request context only under a condition key it
-// documents for the issuer, so a condition on any other key tests a key the
-// context does not hold. The census records AWS's keys per issuer; a key it
-// does not record for a recorded issuer is known unmapped, and an issuer
-// whose keys are not recorded answers not mapped and not known.
+// The census records the condition keys AWS documents per issuer. A key it
+// does not record for a recorded issuer is known unmapped, since AWS does not
+// document what a condition on it tests, and an issuer whose keys are not
+// recorded answers not mapped and not known.
 func TestAWSConditionKeysAreRecordedPerIssuer(t *testing.T) {
 	gitHubKeys := []string{"amr", "aud", "email", "oaud", "sub", "actor", "actor_id", "job_workflow_ref", "repository",
 		"repository_id", "repository_owner_id", "workflow", "ref", "environment", "enterprise_id"}
