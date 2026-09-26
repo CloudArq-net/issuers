@@ -518,6 +518,21 @@ def test_a_cluster_is_controlled_on_a_chain():
         assert any(f["source"].startswith(docs) and says in f["quote"] for f in m["chain"]), name
 
 
+def test_aks_s_chain_reaches_its_local_accounts():
+    """An AKS cluster at its defaults keeps local accounts, a cluster admin
+    certificate that bypasses Entra ID. Microsoft's sentence that Azure RBAC
+    limits who can get the kubeconfig file reaches that way in too, so it is a
+    link of AKS's chain, and the local-accounts sentences stay beside it."""
+    m = by_name("Azure Kubernetes Service (AKS workload identity)")["tenant_membership"]
+    assert {"source": "https://learn.microsoft.com/en-us/azure/aks/control-kubeconfig-access",
+            "quote": "You can use Azure role-based access control (Azure RBAC) to limit who can get access to the "
+                     "kubeconfig file and the permissions they have."} in [
+        {"source": f["source"], "quote": f["quote"]} for f in m["chain"]]
+    beside = "\n".join(f["quote"] for f in m["context"])
+    assert "When you deploy an AKS cluster, local accounts are enabled by default." in beside
+    assert "Local accounts: A built-in cluster admin certificate that bypasses Entra ID." in beside
+
+
 def test_every_entry_says_whether_it_was_researched():
     """Every entry carries researched and every tenancy field, and an entry
     this release did not research holds only unverified."""

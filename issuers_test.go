@@ -682,7 +682,7 @@ var recorded = map[string]struct {
 		"tenant_membership": 8}, []string{"population", "sources"}},
 	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3,
 		"aws_condition_keys": 3, "match": 2,
-		"tenant_membership": 8}, []string{"population", "sources"}},
+		"tenant_membership": 12}, []string{"population", "sources"}},
 	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 3,
 		"match": 4, "tenant_membership": 8},
 		[]string{"population", "sources"}},
@@ -1202,6 +1202,33 @@ func TestAClusterIsControlledOnAChain(t *testing.T) {
 		}
 		if !administered {
 			t.Errorf("%s: no link from %s says the cluster's owner administers its authorization", name, owner.docs)
+		}
+	}
+}
+
+// An AKS cluster at its defaults keeps local accounts, a cluster admin
+// certificate that bypasses Entra ID, so sentences about clusters that sign
+// in through Entra do not reach every way into its authorization. Microsoft's
+// sentence that Azure RBAC limits who can get the kubeconfig file, and the
+// permissions they have, reaches that one too: it is a link of AKS's chain,
+// and the sentences about local accounts stay beside the value.
+func TestAKSsChainReachesItsLocalAccounts(t *testing.T) {
+	const kubeconfig = "You can use Azure role-based access control (Azure RBAC) to limit who can get access to the kubeconfig file and the permissions they have."
+	m := byName(t, "Azure Kubernetes Service (AKS workload identity)", "").TenantMembership
+	linked := false
+	for _, f := range m.Chain {
+		linked = linked || f.Source == "https://learn.microsoft.com/en-us/azure/aks/control-kubeconfig-access" && f.Quote == kubeconfig
+	}
+	if !linked {
+		t.Errorf("AKS: no link of the chain says who can get the kubeconfig file: %q", kubeconfig)
+	}
+	beside := quotes(m.Context...)
+	for _, s := range []string{
+		"When you deploy an AKS cluster, local accounts are enabled by default.",
+		"Local accounts: A built-in cluster admin certificate that bypasses Entra ID.",
+	} {
+		if !strings.Contains(beside, s) {
+			t.Errorf("AKS: the membership's context does not carry %q", s)
 		}
 	}
 }

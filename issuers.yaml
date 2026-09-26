@@ -2650,15 +2650,36 @@ issuers:
         can focus on assigning the right Microsoft Entra role assignments to users, groups, and service principals.
       verified_at: '2026-09-24'
       role: 'Microsoft: with Azure RBAC, the cluster''s owner assigns who is authorized in it'
+    - source: https://learn.microsoft.com/en-us/azure/aks/control-kubeconfig-access
+      quote: You can use Azure role-based access control (Azure RBAC) to limit who can get access to the
+        kubeconfig file and the permissions they have.
+      verified_at: '2026-09-26'
+      role: 'Microsoft: with Azure RBAC, the cluster''s owner limits who can get the cluster''s kubeconfig
+        file, the cluster admin credentials among them'
     notes:
     - no single sentence says the owner decides; read in order, the links say the cluster's tokens issue to
       whoever the cluster's authorization lets request them, and the cluster's owner administers that
       authorization
+    - the Kubernetes RBAC and Azure RBAC links are about clusters that sign in through Microsoft Entra ID;
+      local accounts, enabled by default, bypass Entra ID, and the kubeconfig link reaches them
     context:
     - source: https://kubernetes.io/docs/concepts/security/service-accounts/
       quote: Application Pods, system components, and entities inside and outside the cluster can use a
         specific ServiceAccount's credentials to identify as that ServiceAccount.
       verified_at: '2026-09-23'
+    - source: https://learn.microsoft.com/en-us/azure/aks/manage-local-accounts-managed-azure-ad
+      quote: When you deploy an AKS cluster, local accounts are enabled by default.
+      verified_at: '2026-09-26'
+      role: 'Microsoft: every cluster starts with local accounts'
+    - source: https://learn.microsoft.com/en-us/azure/aks/concepts-identity
+      quote: 'Local accounts: A built-in cluster admin certificate that bypasses Entra ID.'
+      verified_at: '2026-09-26'
+      role: 'Microsoft: a local account is a way into the cluster that does not pass through Entra ID'
+    - source: https://learn.microsoft.com/en-us/azure/aks/control-kubeconfig-access
+      quote: Allows access to `Microsoft.ContainerService/managedClusters/listClusterAdminCredential/action`
+        API call. This API call lists the cluster admin credentials.
+      verified_at: '2026-09-26'
+      role: 'Microsoft: the cluster admin credentials are listed through an action an Azure role grants'
   aws_condition_keys:
     value: verified
     keys:
@@ -2697,6 +2718,9 @@ issuers:
     - https://kubernetes.io/docs/concepts/security/rbac-good-practices/
     - https://learn.microsoft.com/en-us/azure/aks/kubernetes-rbac-entra-id
     - https://learn.microsoft.com/en-us/azure/aks/entra-id-authorization
+    - https://learn.microsoft.com/en-us/azure/aks/control-kubeconfig-access
+    - https://learn.microsoft.com/en-us/azure/aks/manage-local-accounts-managed-azure-ad
+    - https://learn.microsoft.com/en-us/azure/aks/concepts-identity
 - name: Cloudflare Access
   category: runtime
   issuer: https://<team-name>.cloudflareaccess.com
