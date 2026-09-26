@@ -82,8 +82,10 @@ the page, the sentence verbatim, and the date it was read.
   AWS's table says AWS reads it from, which is not always the key's own name (`oaud` reads
   `aud`), and a `fallback_claim` where AWS reads another claim when the token sets none (`aud`
   reads `azp`, or `aud`). GitHub's tab has `repository_owner_id` and no `repository_owner`.
-  AWS does not document what a condition on a key it does not list tests; read as unread,
-  such a condition never pins and never narrows, whichever it tests.
+  Google's `google/organization_number` has no `claim`, only AWS's spelling in `table_claim`:
+  Google's reference prints the number inside a `google` claim, and no page says which AWS
+  reads. AWS does not document what a condition on a key it does not list tests; read as
+  unread, such a condition never pins and never narrows, whichever it tests.
 - `accounts`: the platform whose accounts hold the issuer's tenants, as the vendor names it,
   and, for GitHub Actions, the namespace a consumer declares its owners under, `github`.
 - `researched`: whether this release researched the entry at all.

@@ -3860,7 +3860,7 @@
     },
     "google/organization_number": {
      "key": "google/organization_number",
-     "claim": "google:organization_number"
+     "table_claim": "google:organization_number"
     },
     "id": null,
     "oaud": {
@@ -3905,7 +3905,7 @@
      },
      {
       "key": "google/organization_number",
-      "claim": "google:organization_number"
+      "table_claim": "google:organization_number"
      }
     ],
     "platform": "Google"

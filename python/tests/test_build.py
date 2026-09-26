@@ -31,6 +31,13 @@ KEYS_TABLE = {"source": "https://example.com/keys",
               "verified_at": "2026-09-23"}
 KEYS_EXAMPLE = {"source": "https://example.com/keys", "quote": '"token.example.com:email": "a@example.com",',
                 "verified_at": "2026-09-23"}
+# A row whose claim is spelled as no claim of the issuer's tokens is known to
+# be spelled, which the census keeps as the table writes it and reads as no
+# claim.
+NESTED_ROW = {"source": "https://example.com/keys", "quote": "Condition key Claim org/number org:number No",
+              "verified_at": "2026-09-23"}
+UNREAD_KEY = {"key": "org/number", "claim": "unverified", "table_claim": "org:number",
+              "why": "the issuer's own page prints the number inside an org claim"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
                   "aws_condition_keys")
@@ -296,6 +303,26 @@ REFUSALS = {
                                                         "email"), "no quoted sentence says 'aud' reads 'email'"),
     "a condition key listed twice": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
         {"key": "sub", "claim": "sub"}), "listed twice"),
+    "an unverified claim without AWS's spelling beside it": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
+            {k: v for k, v in UNREAD_KEY.items() if k != "table_claim"}), "missing 'table_claim'"),
+    "an unverified claim that does not say why": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
+            {k: v for k, v in UNREAD_KEY.items() if k != "why"})
+        or at(doc, f"{SHARED}.aws_condition_keys.evidence").append(NESTED_ROW), "missing 'why'"),
+    "a spelling no row shows beside an unverified claim": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(dict(UNREAD_KEY)),
+        "no quoted row shows 'org/number' carrying 'org:number'"),
+    "AWS's spelling beside a claim the census reads": (
+        put(f"{SHARED}.aws_condition_keys.keys.0", "table_claim", "sub"),
+        "table_claim and why are written only beside an unverified claim"),
+    "a reason beside a claim the census reads": (
+        put(f"{SHARED}.aws_condition_keys.keys.0", "why", "no reason is needed"),
+        "table_claim and why are written only beside an unverified claim"),
+    "a fallback claim after an unverified claim": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append({**UNREAD_KEY, "fallback_claim": "aud"})
+        or at(doc, f"{SHARED}.aws_condition_keys.evidence").append(NESTED_ROW),
+        "a fallback claim is read only in place of a claim, and this key's claim is unverified"),
     "a tenancy claim AWS carries under another claim's name": (
         lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").__setitem__(1, {"key": "renamed", "claim": "other"})
         or at(doc, f"{SHARED}.tenancy_claims.claims.0").__setitem__("claim", "renamed"), "under another claim's name"),
@@ -445,6 +472,23 @@ def test_a_membership_may_rest_on_a_chain(tmp_path):
     assert status == 0, err
     sub = json.loads((tree / "tenancy" / "tenancy.json").read_text(encoding="utf-8"))
     assert sub["issuers"][1]["tenant_membership"] == "controlled"
+
+
+def test_a_key_s_claim_may_be_unverified_beside_aws_s_spelling(tmp_path):
+    """A key whose claim no page says a token carries under AWS's spelling
+    keeps that spelling in table_claim and its reason in why. The census
+    carries all three; the sub-package carries the key and the spelling, and
+    no claim, which a reader reads as no claim it can look up."""
+    doc = valid_census()
+    keys = doc["issuers"][0]["aws_condition_keys"]
+    keys["keys"].append(dict(UNREAD_KEY))
+    keys["evidence"].append(NESTED_ROW)
+    status, err, tree = build(tmp_path, doc)
+    assert status == 0, err
+    census = json.loads((tree / "issuers.json").read_text(encoding="utf-8"))
+    assert census["issuers"][0]["aws_condition_keys"]["keys"][-1] == UNREAD_KEY
+    sub = json.loads((tree / "tenancy" / "tenancy.json").read_text(encoding="utf-8"))
+    assert sub["issuers"][0]["aws_condition_keys"][-1] == {"key": "org/number", "table_claim": "org:number"}
 
 
 def test_several_entries_may_share_a_host(tmp_path):

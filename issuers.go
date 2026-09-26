@@ -415,8 +415,13 @@ type AWSConditionKeys struct {
 type AWSConditionKey struct {
 	Key string `json:"key"`
 	// Claim is the claim AWS's table says it reads the key from, as the
-	// table writes it: not always the key's own name.
-	Claim string `json:"claim"`
+	// table writes it: not always the key's own name. It is "unverified"
+	// when no vendor sentence says the issuer's tokens carry the claim as
+	// the table spells it; TableClaim then holds that spelling and Why says
+	// what the pages say instead.
+	Claim      string `json:"claim"`
+	TableClaim string `json:"table_claim,omitempty"`
+	Why        string `json:"why,omitempty"`
 	// FallbackClaim is the claim AWS reads the key from when the token sets
 	// no value for Claim, where AWS's sentence says so: the Default tab's aud
 	// reads azp, or aud.
@@ -512,8 +517,11 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 	t.NamesUniqueRegardlessOfCase = settled(i.NamesUniqueRegardlessOfCase.Value)
 	if i.AWSConditionKeys.Value == "verified" {
 		for _, k := range i.AWSConditionKeys.Keys {
-			t.AWSConditionKeys = append(t.AWSConditionKeys, tenancy.ConditionKey{
-				Key: k.Key, Claim: k.Claim, FallbackClaim: k.FallbackClaim})
+			key := tenancy.ConditionKey{Key: k.Key, Claim: k.Claim, FallbackClaim: k.FallbackClaim}
+			if k.Claim == "unverified" {
+				key = tenancy.ConditionKey{Key: k.Key, TableClaim: k.TableClaim}
+			}
+			t.AWSConditionKeys = append(t.AWSConditionKeys, key)
 		}
 	}
 	if i.Accounts.Value == "verified" {

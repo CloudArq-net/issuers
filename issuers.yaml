@@ -78,9 +78,11 @@
 #                           issuer, each with the claim its table says AWS reads the key from, and a
 #                           fallback_claim where AWS's sentence names the claim it reads when the token
 #                           sets none for that one. Each key's table row, as the page renders it, is
-#                           among the quotes. A key AWS writes out only in an example policy names no
-#                           claim and is not listed. What a condition on a key not listed tests, AWS
-#                           does not document.
+#                           among the quotes. A claim is unverified when no page says the issuer's
+#                           tokens carry it as the table spells it; the key then keeps that spelling in
+#                           table_claim and says why, and no claim reaches a classifier for it. A key
+#                           AWS writes out only in an example policy names no claim and is not listed.
+#                           What a condition on a key not listed tests, AWS does not document.
 #   accounts                value: verified | unverified. The platform whose accounts hold the
 #                           issuer's tenants, as the vendor's sentence names it (platform), and, for
 #                           an issuer whose claims name owners, the declaration_namespace a consumer
@@ -3301,7 +3303,11 @@ issuers:
     - key: sub
       claim: sub
     - key: google/organization_number
-      claim: 'google:organization_number'
+      claim: unverified
+      table_claim: 'google:organization_number'
+      why: AWS's table spells the claim google:organization_number. Google's reference says the token
+        carries a google.organization_number claim and prints it as organization_number inside a google
+        object, and no page read says which of the two AWS reads the key from.
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'GitHub Actions workflows and Google are some examples of IdPs that use the default
@@ -3324,6 +3330,18 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
         is available in session'
+    context:
+    - source: https://docs.cloud.google.com/iam/docs/reference/credentials/rest/v1/projects.serviceAccounts/generateIdToken
+      quote: 'Include the organization number of the service account in the token. If set to `true`, the token
+        will contain a `google.organization_number` claim.'
+      verified_at: '2026-09-26'
+      role: 'Google: the claim its tokens carry the organization number in, spelled otherwise than AWS''s table
+        spells it'
+    - source: https://docs.cloud.google.com/iam/docs/reference/credentials/rest/v1/projects.serviceAccounts/generateIdToken
+      quote: '"email_verified": true, "google": { "organization_number": 123456 }'
+      verified_at: '2026-09-26'
+      role: 'Google''s example payload: the number sits inside a google object, and the payload holds no claim
+        named google:organization_number'
   research:
     sources:
     - https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html

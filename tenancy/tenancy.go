@@ -128,8 +128,14 @@ func (c Claim) ValueIsRecyclable() (recyclable, known bool) {
 // the token sets no azp. Claims are written as AWS's table writes them,
 // which for Login with Amazon and Facebook is a phrase such as "User ID".
 type ConditionKey struct {
-	Key   string `json:"key"`
-	Claim string `json:"claim"`
+	Key string `json:"key"`
+	// Claim is empty when no vendor sentence says the issuer's tokens carry
+	// the claim as AWS's table spells it, and TableClaim then holds that
+	// spelling. Google's reference nests the number AWS's table spells
+	// google:organization_number inside a google claim, and no page says
+	// which AWS reads, so a reader has no claim to look up for that key.
+	Claim      string `json:"claim,omitempty"`
+	TableClaim string `json:"table_claim,omitempty"`
 	// FallbackClaim is the claim AWS reads the key from when the token sets
 	// no value for Claim; empty when AWS's table names no other.
 	FallbackClaim string `json:"fallback_claim,omitempty"`
@@ -219,6 +225,9 @@ func (i Issuer) AWSMapsConditionKey(key string) (mapped, known bool) {
 
 // AWSConditionKey is AWS's record of key for the issuer: the claim AWS reads
 // it from, and the one it reads when the token sets no value for that claim.
+// A record with no claim is a key AWS documents whose claim no sentence says
+// a token carries as AWS spells it, so what a token carries for the key is
+// not known.
 // Keys compare without ASCII case, as in AWSMapsConditionKey. ok is false
 // when AWS documents no such key for the issuer, or when the census does not
 // record its keys; AWSMapsConditionKey tells the two apart.

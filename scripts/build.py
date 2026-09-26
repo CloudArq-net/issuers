@@ -641,10 +641,13 @@ def check_aws_condition_keys(c, a, pinned):
     AWS reads it from, tied to the table row that maps it as the page renders
     it. A key AWS writes out in an example policy with no row names no claim,
     so it is not listed: a reader would have to take the key's name for its
-    claim. A fallback claim, which AWS reads when the token sets no value for
-    the claim, rests on AWS's sentence saying so. A key that names a tenancy
-    claim, or sub where the issuer's subject names a tenant, must carry that
-    claim under its own name, or a pin would read another claim's value."""
+    claim. A claim written unverified is one no page says the issuer's tokens
+    carry as AWS's table spells it: the key keeps that spelling in
+    table_claim, tied to the row, and says why. A fallback claim, which AWS
+    reads when the token sets no value for the claim, rests on AWS's sentence
+    saying so. A key that names a tenancy claim, or sub where the issuer's
+    subject names a tenant, must carry that claim under its own name, or a pin
+    would read another claim's value."""
     w = 'aws_condition_keys'
     if not c.keys(w, a, {'value', 'basis', 'keys', 'evidence', 'chain', 'context', 'note'}, ['value']):
         return
@@ -672,17 +675,24 @@ def check_aws_condition_keys(c, a, pinned):
     seen = set()
     for i, k in enumerate(keys):
         kw = f"{w}.keys[{i}]"
-        if not c.keys(kw, k, {'key', 'claim', 'fallback_claim'}, ['key', 'claim']):
+        unread = isinstance(k, dict) and k.get('claim') == 'unverified'
+        if not c.keys(kw, k, {'key', 'claim', 'fallback_claim', 'table_claim', 'why'},
+                      ['key', 'claim'] + (['table_claim', 'why'] if unread else [])):
             continue
-        for part in ('key', 'claim', 'fallback_claim'):
+        for part in ('key', 'claim', 'fallback_claim', 'table_claim', 'why'):
             if part in k:
                 c.text(f"{kw}.{part}", k[part])
         if k['key'] in seen:
             c.fail(kw, f"{k['key']!r} is listed twice")
         seen.add(k['key'])
-        if not any(f"{k['key']} {k['claim']}" in q for q in quotes):
-            c.fail(kw, f"no quoted row shows {k['key']!r} carrying {k['claim']!r}")
-        if 'fallback_claim' in k and not any(
+        spelling = k['table_claim'] if unread else k['claim']
+        if not any(f"{k['key']} {spelling}" in q for q in quotes):
+            c.fail(kw, f"no quoted row shows {k['key']!r} carrying {spelling!r}")
+        if not unread and ('table_claim' in k or 'why' in k):
+            c.fail(kw, "table_claim and why are written only beside an unverified claim")
+        if unread and 'fallback_claim' in k:
+            c.fail(kw, "a fallback claim is read only in place of a claim, and this key's claim is unverified")
+        elif 'fallback_claim' in k and not any(
                 f"If no value is set for {k['claim']}, the {k['key']} condition key maps to the "
                 f"{k['fallback_claim']} claim." in q for q in quotes):
             c.fail(kw, f"no quoted sentence says {k['key']!r} reads {k['fallback_claim']!r} when the token sets no "

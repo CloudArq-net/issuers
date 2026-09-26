@@ -251,6 +251,15 @@ def settled(value: Any) -> Optional[str]:
     return value if value in ("yes", "no") else None
 
 
+def condition_key(k: Mapping[str, Any]) -> dict:
+    """A condition key as the projection keeps it. A claim the census writes
+    unverified is left out, so a reader looks up no claim for the key, and
+    AWS's spelling of it goes beside the key as ``table_claim``."""
+    if k["claim"] == "unverified":
+        return {"key": k["key"], "table_claim": k["table_claim"]}
+    return {part: k[part] for part in ("key", "claim", "fallback_claim") if part in k}
+
+
 def projection(entry: Mapping[str, Any]) -> dict:
     """The entry as the Go tenancy sub-package carries it: the values a
     classifier reads, with every unverified value, multi-valued claim and claim
@@ -306,8 +315,7 @@ def projection(entry: Mapping[str, Any]) -> dict:
         t["names_unique_regardless_of_case"] = entry["names_unique_regardless_of_case"]["value"]
     ak = entry.get("aws_condition_keys") or {}
     if ak.get("value") == "verified" and ak.get("keys"):
-        t["aws_condition_keys"] = [{part: k[part] for part in ("key", "claim", "fallback_claim") if part in k}
-                                   for k in ak["keys"]]
+        t["aws_condition_keys"] = [condition_key(k) for k in ak["keys"]]
     ac = entry.get("accounts") or {}
     if ac.get("value") == "verified":
         t["platform"] = ac["platform"]

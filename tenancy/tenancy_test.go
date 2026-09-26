@@ -413,7 +413,9 @@ func TestAWSConditionKeysAreRecordedPerIssuer(t *testing.T) {
 }
 
 // The sub-package carries each condition key with the claim AWS reads it
-// from, so a classifier never takes a key's name for its claim.
+// from, so a classifier never takes a key's name for its claim, or, where no
+// sentence says a token carries that claim as AWS's table spells it, with the
+// spelling alone, which names no claim to look up. Never both, never neither.
 func TestEveryConditionKeyCarriesItsClaim(t *testing.T) {
 	var doc struct {
 		Issuers []struct {
@@ -429,11 +431,12 @@ func TestEveryConditionKeyCarriesItsClaim(t *testing.T) {
 		for _, k := range e.Keys {
 			examined++
 			var c struct {
-				Key   string `json:"key"`
-				Claim string `json:"claim"`
+				Key        string `json:"key"`
+				Claim      string `json:"claim"`
+				TableClaim string `json:"table_claim"`
 			}
-			if err := json.Unmarshal(k, &c); err != nil || c.Key == "" || c.Claim == "" {
-				t.Errorf("%s: the condition key %s is carried without the claim AWS reads it from", e.Name, k)
+			if err := json.Unmarshal(k, &c); err != nil || c.Key == "" || (c.Claim == "") == (c.TableClaim == "") {
+				t.Errorf("%s: the condition key %s is carried without one claim or AWS's spelling of it", e.Name, k)
 			}
 		}
 	}
@@ -454,7 +457,7 @@ func TestAWSReadsEachConditionKeyFromItsClaim(t *testing.T) {
 		github: {"oaud": oaud, "OAUD": oaud, "aud": defaultAud, "sub": {Key: "sub", Claim: "sub"},
 			"repository_owner_id": {Key: "repository_owner_id", Claim: "repository_owner_id"}},
 		"https://accounts.google.com": {"aud": defaultAud,
-			"google/organization_number": {Key: "google/organization_number", Claim: "google:organization_number"}},
+			"google/organization_number": {Key: "google/organization_number", TableClaim: "google:organization_number"}},
 		entra:                            {"aud": defaultAud, "oaud": oaud},
 		"cognito-identity.amazonaws.com": {"aud": {Key: "aud", Claim: "aud"}, "oaud": oaud},
 		"www.amazon.com":                 {"sub": {Key: "sub", Claim: "User ID"}},
@@ -477,6 +480,46 @@ func TestAWSReadsEachConditionKeyFromItsClaim(t *testing.T) {
 	}
 	if got, ok := (Issuer{}).AWSConditionKey("sub"); ok || got != (ConditionKey{}) {
 		t.Errorf("an issuer with no recorded keys reads %+v, %v; want nothing", got, ok)
+	}
+}
+
+// AWS's Google tab writes the claim behind google/organization_number as
+// google:organization_number, and Google's own reference says the token
+// "will contain a google.organization_number claim" and prints it as
+// "google": { "organization_number": 123456 }. No page says which of the two
+// AWS reads, so the sub-package hands out no claim for the key: a reader
+// given AWS's spelling as a claim name would look for a claim no Google token
+// carries, reject a token AWS reads the number from, and build a token AWS
+// refuses. The key stays documented, and AWS's spelling stays beside it.
+func TestAClaimNoTokenIsKnownToCarryIsNotHandedOut(t *testing.T) {
+	const key, spelling = "google/organization_number", "google:organization_number"
+	google := find(t, "https://accounts.google.com")
+	if mapped, known := google.AWSMapsConditionKey(key); !mapped || !known {
+		t.Errorf("Google AWSMapsConditionKey(%q) = %v, %v; want true, true: AWS documents the key", key, mapped, known)
+	}
+	if record, ok := google.AWSConditionKey(key); !ok || record.Claim != "" {
+		t.Errorf("Google AWSConditionKey(%q) = %+v, %v; want the key with no claim", key, record, ok)
+	}
+	var doc struct {
+		Issuers []struct {
+			Name string              `json:"name"`
+			Keys []map[string]string `json:"aws_condition_keys"`
+		} `json:"issuers"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("decode the embedded sub-package: %v", err)
+	}
+	var found []map[string]string
+	for _, e := range doc.Issuers {
+		for _, k := range e.Keys {
+			if k["key"] == key {
+				found = append(found, k)
+			}
+		}
+	}
+	want := map[string]string{"key": key, "table_claim": spelling}
+	if len(found) != 1 || !reflect.DeepEqual(found[0], want) {
+		t.Errorf("the sub-package records %s as %v; want only %v", key, found, want)
 	}
 }
 

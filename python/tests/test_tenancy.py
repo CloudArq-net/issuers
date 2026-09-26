@@ -408,10 +408,13 @@ def test_aws_condition_keys_are_recorded_per_issuer():
 
 def test_every_condition_key_carries_its_claim():
     """The sub-package carries each condition key with the claim AWS reads it
-    from, so a classifier never takes a key's name for its claim."""
+    from, so a classifier never takes a key's name for its claim, or, where no
+    sentence says a token carries that claim as AWS's table spells it, with
+    the spelling alone, which names no claim to look up. Never both, never
+    neither."""
     keys = [(e["name"], k) for e in ci.issuers() for k in ci.tenancy(e).get("aws_condition_keys", [])]
     for name, k in keys:
-        assert isinstance(k, dict) and k.get("key") and k.get("claim"), (name, k)
+        assert isinstance(k, dict) and k.get("key") and bool(k.get("claim")) != bool(k.get("table_claim")), (name, k)
     assert len(keys) == 66, f"examined {len(keys)} condition keys; the census records 66"
 
 
@@ -426,7 +429,7 @@ def test_aws_reads_each_condition_key_from_its_claim():
         "GitHub Actions": {"oaud": oaud, "OAUD": oaud, "aud": default_aud, "sub": {"key": "sub", "claim": "sub"},
                            "repository_owner_id": {"key": "repository_owner_id", "claim": "repository_owner_id"}},
         "Google (accounts.google.com)": {"aud": default_aud, "google/organization_number": {
-            "key": "google/organization_number", "claim": "google:organization_number"}},
+            "key": "google/organization_number", "table_claim": "google:organization_number"}},
         "Microsoft Entra ID": {"aud": default_aud, "oaud": oaud},
         "Amazon Cognito identity pools": {"aud": {"key": "aud", "claim": "aud"}, "oaud": oaud},
         "Login with Amazon": {"sub": {"key": "sub", "claim": "User ID"}},
@@ -440,6 +443,26 @@ def test_aws_reads_each_condition_key_from_its_claim():
                       ("GitHub Actions (enterprise issuer path)", "oaud"), ("GitLab.com", "sub")):
         assert ci.aws_condition_key(by_name(name), key) is None, (name, key)
     assert ci.aws_condition_key({"name": "x"}, "sub") is None
+
+
+def test_a_claim_no_token_is_known_to_carry_is_not_handed_out():
+    """AWS's Google tab writes the claim behind google/organization_number as
+    google:organization_number, and Google's own reference says the token
+    carries a google.organization_number claim and prints it inside a google
+    object. No page says which of the two AWS reads, so no claim is handed out
+    for the key: a reader given AWS's spelling as a claim name would look for
+    a claim no Google token carries. The key stays documented, and AWS's
+    spelling stays beside it."""
+    google = by_name("Google (accounts.google.com)")
+    key, spelling = "google/organization_number", "google:organization_number"
+    assert ci.aws_maps_condition_key(google, key) == (True, True)
+    assert ci.aws_condition_key(google, key) == {"key": key, "table_claim": spelling}
+    recorded = [k for k in google["aws_condition_keys"]["keys"] if k["key"] == key]
+    assert len(recorded) == 1, recorded
+    assert (recorded[0]["claim"], recorded[0]["table_claim"]) == ("unverified", spelling), recorded
+    read = "\n".join(f["quote"] for f in google["aws_condition_keys"].get("context", []))
+    assert "If set to `true`, the token will contain a `google.organization_number` claim." in read
+    assert '"google": { "organization_number": 123456 }' in read
 
 
 def test_no_aws_sentence_names_the_enterprise_paths_keys():

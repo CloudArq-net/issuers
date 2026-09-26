@@ -141,6 +141,10 @@ and the issuer's own tab where it has one. Each key carries the `claim` AWS's ta
 AWS reads it from, which is not always the key's own name: on the Default tab `oaud` reads
 `aud`, and `aud` reads `azp`, or `aud` when the token sets no `azp`, which the key's
 `fallback_claim` records. GitHub's tab has `repository_owner_id` and no `repository_owner`.
+Google's `google/organization_number` has no `claim`: AWS's table spells it
+`google:organization_number`, Google's reference prints the number as `organization_number`
+inside a `google` claim, and no page says which AWS reads, so the key keeps AWS's spelling in
+`table_claim` and gives a reader no claim to look up.
 AWS does not document what a condition on a key it does not list tests; read as unread,
 such a condition never pins and never narrows, whichever it tests. Recorded for 13 of the
 17 researched entries. GitHub's enterprise path reads `unverified`: AWS names a condition
@@ -234,10 +238,10 @@ k, ok := gh.Tenancy().AWSConditionKey("oaud")
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 7,549 bytes of
-data against the root package's 200,580. Built with go1.27.1 for `js/wasm`, a small program
+instead. It carries the values a classifier reads and none of the sentences: 7,555 bytes of
+data against the root package's 201,683. Built with go1.27.1 for `js/wasm`, a small program
 that matches the issuer given on its command line through `tenancy` and prints the entry's
-name came out 229,056 bytes smaller (43,515 after `gzip -9`) than the same program through
+name came out 230,217 bytes smaller (43,594 after `gzip -9`) than the same program through
 the root package, and it does not contain the root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
 fails when it is out of step.
 
