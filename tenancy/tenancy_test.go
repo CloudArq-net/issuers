@@ -561,7 +561,7 @@ func TestAWSDocumentsWhichConditionKeysAreMultivalued(t *testing.T) {
 			case k.Key == "amr":
 				carrying = append(carrying, e.Issuer)
 			case k.Multivalued != "" || !multivalued || known:
-				t.Errorf("%s: %+v reads multivalued %v, known %v; no AWS sentence says either way", e.Name, k, multivalued, known)
+				t.Errorf("%s: %+v reads multivalued %v, known %v; the census holds no AWS sentence either way", e.Name, k, multivalued, known)
 			}
 		}
 	}

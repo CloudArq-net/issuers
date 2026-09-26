@@ -143,8 +143,8 @@ type ConditionKey struct {
 	// as it says of amr: "The key is multivalued, meaning that you test it in
 	// a policy using condition set operators." A request may then carry
 	// several values for the key, as an authenticated user's amr holds
-	// authenticated and the provider the user signed in with. Empty when no
-	// AWS sentence says so.
+	// authenticated and the provider the user signed in with. Empty when the
+	// census holds no AWS sentence saying so.
 	Multivalued string `json:"multivalued,omitempty"`
 }
 
