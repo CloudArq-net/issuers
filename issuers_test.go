@@ -497,6 +497,21 @@ func TestTenancyCarriesAMultivaluedKeyAsYesAlone(t *testing.T) {
 	}
 }
 
+// A claim the census records multi-valued reaches the sub-package by its name
+// where the list is verified, and not at all where it is unverified, which
+// the sub-package reads as not known.
+func TestTenancyCarriesTheMultiValuedClaimsByName(t *testing.T) {
+	e := Issuer{Name: "invented", Issuer: "https://example.com", MultiValuedClaims: MultiValuedClaims{Value: "verified",
+		Claims: []MultiValuedClaim{{Claim: "aud", Evidence: []Fact{{Source: "https://example.com/doc", Quote: "q", VerifiedAt: "2026-09-27"}}}}}}
+	if got := e.Tenancy().MultiValuedClaims; !slices.Equal(got, []string{"aud"}) {
+		t.Errorf("Tenancy().MultiValuedClaims = %q, want [aud]", got)
+	}
+	e.MultiValuedClaims.Value = "unverified"
+	if got := e.Tenancy().MultiValuedClaims; got != nil {
+		t.Errorf("an unverified list reaches the sub-package as %q", got)
+	}
+}
+
 // facts gathers every Fact an entry's tenancy fields carry, with where it sits.
 func facts(e Issuer) map[string][]Fact {
 	out := map[string][]Fact{}
@@ -550,6 +565,10 @@ func facts(e Issuer) map[string][]Fact {
 	add("aws_condition_keys.context", e.AWSConditionKeys.Context...)
 	add("built_in.evidence", e.BuiltIn.Evidence...)
 	add("built_in.discrepancy", e.BuiltIn.Discrepancy...)
+	for _, c := range e.MultiValuedClaims.Claims {
+		add("multi_valued_claims."+c.Claim, c.Evidence...)
+		add("multi_valued_claims."+c.Claim+".context", c.Context...)
+	}
 	researchFacts(e.Research, "research", out)
 	return out
 }
@@ -685,7 +704,7 @@ var recorded = map[string]struct {
 	research []string
 }{
 	"Bitbucket Pipelines": {map[string]int{"accounts": 1, "anonymous_tokens": 4, "aws_condition_keys": 4,
-		"match": 1, "tenant_membership": 4},
+		"match": 1, "multi_valued_claims": 2, "tenant_membership": 4},
 		[]string{"population", "sources"}},
 	"Buildkite": {map[string]int{}, nil},
 	"CircleCI": {map[string]int{"accounts": 1, "anonymous_tokens": 3, "aws_condition_keys": 4, "match": 1,
@@ -704,16 +723,16 @@ var recorded = map[string]struct {
 	"Spacelift": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 4, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1,
-		"aws_condition_keys": 4, "match": 2,
+		"aws_condition_keys": 4, "match": 2, "multi_valued_claims": 2,
 		"tenant_membership": 8}, []string{"population", "sources"}},
 	"Azure Kubernetes Service (AKS workload identity)": {map[string]int{"anonymous_tokens": 3,
-		"aws_condition_keys": 4, "match": 2,
+		"aws_condition_keys": 4, "match": 2, "multi_valued_claims": 2,
 		"tenant_membership": 12}, []string{"population", "sources"}},
 	"Google Kubernetes Engine (GKE)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 4,
-		"match": 4, "tenant_membership": 8},
+		"match": 4, "multi_valued_claims": 2, "tenant_membership": 8},
 		[]string{"population", "sources"}},
 	"AWS (outbound identity federation)": {map[string]int{"anonymous_tokens": 2, "aws_condition_keys": 4,
-		"match": 1, "tenant_membership": 1},
+		"match": 1, "multi_valued_claims": 1, "tenant_membership": 1},
 		[]string{"population", "sources"}},
 	"Google (accounts.google.com)": {map[string]int{"accounts": 1, "anonymous_tokens": 9,
 		"aws_condition_keys": 7, "built_in": 3}, []string{"sources"}},
@@ -843,6 +862,9 @@ func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 			if !oneOf(k.Multivalued, "yes", "unverified") {
 				t.Errorf("%s: condition key %s multivalued %q", n, k.Key, k.Multivalued)
 			}
+		}
+		if m := e.MultiValuedClaims; !oneOf(m.Value, "verified", "unverified") || (m.Value == "verified") != (len(m.Claims) > 0) {
+			t.Errorf("%s: multi_valued_claims %q with %d claims", n, m.Value, len(m.Claims))
 		}
 		if m := e.Match; m.Value == "verified" {
 			if !oneOf(m.TenantKind, "name", "id") || !oneOf(m.TenantSyntax, "", "guid") ||
@@ -1675,6 +1697,7 @@ type probes struct {
 	Characters    string   `json:"characters"`
 	Tenants       []string `json:"tenants"`
 	ConditionKeys []string `json:"condition_keys"`
+	Claims        []string `json:"claims"`
 }
 
 type entryAnswer struct {
@@ -1699,6 +1722,8 @@ type entryAnswer struct {
 	// AWSConditionKey reads for each probe key, or of no record where it
 	// reads none.
 	AWSConditionKeyIsMultivalued map[string][2]bool `json:"aws_condition_key_is_multivalued"`
+	// ClaimIsMultiValued is what ClaimIsMultiValued says of each probe claim.
+	ClaimIsMultiValued map[string][2]bool `json:"claim_is_multi_valued"`
 	// OwnerNameMayContain holds 1 or 0 for each probe character, in order.
 	OwnerNameMayContain string         `json:"owner_name_may_contain"`
 	Tenancy             tenancy.Issuer `json:"tenancy"`
@@ -1743,7 +1768,8 @@ func goAnswers() answers {
 			"scripts/build.py copies it to python/tests/answers.json.",
 		Probes: probes{Characters: "/@:-_.%aZ09 é", Tenants: []string{"acme", personalMSA},
 			ConditionKeys: []string{"sub", "aud", "oaud", "OAUD", "amr", "AMR", "repository_owner", "repository_owner_id",
-				"id", "user_id", "oidc.circleci.com/project-id", "google/organization_number"}},
+				"id", "user_id", "oidc.circleci.com/project-id", "google/organization_number"},
+			Claims: []string{"aud", "Aud", "azp", "sub", "amr", "repository_owner_id"}},
 	}
 	for _, e := range All() {
 		t := e.Tenancy()
@@ -1763,6 +1789,10 @@ func goAnswers() answers {
 				a.AWSConditionKey[k] = &key
 			}
 			a.AWSConditionKeyIsMultivalued[k] = pair(key.IsMultivalued())
+		}
+		a.ClaimIsMultiValued = map[string][2]bool{}
+		for _, c := range out.Probes.Claims {
+			a.ClaimIsMultiValued[c] = pair(t.ClaimIsMultiValued(c))
 		}
 		tenants := slices.Clone(out.Probes.Tenants)
 		if got, tenant, ok := Match(a.Instance); ok {
@@ -1845,6 +1875,15 @@ func TestGoAndPythonAgree(t *testing.T) {
 	}
 	if knownMultivalued != 10 {
 		t.Fatalf("%d entries read amr as known multivalued; the census records 10, so the shared file holds the answer both ways", knownMultivalued)
+	}
+	severalAudiences := 0
+	for _, e := range got.Entries {
+		if e.ClaimIsMultiValued["aud"] == [2]bool{true, true} {
+			severalAudiences++
+		}
+	}
+	if severalAudiences != 5 {
+		t.Fatalf("%d entries read aud as known multi-valued; the census records 5, so the shared file holds the answer both ways", severalAudiences)
 	}
 	if len(got.Charsets) == 0 {
 		t.Fatal("no invented character set was probed, so nothing holds the packages to one reading of them")

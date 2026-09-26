@@ -84,6 +84,10 @@ type Issuer struct {
 	// on <provider>:<key> tests for a key not listed here, AWS does not
 	// document. Empty when the census does not record them.
 	AWSConditionKeys []ConditionKey `json:"aws_condition_keys,omitempty"`
+	// MultiValuedClaims are the claims a sentence says the issuer's tokens
+	// may carry with several values, as Kubernetes says of a service account
+	// token's audience. A claim not listed is not thereby one value.
+	MultiValuedClaims []string `json:"multi_valued_claims,omitempty"`
 	// Platform is where the issuer's tenants hold their accounts, as a vendor
 	// sentence names it, such as "GitHub": the platform, not the product that
 	// mints the tokens. Empty when no sentence in this release names it.
@@ -155,6 +159,14 @@ type ConditionKey struct {
 // value may hold several.
 func (c ConditionKey) IsMultivalued() (multivalued, known bool) {
 	return true, c.Multivalued == "yes"
+}
+
+// ClaimIsMultiValued reports whether the issuer's tokens may carry several
+// values in claim. known is false unless a sentence the census holds says
+// they may, and the answer beside it is then the cautious one, true. Claim
+// names compare as written, as a token's do.
+func (i Issuer) ClaimIsMultiValued(claim string) (multiValued, known bool) {
+	return true, slices.Contains(i.MultiValuedClaims, claim)
 }
 
 // SubjectForm is one way an issuer spells sub with a tenant at its head.
@@ -298,6 +310,7 @@ func (i Issuer) clone() Issuer {
 	i.NotTenancy = slices.Clone(i.NotTenancy)
 	i.NeverPin = slices.Clone(i.NeverPin)
 	i.AWSConditionKeys = slices.Clone(i.AWSConditionKeys)
+	i.MultiValuedClaims = slices.Clone(i.MultiValuedClaims)
 	i.OwnerNameCharacters = slices.Clone(i.OwnerNameCharacters)
 	if i.SubjectForms != nil {
 		forms := make([]SubjectForm, len(i.SubjectForms))

@@ -68,6 +68,7 @@ __all__ = [
     "aws_maps_condition_key",
     "aws_condition_key",
     "aws_condition_key_is_multivalued",
+    "claim_is_multi_valued",
     "owner_name_may_contain",
     "names_compare_without_case",
     "host_of",
@@ -357,6 +358,16 @@ def aws_condition_key_is_multivalued(entry: Mapping[str, Any], key: str) -> Answ
     or any key of an issuer whose keys are not recorded, is not known."""
     record = aws_condition_key(entry, key)
     return Answer(True, record is not None and record.get("multivalued") == "yes")
+
+
+def claim_is_multi_valued(entry: Mapping[str, Any], claim: str) -> Answer:
+    """Whether the issuer's tokens may carry several values in ``claim``, as
+    Kubernetes says of a service account token's audience: "May be repeated
+    to request a token valid for multiple audiences." Not known unless a
+    sentence the census holds says they may, and the answer beside it is then
+    the cautious one, ``True``. Claim names compare as written, as a token's
+    do."""
+    return Answer(True, claim in tenancy(entry).get("multi_valued_claims", []))
 
 
 def names_compare_without_case(entry: Mapping[str, Any]) -> Answer:

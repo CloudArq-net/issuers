@@ -88,6 +88,12 @@
 #                           that you test it in a policy using condition set operators.", as it says of
 #                           amr; unverified elsewhere, since no AWS sentence here says a key holds one
 #                           value. A key whose sentence the census quotes is never unverified.
+#   multi_valued_claims     value: verified | unverified. The claims the issuer's tokens may carry with
+#                           several values, each with the sentences that say so, as Kubernetes says of a
+#                           service account token's audience: "May be repeated to request a token valid
+#                           for multiple audiences." A claim not listed is not thereby one value: no
+#                           sentence here says a claim holds one, and a reader answers it the cautious
+#                           way. A tenancy claim whose own sentence describes one value is never listed.
 #   accounts                value: verified | unverified. The platform whose accounts hold the
 #                           issuer's tenants, as the vendor's sentence names it (platform), and, for
 #                           an issuer whose claims name owners, the declaration_namespace a consumer
@@ -268,6 +274,20 @@ issuers:
       at: 2026-09-23T21:09Z
       result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
         Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
+  multi_valued_claims:
+    value: verified
+    claims:
+    - claim: aud
+      evidence:
+      - source: https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+        quote: 'To customize your audiences, declare them under the (step or global) → oidc → audiences list,
+          as shown in the example below:'
+        verified_at: '2026-09-27'
+        role: 'a pipeline declares the audiences of its token as a list'
+      - source: https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/
+        quote: 'Maximum of 10 audiences allowed.'
+        verified_at: '2026-09-27'
+        role: 'the list holds up to ten audiences'
   research:
     population: the pipelines of one workspace's repositories
     sources:
@@ -2621,6 +2641,23 @@ issuers:
       at: 2026-09-23T21:09Z
       result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
         Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
+  multi_valued_claims:
+    value: verified
+    claims:
+    - claim: aud
+      evidence:
+      - source: https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
+        quote: 'Amazon EKS hosts a public OIDC discovery endpoint for each cluster that contains the signing
+          keys for the ProjectedServiceAccountToken JSON web tokens so external systems, such as IAM, can
+          validate and accept the OIDC tokens that are issued by Kubernetes.'
+        verified_at: '2026-09-27'
+        role: 'the cluster issuer signs the service account tokens Kubernetes issues'
+      - source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_token/
+        quote: 'Audience of the requested token. If unset, defaults to requesting a token for use with the
+          Kubernetes API server. May be repeated to request a token valid for multiple audiences.'
+        verified_at: '2026-09-27'
+        role: 'Kubernetes: a service account token may be requested for several audiences, by repeating kubectl
+          create token''s --audience'
   research:
     population: the cluster's service accounts, as the cluster creates them
     sources:
@@ -2815,6 +2852,23 @@ issuers:
       at: 2026-09-23T21:09Z
       result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
         Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
+  multi_valued_claims:
+    value: verified
+    claims:
+    - claim: aud
+      evidence:
+      - source: https://learn.microsoft.com/en-us/azure/aks/use-oidc-issuer
+        quote: 'You can enable the OIDC issuer on your AKS clusters, which allows Microsoft Entra ID (or
+          another cloud provider''s identity and access management platform) to discover the API server''s
+          public signing keys.'
+        verified_at: '2026-09-27'
+        role: 'the cluster issuer publishes the signing keys of the API server'
+      - source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_token/
+        quote: 'Audience of the requested token. If unset, defaults to requesting a token for use with the
+          Kubernetes API server. May be repeated to request a token valid for multiple audiences.'
+        verified_at: '2026-09-27'
+        role: 'Kubernetes: a service account token may be requested for several audiences, by repeating kubectl
+          create token''s --audience'
   research:
     population: the cluster's service accounts, as the cluster creates them
     sources:
@@ -3017,6 +3071,22 @@ issuers:
       at: 2026-09-23T21:09Z
       result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
         Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
+  multi_valued_claims:
+    value: verified
+    claims:
+    - claim: aud
+      evidence:
+      - source: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/service-accounts
+        quote: 'The short-lived bearer token is a JSON web token (JWT) that''s signed by the API server, which
+          is an OpenID Connect (OIDC) provider.'
+        verified_at: '2026-09-27'
+        role: 'the API server, an OIDC provider, signs the service account tokens'
+      - source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_token/
+        quote: 'Audience of the requested token. If unset, defaults to requesting a token for use with the
+          Kubernetes API server. May be repeated to request a token valid for multiple audiences.'
+        verified_at: '2026-09-27'
+        role: 'Kubernetes: a service account token may be requested for several audiences, by repeating kubectl
+          create token''s --audience'
   research:
     population: the cluster's service accounts, as the cluster creates them
     sources:
@@ -3246,6 +3316,19 @@ issuers:
       at: 2026-09-23T21:09Z
       result: the tabs are Default, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google, CircleCI,
         Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's
+  multi_valued_claims:
+    value: verified
+    claims:
+    - claim: aud
+      evidence:
+      - source: https://docs.aws.amazon.com/STS/latest/APIReference/API_GetWebIdentityToken.html
+        quote: 'Audience.member.N The intended recipient of the web identity token. This value populates the
+          aud claim in the JWT and should identify the service or application that will validate and use the
+          token. The external service should verify this claim to ensure the token was intended for their use.
+          Type: Array of strings Array Members: Minimum number of 1 item. Maximum number of 10 items.'
+        verified_at: '2026-09-27'
+        role: 'GetWebIdentityToken''s parameter, as the page renders it: the audiences, up to ten, populate
+          aud'
   research:
     population: the IAM principals of one AWS account that IAM policy allows to request tokens
     sources:

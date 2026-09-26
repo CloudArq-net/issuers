@@ -49,7 +49,7 @@ UNREAD_KEY = {"key": "org/number", "claim": "unverified", "table_claim": "org:nu
               "why": "the issuer's own page prints the number inside an org claim", "multivalued": "unverified"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
-                  "aws_condition_keys")
+                  "aws_condition_keys", "multi_valued_claims")
 
 # Python raises on any file it reads or writes in the locale's encoding when
 # run this way, so a build that forgot to say UTF-8 fails here, whatever the
@@ -101,6 +101,7 @@ def valid_census():
                  {"key": "aud", "claim": "azp", "fallback_claim": "aud", "multivalued": "unverified"},
                  {"key": "amr", "claim": "amr", "multivalued": "yes"}],
                                     "evidence": [KEYS_TABLE, dict(MULTIVALUED)]},
+             "multi_valued_claims": {"value": "verified", "claims": [{"claim": "aud", "evidence": [fact()]}]},
              "research": {"population": "anyone with an account", "nested": {"read": fact()},
                           "live": {"observed": observation()}}},
             {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenancy_model": "per_tenant_host",
@@ -181,7 +182,8 @@ def test_the_sub_package_carries_only_what_is_settled(tmp_path):
          "owner_name_characters": ["a-z", "-"], "platform": "Example", "declaration_namespace": "example",
          "aws_condition_keys": [{"key": "sub", "claim": "sub"}, {"key": "owner_id", "claim": "owner_id"},
                                 {"key": "aud", "claim": "azp", "fallback_claim": "aud"},
-                                {"key": "amr", "claim": "amr", "multivalued": "yes"}]},
+                                {"key": "amr", "claim": "amr", "multivalued": "yes"}],
+         "multi_valued_claims": ["aud"]},
         {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenant_placeholder": "<tenant>",
          "tenant_kind": "name", "tenant_membership": "controlled"},
         {"name": "Unresearched", "issuer": "https://other.example.net"},
@@ -454,6 +456,25 @@ REFUSALS = {
         **unresearched("Per tenant again", "https://<account>.example.org"), "tenancy_model": "per_tenant_host"}),
         "the same issuer as"),
     "two patterns one issuer matches with neither more specific": (overlapping, "neither is more specific"),
+    "a multi-valued claim with no evidence": (drop(f"{SHARED}.multi_valued_claims.claims.0", "evidence"),
+                                              "missing 'evidence'"),
+    "a multi-valued claim with no sentence in its evidence": (put(f"{SHARED}.multi_valued_claims.claims.0",
+                                                                  "evidence", []), "must be a non-empty list of facts"),
+    "a multi-valued claim resting on an observation": (put(f"{SHARED}.multi_valued_claims.claims.0", "evidence",
+                                                           [OBSERVATION]), SETTLES_NOTHING),
+    "a multi-valued claim with no name": (drop(f"{SHARED}.multi_valued_claims.claims.0", "claim"),
+                                          "missing 'claim'"),
+    "a multi-valued claim listed twice": (lambda doc: at(doc, f"{SHARED}.multi_valued_claims.claims").append(
+        {"claim": "aud", "evidence": [fact()]}), "'aud' is listed twice"),
+    "a claim whose tenancy sentence describes one value, listed as multi-valued": (
+        lambda doc: at(doc, f"{SHARED}.multi_valued_claims.claims").append({"claim": "owner_id", "evidence": [fact()]}),
+        "describes one value"),
+    "a verified list of multi-valued claims with none in it": (put(f"{SHARED}.multi_valued_claims", "claims", []),
+                                                               "a verified list needs its claims"),
+    "an unverified list of multi-valued claims carrying claims": (put(f"{SHARED}.multi_valued_claims", "value",
+                                                                      "unverified"), "an unverified list carries claims"),
+    "a misspelt key on a multi-valued claim": (put(f"{SHARED}.multi_valued_claims.claims.0", "evidnce", [fact()]),
+                                               "unknown key 'evidnce'"),
 }
 
 

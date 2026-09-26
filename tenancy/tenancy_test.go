@@ -586,6 +586,63 @@ func TestAWSDocumentsWhichConditionKeysAreMultivalued(t *testing.T) {
 	}
 }
 
+// RFC 7519 says that in the general case aud is an array. Kubernetes says of
+// the audience of a service account token "May be repeated to request a token
+// valid for multiple audiences.", AWS that the audience of its outbound token
+// populates the aud claim and is an array of up to ten, and Atlassian that a
+// pipeline declares its audiences as a list, "Maximum of 10 audiences
+// allowed." A reader that compared a condition on aud with one string would
+// find no token meeting two such conditions, and read a role that names two
+// audiences as admitting nobody. So those five issuers carry aud as
+// multi-valued, and no other issuer carries a claim so: a claim not carried
+// reads not known, with the cautious answer beside it, and claim names
+// compare as written, as a token's do.
+func TestTheTokensThatMayCarrySeveralAudiences(t *testing.T) {
+	several := []string{
+		"https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>",
+		"https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/",
+		"https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>",
+		"https://<tenant_uuid>.tokens.sts.global.api.aws",
+		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc",
+	}
+	var carrying []string
+	examined := 0
+	for _, e := range All() {
+		examined++
+		if len(e.MultiValuedClaims) > 0 {
+			carrying = append(carrying, e.Issuer)
+			if !slices.Equal(e.MultiValuedClaims, []string{"aud"}) {
+				t.Errorf("%s carries %q as multi-valued; want aud alone", e.Name, e.MultiValuedClaims)
+			}
+		}
+		for _, claim := range []string{"sub", "Aud", "amr", "azp", ""} {
+			if multiValued, known := e.ClaimIsMultiValued(claim); !multiValued || known {
+				t.Errorf("%s ClaimIsMultiValued(%q) = %v, %v; no sentence the census holds says either way", e.Name, claim, multiValued, known)
+			}
+		}
+	}
+	if !slices.Equal(slices.Sorted(slices.Values(carrying)), slices.Sorted(slices.Values(several))) {
+		t.Errorf("the issuers whose aud the sub-package carries as multi-valued: %q; want %q", carrying, several)
+	}
+	for _, issuer := range several {
+		if multiValued, known := find(t, issuer).ClaimIsMultiValued("aud"); !multiValued || !known {
+			t.Errorf("%s ClaimIsMultiValued(aud) = %v, %v; want true, true", issuer, multiValued, known)
+		}
+	}
+	for _, issuer := range []string{github, entra, "cognito-identity.amazonaws.com", "https://accounts.google.com"} {
+		if multiValued, known := find(t, issuer).ClaimIsMultiValued("aud"); !multiValued || known {
+			t.Errorf("%s ClaimIsMultiValued(aud) = %v, %v; want true, false", issuer, multiValued, known)
+		}
+	}
+	if examined < 29 {
+		t.Fatalf("examined %d entries; the sub-package carries at least 29", examined)
+	}
+	if n := strings.Count(string(raw), `"multi_valued_claims":["aud"]`); n != len(several) || strings.Count(string(raw), `"multi_valued_claims"`) != n {
+		t.Errorf("the sub-package carries aud as multi-valued %d times, and %d multi-valued claim lists; want %d of each",
+			n, strings.Count(string(raw), `"multi_valued_claims"`), len(several))
+	}
+}
+
 // Where an issuer's tenants hold their accounts, and where a consumer declares
 // its owners, are census facts, so a classifier names no issuer in its code.
 // GitHub's owners alone are declared by name, under github: a name under
@@ -809,7 +866,7 @@ func TestTheSubPackageCarriesOnlyTheClassifiersFields(t *testing.T) {
 		"tenant_membership": true, "not_a_controlled_tenant": true, "anonymous_tokens": true,
 		"tenancy_claims": true, "subject_forms": true, "owner_name_characters": true, "names_unique_regardless_of_case": true,
 		"not_tenancy": true, "never_pin": true, "platform": true, "declaration_namespace": true,
-		"aws_condition_keys": true,
+		"aws_condition_keys": true, "multi_valued_claims": true,
 	}
 	for _, e := range doc.Issuers {
 		for k := range e {

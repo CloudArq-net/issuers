@@ -19,6 +19,14 @@
    "user_id",
    "oidc.circleci.com/project-id",
    "google/organization_number"
+  ],
+  "claims": [
+   "aud",
+   "Aud",
+   "azp",
+   "sub",
+   "amr",
+   "repository_owner_id"
   ]
  },
  "entries": [
@@ -192,6 +200,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Bitbucket Pipelines",
@@ -222,6 +256,9 @@
       "key": "sub",
       "claim": "sub"
      }
+    ],
+    "multi_valued_claims": [
+     "aud"
     ],
     "platform": "Bitbucket"
    }
@@ -367,6 +404,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -525,6 +588,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -688,6 +777,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Codeberg (Forgejo)",
@@ -839,6 +954,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Codefresh",
@@ -986,6 +1127,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -1182,6 +1349,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -1520,6 +1713,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitHub Actions (enterprise issuer path)",
@@ -1674,6 +1893,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitHub Enterprise Server (self-hosted)",
@@ -1818,6 +2063,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -1973,6 +2244,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "GitLab.com",
@@ -2117,6 +2414,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -2269,6 +2592,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Harness",
@@ -2413,6 +2762,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -2565,6 +2940,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Jenkins (OpenID Connect Provider plugin)",
@@ -2709,6 +3110,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -2864,6 +3291,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Namespace",
@@ -3008,6 +3461,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -3163,6 +3642,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "HCP Terraform (Terraform Cloud)",
@@ -3314,6 +3819,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Pulumi Cloud",
@@ -3461,6 +3992,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -3641,6 +4198,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Spacelift",
@@ -3816,6 +4399,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Terraform Enterprise (self-hosted)",
@@ -3963,6 +4572,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -4143,6 +4778,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon EKS (Kubernetes service account issuer / IRSA)",
@@ -4174,6 +4835,9 @@
       "key": "sub",
       "claim": "sub"
      }
+    ],
+    "multi_valued_claims": [
+     "aud"
     ]
    }
   },
@@ -4347,6 +5011,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Azure Kubernetes Service (AKS workload identity)",
@@ -4378,6 +5068,9 @@
       "key": "sub",
       "claim": "sub"
      }
+    ],
+    "multi_valued_claims": [
+     "aud"
     ]
    }
   },
@@ -4519,6 +5212,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -4699,6 +5418,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Google Kubernetes Engine (GKE)",
@@ -4730,6 +5475,9 @@
       "key": "sub",
       "claim": "sub"
      }
+    ],
+    "multi_valued_claims": [
+     "aud"
     ]
    }
   },
@@ -4871,6 +5619,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -5026,6 +5800,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Modal",
@@ -5174,6 +5974,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "SPIFFE / SPIRE (OIDC Discovery Provider)",
@@ -5318,6 +6144,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -5498,6 +6350,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     true
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "AWS (outbound identity federation)",
@@ -5529,6 +6407,9 @@
       "key": "sub",
       "claim": "sub"
      }
+    ],
+    "multi_valued_claims": [
+     "aud"
     ]
    }
   },
@@ -5670,6 +6551,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -5845,6 +6752,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -6050,6 +6983,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon Cognito identity pools",
@@ -6231,6 +7190,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Login with Amazon",
@@ -6396,6 +7381,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -6586,6 +7597,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Microsoft Entra ID",
@@ -6768,6 +7805,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cognition",
@@ -6915,6 +7978,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]
@@ -7070,6 +8159,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Cursor",
@@ -7221,6 +8336,32 @@
      false
     ]
    },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
+     true,
+     false
+    ]
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Warp",
@@ -7368,6 +8509,32 @@
      false
     ],
     "user_id": [
+     true,
+     false
+    ]
+   },
+   "claim_is_multi_valued": {
+    "Aud": [
+     true,
+     false
+    ],
+    "amr": [
+     true,
+     false
+    ],
+    "aud": [
+     true,
+     false
+    ],
+    "azp": [
+     true,
+     false
+    ],
+    "repository_owner_id": [
+     true,
+     false
+    ],
+    "sub": [
      true,
      false
     ]

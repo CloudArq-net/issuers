@@ -89,6 +89,12 @@ the page, the sentence verbatim, and the date it was read.
   whether it is `multivalued`: `amr` is, on AWS's sentence "The key is multivalued, meaning
   that you test it in a policy using condition set operators.", since a signed-in user's
   `amr` holds `authenticated` and the login provider; every other key reads `unverified`.
+- `multi_valued_claims`: the claims the issuer's tokens may carry with several values, each
+  on the sentences that say so. The EKS, AKS and GKE cluster issuers, AWS's outbound tokens
+  and Bitbucket Pipelines record `aud`: Kubernetes says of a service account token's
+  audience "May be repeated to request a token valid for multiple audiences.", AWS's
+  `GetWebIdentityToken` takes an array of up to ten, and a pipeline declares a list,
+  "Maximum of 10 audiences allowed." A claim not listed is not thereby one value.
 - `accounts`: the platform whose accounts hold the issuer's tenants, as the vendor names it,
   and, for GitHub Actions, the namespace a consumer declares its owners under, `github`.
 - `researched`: whether this release researched the entry at all.
@@ -102,9 +108,9 @@ from *"there is nothing there"*. No field is inferred from another field.
 In a tenancy field, `unverified` means exactly that no vendor sentence establishes the value
 in this release, whatever the reason, and every reader answers it the cautious way: an issuer
 may mint tokens to people with no account, no claim or `sub` prefix pins a tenant, any
-character may occur in an owner name, names compare exactly, a condition key may hold
-several values, and a tenant is not known to control who joins it, and its name may pass
-to someone else.
+character may occur in an owner name, names compare exactly, a condition key or a claim may
+hold several values, and a tenant is not known to control who joins it, and its name may
+pass to someone else.
 
 The API keeps that distinction. `audience_is_boundary` returns `None`, never `False`, for
 anything unconfirmed, because a caller that reads an unknown as a boundary has widened its
@@ -138,6 +144,8 @@ ci.aws_maps_condition_key(gh, "repository_owner")  # (False, True): AWS's GitHub
 ci.aws_condition_key(gh, "oaud")                   # {"key": "oaud", "claim": "aud"}: AWS reads oaud from aud
 ci.aws_condition_key_is_multivalued(gh, "amr")     # (True, True): AWS documents amr as multivalued
 ci.aws_condition_key_is_multivalued(gh, "oaud")    # (True, False): not known, so it may hold several
+ci.claim_is_multi_valued(gh, "aud")                # (True, False): not known, so it may carry several
+ci.claim_is_multi_valued(ci.get("api.bitbucket.org"), "aud")  # (True, True): a pipeline declares a list
 ci.owner_name_may_contain(entry, "/")                         # True when nothing is recorded
 ```
 

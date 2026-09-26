@@ -126,18 +126,19 @@ type Issuer struct {
 	// Researched is "in_release" when this release read the entry's tenancy
 	// facts from its vendor, and "not_in_this_release" when it did not, in
 	// which case every tenancy field below is unverified.
-	Researched                  string           `json:"researched"`
-	AnonymousTokens             AnonymousTokens  `json:"anonymous_tokens"`
-	TenancyClaims               TenancyClaims    `json:"tenancy_claims"`
-	NotTenancy                  NotTenancy       `json:"not_tenancy"`
-	SubjectForms                SubjectForms     `json:"subject_forms"`
-	OwnerCharset                OwnerCharset     `json:"owner_charset"`
-	NamesUniqueRegardlessOfCase NameCase         `json:"names_unique_regardless_of_case"`
-	Match                       MatchRule        `json:"match"`
-	TenantMembership            TenantMembership `json:"tenant_membership"`
-	BuiltIn                     BuiltIn          `json:"built_in"`
-	Accounts                    Accounts         `json:"accounts"`
-	AWSConditionKeys            AWSConditionKeys `json:"aws_condition_keys"`
+	Researched                  string            `json:"researched"`
+	AnonymousTokens             AnonymousTokens   `json:"anonymous_tokens"`
+	TenancyClaims               TenancyClaims     `json:"tenancy_claims"`
+	NotTenancy                  NotTenancy        `json:"not_tenancy"`
+	SubjectForms                SubjectForms      `json:"subject_forms"`
+	OwnerCharset                OwnerCharset      `json:"owner_charset"`
+	NamesUniqueRegardlessOfCase NameCase          `json:"names_unique_regardless_of_case"`
+	Match                       MatchRule         `json:"match"`
+	TenantMembership            TenantMembership  `json:"tenant_membership"`
+	BuiltIn                     BuiltIn           `json:"built_in"`
+	Accounts                    Accounts          `json:"accounts"`
+	AWSConditionKeys            AWSConditionKeys  `json:"aws_condition_keys"`
+	MultiValuedClaims           MultiValuedClaims `json:"multi_valued_claims"`
 	// Research keeps the rest of what the tenancy research read for this
 	// entry, as the research recorded it: context a reader checking a value
 	// wants beside it. Every fact inside it carries its source like any other.
@@ -432,6 +433,25 @@ type AWSConditionKey struct {
 	Multivalued string `json:"multivalued"`
 }
 
+// MultiValuedClaims records the claims the issuer's tokens may carry with
+// several values, each on the sentences that say so, as Kubernetes says of a
+// service account token's audience: "May be repeated to request a token valid
+// for multiple audiences." A claim not listed is not thereby one value.
+type MultiValuedClaims struct {
+	// Value is "verified" or "unverified".
+	Value  string             `json:"value"`
+	Claims []MultiValuedClaim `json:"claims,omitempty"`
+}
+
+// MultiValuedClaim is one claim the issuer's tokens may carry with several
+// values, and the sentences behind it.
+type MultiValuedClaim struct {
+	Claim    string `json:"claim"`
+	Evidence []Fact `json:"evidence"`
+	Context  []Fact `json:"context,omitempty"`
+	Note     string `json:"note,omitempty"`
+}
+
 // Host is the issuer's hostname, with no scheme and no path. For a per-tenant
 // issuer whose tenant sits in the path, this is the shared host. It is empty
 // when the issuer field holds a note, such as "unverified", rather than an
@@ -529,6 +549,11 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 				key.Multivalued = "yes"
 			}
 			t.AWSConditionKeys = append(t.AWSConditionKeys, key)
+		}
+	}
+	if i.MultiValuedClaims.Value == "verified" {
+		for _, c := range i.MultiValuedClaims.Claims {
+			t.MultiValuedClaims = append(t.MultiValuedClaims, c.Claim)
 		}
 	}
 	if i.Accounts.Value == "verified" {

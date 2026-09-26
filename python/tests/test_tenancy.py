@@ -35,7 +35,7 @@ RESEARCHED = {
 }
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
-                  "aws_condition_keys")
+                  "aws_condition_keys", "multi_valued_claims")
 
 
 def match_key(entry):
@@ -494,6 +494,45 @@ def test_aws_documents_amr_as_multivalued():
     assert ci.aws_condition_key_is_multivalued({"name": "x"}, "amr") == (True, False)
 
 
+# The issuers whose tokens a vendor sentence says may carry several audiences:
+# Kubernetes lets a service account token be requested for several, and AWS's
+# outbound tokens and Bitbucket's are issued for a list of them.
+SEVERAL_AUDIENCES = {
+    "Amazon EKS (Kubernetes service account issuer / IRSA)", "Azure Kubernetes Service (AKS workload identity)",
+    "Google Kubernetes Engine (GKE)", "AWS (outbound identity federation)", "Bitbucket Pipelines",
+}
+
+
+def test_the_tokens_that_may_carry_several_audiences():
+    """RFC 7519 says that in the general case aud is an array. Kubernetes says
+    of a service account token's audience "May be repeated to request a token
+    valid for multiple audiences.", AWS that the audience of its outbound
+    token populates the aud claim and is an array of up to ten, and Atlassian
+    that a pipeline declares its audiences as a list, "Maximum of 10 audiences
+    allowed." Those five issuers record aud as multi-valued, each on its
+    sentences; no other issuer records a claim so, and a claim not recorded
+    reads not known, with the cautious answer beside it that it may carry
+    several values."""
+    carrying = set()
+    for e in ci.issuers():
+        claims = ci.tenancy(e).get("multi_valued_claims", [])
+        if claims:
+            carrying.add(e["name"])
+            assert claims == ["aud"], (e["name"], claims)
+            assert ci.claim_is_multi_valued(e, "aud") == (True, True), e["name"]
+            block = e["multi_valued_claims"]["claims"][0]
+            assert block["claim"] == "aud" and block["evidence"], e["name"]
+        else:
+            assert e["multi_valued_claims"] == {"value": "unverified"}, e["name"]
+            assert ci.claim_is_multi_valued(e, "aud") == (True, False), e["name"]
+        # claim names are compared as written: a JWT's claim names are
+        # case-sensitive
+        for claim in ("sub", "Aud", "amr", ""):
+            assert ci.claim_is_multi_valued(e, claim) == (True, False), (e["name"], claim)
+    assert carrying == SEVERAL_AUDIENCES, carrying ^ SEVERAL_AUDIENCES
+    assert ci.claim_is_multi_valued({"name": "x"}, "aud") == (True, False)
+
+
 def test_each_multivalued_key_rests_on_its_tab_s_sentence():
     """The census keeps AWS's sentence behind each multivalued key, from the
     tab the issuer reads by: Amazon Cognito's for Cognito, the Default tab's for
@@ -806,6 +845,8 @@ def test_go_and_python_agree(n):
         want["aws_condition_key"]
     assert {k: list(ci.aws_condition_key_is_multivalued(entry, k)) for k in ANSWERS["probes"]["condition_keys"]} == \
         want["aws_condition_key_is_multivalued"]
+    assert {c: list(ci.claim_is_multi_valued(entry, c)) for c in ANSWERS["probes"]["claims"]} == \
+        want["claim_is_multi_valued"]
     chars = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
     assert chars == want["owner_name_may_contain"]
     assert ci.tenancy(entry) == want["tenancy"]
@@ -820,3 +861,8 @@ def test_the_shared_answers_cover_the_census():
         known = [w["name"] for _, w in entries_in_census_order()
                  if w["aws_condition_key_is_multivalued"][probe] == [True, True]]
         assert set(known) == AMR_ISSUERS, (probe, known)
+    # The multi-valued claims are held on aud, known where the census records
+    # it, and on a spelling of it no token's claim has.
+    known = [w["name"] for _, w in entries_in_census_order() if w["claim_is_multi_valued"]["aud"] == [True, True]]
+    assert set(known) == SEVERAL_AUDIENCES, known
+    assert all(w["claim_is_multi_valued"]["Aud"] == [True, False] for _, w in entries_in_census_order())

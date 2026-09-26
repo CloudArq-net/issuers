@@ -168,6 +168,19 @@ value. The build refuses a `yes` without AWS's sentence for that key, and an `un
 whose sentence the census quotes. `aws_condition_key_is_multivalued` and `IsMultivalued` read
 it.
 
+**`multi_valued_claims`** — the claims the issuer's tokens may carry with several values,
+each on the sentences that say so. RFC 7519 says that in the general case `aud` is an array.
+Kubernetes says of a service account token's audience "May be repeated to request a token
+valid for multiple audiences.", and the EKS, AKS and GKE cluster issuers record `aud` on that
+sentence beside their vendor's sentence tying the issuer to the tokens the cluster's API
+server signs. AWS's outbound tokens record it on `GetWebIdentityToken`'s audiences, an array
+of up to ten that "populates the aud claim in the JWT", and Bitbucket Pipelines on a
+pipeline's list of audiences, "Maximum of 10 audiences allowed." A claim not listed is not
+thereby one value: no sentence here says a claim holds one. The build refuses a listed claim
+with no sentence behind it, and a tenancy claim whose own sentence describes one value.
+`claim_is_multi_valued` and `ClaimIsMultiValued` read it, comparing claim names as written,
+as a token does.
+
 **`researched`** — `in_release` for the 17 entries this release researched, and
 `not_in_this_release` for the rest.
 
@@ -180,7 +193,7 @@ absent, and every reader in both packages answers it the cautious way:
 - an issuer may mint tokens to people with no account;
 - a claim or a `sub` prefix pins no tenant;
 - any character may occur in an owner name, and names compare exactly;
-- a condition key may hold several values;
+- a condition key may hold several values, and so may a claim;
 - a tenant is not known to control who joins it, and its name may pass to another
   customer;
 - an issuer URL with no verified pattern matches its exact issuer only, and one the
@@ -226,7 +239,7 @@ with the Kelvin sign is not a census host. Every entry either package hands out 
 caller's own copy: edit it however deep and the next answer is still the census's. The readers
 (`issues_anonymous_tokens`, `controlled_tenant`, `tenant_is_recyclable`,
 `claim_is_recyclable`, `aws_maps_condition_key`, `aws_condition_key_is_multivalued`,
-`names_compare_without_case`) return an
+`claim_is_multi_valued`, `names_compare_without_case`) return an
 `Answer`, a `(value, known)` pair; when `known` is false the value is the cautious one.
 `aws_condition_key` returns the key's record, or `None` when AWS documents no such key or
 the census does not record the issuer's keys. A claim's value is recyclable
@@ -252,13 +265,16 @@ k, ok := gh.Tenancy().AWSConditionKey("oaud")
 amr, _ := gh.Tenancy().AWSConditionKey("amr")
 multivalued, known := amr.IsMultivalued()
 // true, true: AWS documents amr as multivalued. Of oaud, k.IsMultivalued() is true, false.
+eks, _, _ := issuers.Match("https://oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE")
+several, known := eks.Tenancy().ClaimIsMultiValued("aud")
+// true, true: a Kubernetes service account token may be requested for several audiences.
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 7,755 bytes of
-data against the root package's 212,277. Built with go1.27.1 for `js/wasm` with `-trimpath`,
+instead. It carries the values a classifier reads and none of the sentences: 7,905 bytes of
+data against the root package's 218,202. Built with go1.27.1 for `js/wasm` with `-trimpath`,
 a small program that matches the issuer given on its command line through `tenancy` and
-prints the entry's name came out 242,169 bytes smaller (44,862 after `gzip -9`) than the same program through
+prints the entry's name came out 248,760 bytes smaller (45,415 after `gzip -9`) than the same program through
 the root package, and it does not contain the root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
 fails when it is out of step.
 

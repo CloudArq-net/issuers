@@ -83,7 +83,7 @@ KEEP = ['name', 'vendor', 'category', 'issuer', 'issuer_pattern', 'tenancy_model
 # YAML, and each is written unverified.
 TENANCY_FIELDS = ['anonymous_tokens', 'tenancy_claims', 'not_tenancy', 'subject_forms', 'owner_charset',
                   'names_unique_regardless_of_case', 'match', 'tenant_membership', 'built_in', 'accounts',
-                  'aws_condition_keys']
+                  'aws_condition_keys', 'multi_valued_claims']
 
 # A field must have one shape across every entry. A field that is a string on
 # one entry and a map on another silently breaks any typed consumer -- Go
@@ -733,6 +733,42 @@ def check_aws_condition_keys(c, a, pinned):
             c.fail(kw, f"{k['key']!r} pins a tenant, and AWS carries it under another claim's name")
 
 
+def check_multi_valued_claims(c, m, one_valued):
+    """The claims the issuer's tokens may carry with several values, each on
+    the sentences that say so. A claim not listed is not thereby one value:
+    no sentence here says a claim holds one, so a reader answers it the
+    cautious way. A claim whose own tenancy sentence describes one value, as
+    one_valued lists them, is not also listed: the two readings cannot both
+    stand."""
+    w = 'multi_valued_claims'
+    if not c.keys(w, m, {'value', 'claims'}, ['value']):
+        return
+    c.one_of(f"{w}.value", m['value'], LISTED)
+    claims = m.get('claims')
+    if m['value'] != 'verified':
+        if claims is not None:
+            c.fail(w, "an unverified list carries claims")
+        return
+    if not isinstance(claims, list) or not claims:
+        c.fail(f"{w}.claims", "a verified list needs its claims")
+        return
+    seen = set()
+    for i, x in enumerate(claims):
+        cw = f"{w}.claims[{i}]"
+        if not c.keys(cw, x, {'claim', 'evidence', 'context', 'note'}, ['claim', 'evidence']):
+            continue
+        c.text(f"{cw}.claim", x['claim'])
+        c.facts(f"{cw}.evidence", x['evidence'], required=True)
+        c.context(f"{cw}.context", x.get('context'))
+        if 'note' in x:
+            c.text(f"{cw}.note", x['note'])
+        if x['claim'] in seen:
+            c.fail(cw, f"{x['claim']!r} is listed twice")
+        seen.add(x['claim'])
+        if x['claim'] in one_valued:
+            c.fail(cw, f"{x['claim']!r} is a tenancy claim whose sentence describes one value")
+
+
 def check_entry(e):
     """Everything wrong with one entry of the YAML."""
     if not isinstance(e, dict):
@@ -801,6 +837,11 @@ def check_entry(e):
         if sf.get('value') == 'verified' and sf.get('forms'):
             pinned.add('sub')
         check_aws_condition_keys(c, e['aws_condition_keys'], pinned)
+    if 'multi_valued_claims' in e:
+        tc = e.get('tenancy_claims') or {}
+        one_valued = {x.get('claim') for x in tc.get('claims') or []
+                      if isinstance(x, dict) and x.get('multi_valued') == 'no'} if tc.get('value') == 'verified' else set()
+        check_multi_valued_claims(c, e['multi_valued_claims'], one_valued)
     if 'research' in e:
         c.research('research', e['research'])
     return c.errors
