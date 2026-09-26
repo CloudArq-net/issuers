@@ -393,8 +393,9 @@ type Accounts struct {
 }
 
 // AWSConditionKeys records the condition keys AWS documents for the issuer,
-// each with the claim AWS's table says it carries. A trust policy's condition
-// on <provider>:<key> reads a claim only for a key listed here.
+// each with the claim AWS's table says it reads the key from. A trust
+// policy's condition on <provider>:<key> reads a claim only for a key listed
+// here.
 type AWSConditionKeys struct {
 	// Value is "verified" or "unverified".
 	Value string `json:"value"`
@@ -403,8 +404,7 @@ type AWSConditionKeys struct {
 	Basis string            `json:"basis,omitempty"`
 	Keys  []AWSConditionKey `json:"keys,omitempty"`
 	// Evidence holds AWS's sentences and its tables as the page renders
-	// them; each key's row, or the key written out in AWS's example policy,
-	// is among them.
+	// them; each key's row is among them.
 	Evidence []Fact `json:"evidence,omitempty"`
 	Chain    []Fact `json:"chain,omitempty"`
 	Context  []Fact `json:"context,omitempty"`
@@ -414,9 +414,13 @@ type AWSConditionKeys struct {
 // AWSConditionKey is one condition key AWS documents for an issuer.
 type AWSConditionKey struct {
 	Key string `json:"key"`
-	// Claim is the claim AWS's table says the key carries, as the table
-	// writes it; empty for a key AWS shows only in an example policy.
-	Claim string `json:"claim,omitempty"`
+	// Claim is the claim AWS's table says it reads the key from, as the
+	// table writes it: not always the key's own name.
+	Claim string `json:"claim"`
+	// FallbackClaim is the claim AWS reads the key from when the token sets
+	// no value for Claim, where AWS's sentence says so: the Default tab's aud
+	// reads azp, or aud.
+	FallbackClaim string `json:"fallback_claim,omitempty"`
 }
 
 // Host is the issuer's hostname, with no scheme and no path. For a per-tenant
@@ -508,7 +512,8 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 	t.NamesUniqueRegardlessOfCase = settled(i.NamesUniqueRegardlessOfCase.Value)
 	if i.AWSConditionKeys.Value == "verified" {
 		for _, k := range i.AWSConditionKeys.Keys {
-			t.AWSConditionKeys = append(t.AWSConditionKeys, k.Key)
+			t.AWSConditionKeys = append(t.AWSConditionKeys, tenancy.ConditionKey{
+				Key: k.Key, Claim: k.Claim, FallbackClaim: k.FallbackClaim})
 		}
 	}
 	if i.Accounts.Value == "verified" {

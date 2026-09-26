@@ -373,7 +373,11 @@ func TestTenantIsRecyclable(t *testing.T) {
 func TestAWSConditionKeysAreRecordedPerIssuer(t *testing.T) {
 	gitHubKeys := []string{"amr", "aud", "email", "oaud", "sub", "actor", "actor_id", "job_workflow_ref", "repository",
 		"repository_id", "repository_owner_id", "workflow", "ref", "environment", "enterprise_id"}
-	if got := find(t, github).AWSConditionKeys; !slices.Equal(got, gitHubKeys) {
+	var got []string
+	for _, k := range find(t, github).AWSConditionKeys {
+		got = append(got, k.Key)
+	}
+	if !slices.Equal(got, gitHubKeys) {
 		t.Errorf("GitHub's AWS condition keys = %q, want %q", got, gitHubKeys)
 	}
 	for issuer, keys := range map[string]map[string][2]bool{
@@ -384,7 +388,7 @@ func TestAWSConditionKeysAreRecordedPerIssuer(t *testing.T) {
 		"cognito-identity.amazonaws.com":                               {"amr": {true, true}, "aud": {true, true}, "email": {false, true}},
 		"graph.facebook.com":                                           {"id": {true, true}, "app_id": {true, true}, "sub": {false, true}},
 		"www.amazon.com":                                               {"user_id": {true, true}, "sub": {true, true}, "aud": {false, true}},
-		"https://oidc.circleci.com/org/<organization_id>": {"oidc.circleci.com/project-id": {true, true}, "aud": {true, true},
+		"https://oidc.circleci.com/org/<organization_id>": {"oidc.circleci.com/project-id": {true, true}, "aud": {false, true},
 			"sub": {false, true}},
 		"https://accounts.google.com": {"google/organization_number": {true, true}, "sub": {true, true}},
 		"https://gitlab.com":          {"sub": {false, false}},
@@ -406,6 +410,74 @@ func TestAWSConditionKeysAreRecordedPerIssuer(t *testing.T) {
 		if mapped, known := gh.AWSMapsConditionKey(key); mapped != want || !known {
 			t.Errorf("GitHub AWSMapsConditionKey(%q) = %v, %v; want %v, true", key, mapped, known, want)
 		}
+	}
+}
+
+// The sub-package carries each condition key with the claim AWS reads it
+// from, so a classifier never takes a key's name for its claim.
+func TestEveryConditionKeyCarriesItsClaim(t *testing.T) {
+	var doc struct {
+		Issuers []struct {
+			Name string            `json:"name"`
+			Keys []json.RawMessage `json:"aws_condition_keys"`
+		} `json:"issuers"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("decode the embedded sub-package: %v", err)
+	}
+	examined := 0
+	for _, e := range doc.Issuers {
+		for _, k := range e.Keys {
+			examined++
+			var c struct {
+				Key   string `json:"key"`
+				Claim string `json:"claim"`
+			}
+			if err := json.Unmarshal(k, &c); err != nil || c.Key == "" || c.Claim == "" {
+				t.Errorf("%s: the condition key %s is carried without the claim AWS reads it from", e.Name, k)
+			}
+		}
+	}
+	if examined != 66 {
+		t.Fatalf("examined %d condition keys; the census records 66 for the issuers whose keys it verified", examined)
+	}
+}
+
+// AWS's tables say which claim each condition key reads, and it is not
+// always the claim of the key's own name. On the Default tab, which GitHub
+// and Google read by, oaud reads aud, and aud reads azp, or aud when the
+// token sets no azp. A reader that took a key's name for its claim would
+// reject a token AWS admits and build a witness AWS refuses.
+func TestAWSReadsEachConditionKeyFromItsClaim(t *testing.T) {
+	defaultAud := ConditionKey{Key: "aud", Claim: "azp", FallbackClaim: "aud"}
+	oaud := ConditionKey{Key: "oaud", Claim: "aud"}
+	for issuer, keys := range map[string]map[string]ConditionKey{
+		github: {"oaud": oaud, "OAUD": oaud, "aud": defaultAud, "sub": {Key: "sub", Claim: "sub"},
+			"repository_owner_id": {Key: "repository_owner_id", Claim: "repository_owner_id"}},
+		"https://accounts.google.com": {"aud": defaultAud,
+			"google/organization_number": {Key: "google/organization_number", Claim: "google:organization_number"}},
+		entra:                            {"aud": defaultAud, "oaud": oaud},
+		"cognito-identity.amazonaws.com": {"aud": {Key: "aud", Claim: "aud"}, "oaud": oaud},
+		"www.amazon.com":                 {"sub": {Key: "sub", Claim: "User ID"}},
+	} {
+		e := find(t, issuer)
+		for key, want := range keys {
+			if got, ok := e.AWSConditionKey(key); !ok || got != want {
+				t.Errorf("%s AWSConditionKey(%q) = %+v, %v; want %+v, true", e.Name, key, got, ok, want)
+			}
+		}
+	}
+	// A key AWS does not document for the issuer, a key AWS shows in an
+	// example but maps to no claim in a table, and any key of an issuer whose
+	// keys are not recorded read no claim at all.
+	for issuer, key := range map[string]string{github: "repository_owner",
+		"https://oidc.circleci.com/org/<organization_id>": "aud", githubEnt: "oaud", "https://gitlab.com": "sub"} {
+		if got, ok := find(t, issuer).AWSConditionKey(key); ok || got != (ConditionKey{}) {
+			t.Errorf("%s AWSConditionKey(%q) = %+v, %v; want nothing", issuer, key, got, ok)
+		}
+	}
+	if got, ok := (Issuer{}).AWSConditionKey("sub"); ok || got != (ConditionKey{}) {
+		t.Errorf("an issuer with no recorded keys reads %+v, %v; want nothing", got, ok)
 	}
 }
 

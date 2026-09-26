@@ -306,7 +306,8 @@ def projection(entry: Mapping[str, Any]) -> dict:
         t["names_unique_regardless_of_case"] = entry["names_unique_regardless_of_case"]["value"]
     ak = entry.get("aws_condition_keys") or {}
     if ak.get("value") == "verified" and ak.get("keys"):
-        t["aws_condition_keys"] = [k["key"] for k in ak["keys"]]
+        t["aws_condition_keys"] = [{part: k[part] for part in ("key", "claim", "fallback_claim") if part in k}
+                                   for k in ak["keys"]]
     ac = entry.get("accounts") or {}
     if ac.get("value") == "verified":
         t["platform"] = ac["platform"]

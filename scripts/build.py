@@ -637,12 +637,14 @@ def check_accounts(c, a, names_owners):
 
 
 def check_aws_condition_keys(c, a, pinned):
-    """The condition keys AWS documents for the issuer, each tied to AWS's
-    text: a key with a claim to the table row that maps it, as the page
-    renders it, and a key AWS shows only in an example policy to the key
-    written out there. A key that names a tenancy claim, or sub where the
-    issuer's subject names a tenant, must carry that claim under its own
-    name, or a pin would read another claim's value."""
+    """The condition keys AWS documents for the issuer, each with the claim
+    AWS reads it from, tied to the table row that maps it as the page renders
+    it. A key AWS writes out in an example policy with no row names no claim,
+    so it is not listed: a reader would have to take the key's name for its
+    claim. A fallback claim, which AWS reads when the token sets no value for
+    the claim, rests on AWS's sentence saying so. A key that names a tenancy
+    claim, or sub where the issuer's subject names a tenant, must carry that
+    claim under its own name, or a pin would read another claim's value."""
     w = 'aws_condition_keys'
     if not c.keys(w, a, {'value', 'basis', 'keys', 'evidence', 'chain', 'context', 'note'}, ['value']):
         return
@@ -670,20 +672,23 @@ def check_aws_condition_keys(c, a, pinned):
     seen = set()
     for i, k in enumerate(keys):
         kw = f"{w}.keys[{i}]"
-        if not c.keys(kw, k, {'key', 'claim'}, ['key']):
+        if not c.keys(kw, k, {'key', 'claim', 'fallback_claim'}, ['key', 'claim']):
             continue
-        c.text(f"{kw}.key", k['key'])
-        if 'claim' in k:
-            c.text(f"{kw}.claim", k['claim'])
+        for part in ('key', 'claim', 'fallback_claim'):
+            if part in k:
+                c.text(f"{kw}.{part}", k[part])
         if k['key'] in seen:
             c.fail(kw, f"{k['key']!r} is listed twice")
         seen.add(k['key'])
-        shown = f"{k['key']} {k['claim']}" if 'claim' in k else f":{k['key']}\""
-        if not any(shown in q for q in quotes):
-            carrying = f" carrying {k['claim']!r}" if 'claim' in k else ""
-            c.fail(kw, f"no quoted row or example shows {k['key']!r}{carrying}")
-        if k['key'] in pinned and k.get('claim') != k['key']:
-            c.fail(kw, f"{k['key']!r} pins a tenant, and AWS carries it under another claim's name or states none")
+        if not any(f"{k['key']} {k['claim']}" in q for q in quotes):
+            c.fail(kw, f"no quoted row shows {k['key']!r} carrying {k['claim']!r}")
+        if 'fallback_claim' in k and not any(
+                f"If no value is set for {k['claim']}, the {k['key']} condition key maps to the "
+                f"{k['fallback_claim']} claim." in q for q in quotes):
+            c.fail(kw, f"no quoted sentence says {k['key']!r} reads {k['fallback_claim']!r} when the token sets no "
+                       f"{k['claim']!r}")
+        if k['key'] in pinned and k['claim'] != k['key']:
+            c.fail(kw, f"{k['key']!r} pins a tenant, and AWS carries it under another claim's name")
 
 
 def check_entry(e):

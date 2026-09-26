@@ -380,7 +380,7 @@ def test_aws_condition_keys_are_recorded_per_issuer():
     for the issuer; a key the census does not record for a recorded issuer is
     known unmapped, and an issuer with no recorded keys is not known."""
     gh = by_name("GitHub Actions")
-    assert ci.tenancy(gh)["aws_condition_keys"] == [
+    assert [k["key"] for k in ci.tenancy(gh)["aws_condition_keys"]] == [
         "amr", "aud", "email", "oaud", "sub", "actor", "actor_id", "job_workflow_ref", "repository", "repository_id",
         "repository_owner_id", "workflow", "ref", "environment", "enterprise_id"]
     for name, keys in {
@@ -388,7 +388,7 @@ def test_aws_condition_keys_are_recorded_per_issuer():
                            "enterprise": (False, True), "workflow_ref": (False, True)},
         "Amazon Cognito identity pools": {"amr": (True, True), "email": (False, True)},
         "Facebook": {"id": (True, True), "sub": (False, True)},
-        "CircleCI": {"oidc.circleci.com/project-id": (True, True), "aud": (True, True), "sub": (False, True)},
+        "CircleCI": {"oidc.circleci.com/project-id": (True, True), "aud": (False, True), "sub": (False, True)},
         "GitLab.com": {"sub": (False, False)},
     }.items():
         for key, want in keys.items():
@@ -403,6 +403,42 @@ def test_aws_condition_keys_are_recorded_per_issuer():
     for c in gh["aws_condition_keys"]["keys"]:
         if c["key"] in {t["claim"] for t in gh["tenancy_claims"]["claims"]} | {"sub"}:
             assert c["claim"] == c["key"], c
+
+
+def test_every_condition_key_carries_its_claim():
+    """The sub-package carries each condition key with the claim AWS reads it
+    from, so a classifier never takes a key's name for its claim."""
+    keys = [(e["name"], k) for e in ci.issuers() for k in ci.tenancy(e).get("aws_condition_keys", [])]
+    for name, k in keys:
+        assert isinstance(k, dict) and k.get("key") and k.get("claim"), (name, k)
+    assert len(keys) == 66, f"examined {len(keys)} condition keys; the census records 66"
+
+
+def test_aws_reads_each_condition_key_from_its_claim():
+    """AWS's tables say which claim each condition key reads, and it is not
+    always the claim of the key's own name. On the Default tab, which GitHub
+    and Google read by, oaud reads aud, and aud reads azp, or aud when the
+    token sets no azp."""
+    default_aud = {"key": "aud", "claim": "azp", "fallback_claim": "aud"}
+    oaud = {"key": "oaud", "claim": "aud"}
+    for name, keys in {
+        "GitHub Actions": {"oaud": oaud, "OAUD": oaud, "aud": default_aud, "sub": {"key": "sub", "claim": "sub"},
+                           "repository_owner_id": {"key": "repository_owner_id", "claim": "repository_owner_id"}},
+        "Google (accounts.google.com)": {"aud": default_aud, "google/organization_number": {
+            "key": "google/organization_number", "claim": "google:organization_number"}},
+        "Microsoft Entra ID": {"aud": default_aud, "oaud": oaud},
+        "Amazon Cognito identity pools": {"aud": {"key": "aud", "claim": "aud"}, "oaud": oaud},
+        "Login with Amazon": {"sub": {"key": "sub", "claim": "User ID"}},
+    }.items():
+        for key, want in keys.items():
+            assert ci.aws_condition_key(by_name(name), key) == want, (name, key)
+    # A key AWS does not document for the issuer, a key AWS shows in an
+    # example but maps to no claim in a table, and any key of an issuer whose
+    # keys are not recorded read no claim at all.
+    for name, key in (("GitHub Actions", "repository_owner"), ("CircleCI", "aud"),
+                      ("GitHub Actions (enterprise issuer path)", "oaud"), ("GitLab.com", "sub")):
+        assert ci.aws_condition_key(by_name(name), key) is None, (name, key)
+    assert ci.aws_condition_key({"name": "x"}, "sub") is None
 
 
 def test_no_aws_sentence_names_the_enterprise_paths_keys():
@@ -673,6 +709,8 @@ def test_go_and_python_agree(n):
             for c in ci.tenancy(entry).get("tenancy_claims", [])} == want["claim_is_recyclable"]
     assert {k: list(ci.aws_maps_condition_key(entry, k)) for k in ANSWERS["probes"]["condition_keys"]} == \
         want["aws_maps_condition_key"]
+    assert {k: ci.aws_condition_key(entry, k) for k in ANSWERS["probes"]["condition_keys"]} == \
+        want["aws_condition_key"]
     chars = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
     assert chars == want["owner_name_may_contain"]
     assert ci.tenancy(entry) == want["tenancy"]

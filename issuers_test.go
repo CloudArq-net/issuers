@@ -662,7 +662,7 @@ var recorded = map[string]struct {
 		"match": 1, "tenant_membership": 4},
 		[]string{"population", "sources"}},
 	"Buildkite": {map[string]int{}, nil},
-	"CircleCI": {map[string]int{"accounts": 1, "anonymous_tokens": 3, "aws_condition_keys": 3, "match": 1,
+	"CircleCI": {map[string]int{"accounts": 1, "anonymous_tokens": 3, "aws_condition_keys": 4, "match": 1,
 		"tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "aws_condition_keys": 4,
@@ -1538,8 +1538,11 @@ type entryAnswer struct {
 	ControlledTenant        map[string][2]bool `json:"controlled_tenant"`
 	// ClaimIsRecyclable is what each tenancy claim's ValueIsRecyclable says.
 	ClaimIsRecyclable map[string][2]bool `json:"claim_is_recyclable"`
-	// AWSMapsConditionKey is what AWSMapsConditionKey says of each probe key.
-	AWSMapsConditionKey map[string][2]bool `json:"aws_maps_condition_key"`
+	// AWSMapsConditionKey is what AWSMapsConditionKey says of each probe key,
+	// and AWSConditionKey the key and claims AWSConditionKey reads for it,
+	// null where it reads none.
+	AWSMapsConditionKey map[string][2]bool               `json:"aws_maps_condition_key"`
+	AWSConditionKey     map[string]*tenancy.ConditionKey `json:"aws_condition_key"`
 	// OwnerNameMayContain holds 1 or 0 for each probe character, in order.
 	OwnerNameMayContain string         `json:"owner_name_may_contain"`
 	Tenancy             tenancy.Issuer `json:"tenancy"`
@@ -1583,8 +1586,8 @@ func goAnswers() answers {
 			"(go test . -run TestGoAndPythonAgree -update) and checked by the Go and the Python tests alike. " +
 			"scripts/build.py copies it to python/tests/answers.json.",
 		Probes: probes{Characters: "/@:-_.%aZ09 é", Tenants: []string{"acme", personalMSA},
-			ConditionKeys: []string{"sub", "aud", "amr", "repository_owner", "repository_owner_id", "id", "user_id",
-				"oidc.circleci.com/project-id", "google/organization_number"}},
+			ConditionKeys: []string{"sub", "aud", "oaud", "OAUD", "amr", "repository_owner", "repository_owner_id", "id",
+				"user_id", "oidc.circleci.com/project-id", "google/organization_number"}},
 	}
 	for _, e := range All() {
 		t := e.Tenancy()
@@ -1594,8 +1597,13 @@ func goAnswers() answers {
 			a.ClaimIsRecyclable[c.Claim] = pair(c.ValueIsRecyclable())
 		}
 		a.AWSMapsConditionKey = map[string][2]bool{}
+		a.AWSConditionKey = map[string]*tenancy.ConditionKey{}
 		for _, k := range out.Probes.ConditionKeys {
 			a.AWSMapsConditionKey[k] = pair(t.AWSMapsConditionKey(k))
+			a.AWSConditionKey[k] = nil
+			if key, ok := t.AWSConditionKey(k); ok {
+				a.AWSConditionKey[k] = &key
+			}
 		}
 		tenants := slices.Clone(out.Probes.Tenants)
 		if got, tenant, ok := Match(a.Instance); ok {

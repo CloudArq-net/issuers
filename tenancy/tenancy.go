@@ -79,10 +79,11 @@ type Issuer struct {
 	// NamesUniqueRegardlessOfCase is "yes" when the vendor documents that two
 	// owners' names never differ only in case.
 	NamesUniqueRegardlessOfCase string `json:"names_unique_regardless_of_case,omitempty"`
-	// AWSConditionKeys are the condition keys AWS documents for the issuer:
-	// a trust policy's condition on <provider>:<key> reads a claim only for
-	// a key listed here. Empty when the census does not record them.
-	AWSConditionKeys []string `json:"aws_condition_keys,omitempty"`
+	// AWSConditionKeys are the condition keys AWS documents for the issuer,
+	// each with the claim AWS reads it from: a trust policy's condition on
+	// <provider>:<key> reads a claim only for a key listed here. Empty when
+	// the census does not record them.
+	AWSConditionKeys []ConditionKey `json:"aws_condition_keys,omitempty"`
 	// Platform is where the issuer's tenants hold their accounts, as a vendor
 	// sentence names it, such as "GitHub": the platform, not the product that
 	// mints the tokens. Empty when no sentence in this release names it.
@@ -119,6 +120,19 @@ func (c Claim) ValueIsRecyclable() (recyclable, known bool) {
 		return true, true
 	}
 	return true, false
+}
+
+// ConditionKey is one condition key AWS documents for an issuer and the
+// claim AWS reads it from, which is not always the claim of the key's own
+// name: on AWS's Default tab oaud reads aud, and aud reads azp, or aud when
+// the token sets no azp. Claims are written as AWS's table writes them,
+// which for Login with Amazon and Facebook is a phrase such as "User ID".
+type ConditionKey struct {
+	Key   string `json:"key"`
+	Claim string `json:"claim"`
+	// FallbackClaim is the claim AWS reads the key from when the token sets
+	// no value for Claim; empty when AWS's table names no other.
+	FallbackClaim string `json:"fallback_claim,omitempty"`
 }
 
 // SubjectForm is one way an issuer spells sub with a tenant at its head.
@@ -199,12 +213,22 @@ func (i Issuer) AWSMapsConditionKey(key string) (mapped, known bool) {
 	if len(i.AWSConditionKeys) == 0 {
 		return false, false
 	}
+	_, mapped = i.AWSConditionKey(key)
+	return mapped, true
+}
+
+// AWSConditionKey is AWS's record of key for the issuer: the claim AWS reads
+// it from, and the one it reads when the token sets no value for that claim.
+// Keys compare without ASCII case, as in AWSMapsConditionKey. ok is false
+// when AWS documents no such key for the issuer, or when the census does not
+// record its keys; AWSMapsConditionKey tells the two apart.
+func (i Issuer) AWSConditionKey(key string) (k ConditionKey, ok bool) {
 	for _, k := range i.AWSConditionKeys {
-		if equalFoldASCII(k, key) {
-			return true, true
+		if equalFoldASCII(k.Key, key) {
+			return k, true
 		}
 	}
-	return false, true
+	return ConditionKey{}, false
 }
 
 // OwnerNameMayContain reports whether r can occur in an owner name. With no

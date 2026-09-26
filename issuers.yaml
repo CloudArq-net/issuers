@@ -220,6 +220,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -472,7 +473,6 @@ issuers:
     keys:
     - key: oidc.circleci.com/project-id
       claim: oidc.circleci.com/project-id
-    - key: aud
     evidence:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'This tab explains how CircleCI maps OIDC claims to AWS STS condition context keys in AWS.'
@@ -484,11 +484,17 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
         is available in session'
+    context:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: '"oidc.circleci.com/org/12345:aud": "sts.amazonaws.com",'
       verified_at: '2026-09-24'
       role: 'AWS''s example trust policy for CircleCI conditions on aud, a key the tab does not list'
-    note: AWS shows no sub key for CircleCI; its example conditions on aud and the project id
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-09-26'
+      role: 'AWS: the Default tab, which reads aud from azp, is for an IdP with no tab, and CircleCI has one'
+    note: AWS shows no sub key for CircleCI. Its example conditions on aud, but no row of CircleCI's tab says
+      which claim AWS reads that key from, so aud is not listed, and a condition on it reads as unread
   research:
     population: the jobs of one organisation, and forked builds only when the owner enables them
     sources:
@@ -1233,6 +1239,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -2291,6 +2298,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -2509,6 +2517,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -2687,6 +2696,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -2873,6 +2883,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -3086,6 +3097,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -3279,6 +3291,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud
@@ -3824,6 +3837,7 @@ issuers:
       claim: amr
     - key: aud
       claim: azp
+      fallback_claim: aud
     - key: email
       claim: email
     - key: oaud

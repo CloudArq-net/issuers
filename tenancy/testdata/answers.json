@@ -9,6 +9,8 @@
   "condition_keys": [
    "sub",
    "aud",
+   "oaud",
+   "OAUD",
    "amr",
    "repository_owner",
    "repository_owner_id",
@@ -55,6 +57,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -69,6 +75,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -92,6 +102,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Bitbucket Pipelines",
@@ -100,11 +139,27 @@
     "tenant_kind": "name",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ],
     "platform": "Bitbucket"
    }
@@ -141,6 +196,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -154,6 +213,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -177,6 +240,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -220,12 +296,16 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     true
+    ],
     "amr": [
      false,
      true
     ],
     "aud": [
-     true,
+     false,
      true
     ],
     "google/organization_number": [
@@ -233,6 +313,10 @@
      true
     ],
     "id": [
+     false,
+     true
+    ],
+    "oaud": [
      false,
      true
     ],
@@ -257,6 +341,22 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": {
+     "key": "oidc.circleci.com/project-id",
+     "claim": "oidc.circleci.com/project-id"
+    },
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "CircleCI",
@@ -266,8 +366,10 @@
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "oidc.circleci.com/project-id",
-     "aud"
+     {
+      "key": "oidc.circleci.com/project-id",
+      "claim": "oidc.circleci.com/project-id"
+     }
     ],
     "platform": "CircleCI"
    }
@@ -301,6 +403,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -314,6 +420,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -337,6 +447,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -376,6 +499,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -389,6 +516,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -412,6 +543,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -451,6 +595,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -464,6 +612,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -487,6 +639,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -547,6 +712,10 @@
     ]
    },
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -561,6 +730,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -583,6 +756,38 @@
      false,
      true
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": {
+     "key": "repository_owner_id",
+     "claim": "repository_owner_id"
+    },
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
    },
    "owner_name_may_contain": "0001100111100",
    "tenancy": {
@@ -702,21 +907,67 @@
      "_"
     ],
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub",
-     "actor",
-     "actor_id",
-     "job_workflow_ref",
-     "repository",
-     "repository_id",
-     "repository_owner_id",
-     "workflow",
-     "ref",
-     "environment",
-     "enterprise_id"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     },
+     {
+      "key": "actor",
+      "claim": "actor"
+     },
+     {
+      "key": "actor_id",
+      "claim": "actor_id"
+     },
+     {
+      "key": "job_workflow_ref",
+      "claim": "job_workflow_ref"
+     },
+     {
+      "key": "repository",
+      "claim": "repository"
+     },
+     {
+      "key": "repository_id",
+      "claim": "repository_id"
+     },
+     {
+      "key": "repository_owner_id",
+      "claim": "repository_owner_id"
+     },
+     {
+      "key": "workflow",
+      "claim": "workflow"
+     },
+     {
+      "key": "ref",
+      "claim": "ref"
+     },
+     {
+      "key": "environment",
+      "claim": "environment"
+     },
+     {
+      "key": "enterprise_id",
+      "claim": "enterprise_id"
+     }
     ],
     "platform": "GitHub",
     "declaration_namespace": "github"
@@ -758,6 +1009,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -771,6 +1026,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -794,6 +1053,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -836,6 +1108,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -849,6 +1125,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -872,6 +1152,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -908,6 +1201,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -921,6 +1218,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -944,6 +1245,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -983,6 +1297,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -996,6 +1314,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1019,6 +1341,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1055,6 +1390,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1068,6 +1407,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1091,6 +1434,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1127,6 +1483,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1140,6 +1500,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1163,6 +1527,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1199,6 +1576,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1212,6 +1593,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1235,6 +1620,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1271,6 +1669,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1284,6 +1686,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1307,6 +1713,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1343,6 +1762,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1356,6 +1779,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1379,6 +1806,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1418,6 +1858,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1431,6 +1875,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1454,6 +1902,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1490,6 +1951,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1503,6 +1968,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1526,6 +1995,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1565,6 +2047,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1578,6 +2064,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1601,6 +2091,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1640,6 +2143,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1653,6 +2160,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1676,6 +2187,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1715,6 +2239,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1728,6 +2256,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1751,6 +2283,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1794,6 +2339,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -1808,6 +2357,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -1831,6 +2384,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Spacelift",
@@ -1839,11 +2421,27 @@
     "tenant_kind": "name",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ]
    }
   },
@@ -1876,6 +2474,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1889,6 +2491,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1912,6 +2518,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -1951,6 +2570,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -1964,6 +2587,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -1987,6 +2614,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -2030,6 +2670,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -2044,6 +2688,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -2067,6 +2715,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon EKS (Kubernetes service account issuer / IRSA)",
@@ -2076,11 +2753,27 @@
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ]
    }
   },
@@ -2120,6 +2813,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -2134,6 +2831,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -2157,6 +2858,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Azure Kubernetes Service (AKS workload identity)",
@@ -2166,11 +2896,27 @@
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ]
    }
   },
@@ -2203,6 +2949,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -2216,6 +2966,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -2239,6 +2993,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -2282,6 +3049,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -2296,6 +3067,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -2319,6 +3094,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Google Kubernetes Engine (GKE)",
@@ -2328,11 +3132,27 @@
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ]
    }
   },
@@ -2365,6 +3185,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -2378,6 +3202,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -2401,6 +3229,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -2440,6 +3281,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -2453,6 +3298,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -2476,6 +3325,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -2512,6 +3374,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -2525,6 +3391,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -2548,6 +3418,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -2584,6 +3467,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -2597,6 +3484,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -2620,6 +3511,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -2663,6 +3567,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -2677,6 +3585,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -2700,6 +3612,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "AWS (outbound identity federation)",
@@ -2709,11 +3650,27 @@
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ]
    }
   },
@@ -2746,6 +3703,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -2759,6 +3720,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -2782,6 +3747,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -2821,6 +3799,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -2835,6 +3817,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -2858,18 +3844,69 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": {
+     "key": "google/organization_number",
+     "claim": "google:organization_number"
+    },
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Google (accounts.google.com)",
     "issuer": "https://accounts.google.com",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub",
-     "google/organization_number"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     },
+     {
+      "key": "google/organization_number",
+      "claim": "google:organization_number"
+     }
     ],
     "platform": "Google"
    }
@@ -2906,6 +3943,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -2920,6 +3961,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -2943,6 +3988,34 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Amazon Cognito identity pools",
@@ -2953,10 +4026,22 @@
      "aud"
     ],
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "aud"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ]
    }
   },
@@ -2992,6 +4077,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     true
+    ],
     "amr": [
      false,
      true
@@ -3005,6 +4094,10 @@
      true
     ],
     "id": [
+     false,
+     true
+    ],
+    "oaud": [
      false,
      true
     ],
@@ -3029,15 +4122,43 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "User ID"
+    },
+    "user_id": {
+     "key": "user_id",
+     "claim": "User ID"
+    }
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Login with Amazon",
     "issuer": "www.amazon.com",
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "app_id",
-     "sub",
-     "user_id"
+     {
+      "key": "app_id",
+      "claim": "Application ID"
+     },
+     {
+      "key": "sub",
+      "claim": "User ID"
+     },
+     {
+      "key": "user_id",
+      "claim": "User ID"
+     }
     ]
    }
   },
@@ -3073,6 +4194,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     true
+    ],
     "amr": [
      false,
      true
@@ -3087,6 +4212,10 @@
     ],
     "id": [
      true,
+     true
+    ],
+    "oaud": [
+     false,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -3110,13 +4239,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": {
+     "key": "id",
+     "claim": "id"
+    },
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Facebook",
     "issuer": "graph.facebook.com",
     "aws_condition_keys": [
-     "app_id",
-     "id"
+     {
+      "key": "app_id",
+      "claim": "Application ID"
+     },
+     {
+      "key": "id",
+      "claim": "id"
+     }
     ]
    }
   },
@@ -3156,6 +4307,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     true,
+     true
+    ],
     "amr": [
      true,
      true
@@ -3170,6 +4325,10 @@
     ],
     "id": [
      false,
+     true
+    ],
+    "oaud": [
+     true,
      true
     ],
     "oidc.circleci.com/project-id": [
@@ -3193,6 +4352,35 @@
      true
     ]
    },
+   "aws_condition_key": {
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
+    "google/organization_number": null,
+    "id": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
+    "user_id": null
+   },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
     "name": "Microsoft Entra ID",
@@ -3205,11 +4393,27 @@
     ],
     "anonymous_tokens": "no",
     "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub"
+     {
+      "key": "amr",
+      "claim": "amr"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
     ]
    }
   },
@@ -3245,6 +4449,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -3258,6 +4466,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -3281,6 +4493,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -3320,6 +4545,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -3333,6 +4562,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -3356,6 +4589,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -3395,6 +4641,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -3408,6 +4658,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -3431,6 +4685,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -3470,6 +4737,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -3483,6 +4754,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -3506,6 +4781,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {
@@ -3545,6 +4833,10 @@
    },
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
+    "OAUD": [
+     false,
+     false
+    ],
     "amr": [
      false,
      false
@@ -3558,6 +4850,10 @@
      false
     ],
     "id": [
+     false,
+     false
+    ],
+    "oaud": [
      false,
      false
     ],
@@ -3581,6 +4877,19 @@
      false,
      false
     ]
+   },
+   "aws_condition_key": {
+    "OAUD": null,
+    "amr": null,
+    "aud": null,
+    "google/organization_number": null,
+    "id": null,
+    "oaud": null,
+    "oidc.circleci.com/project-id": null,
+    "repository_owner": null,
+    "repository_owner_id": null,
+    "sub": null,
+    "user_id": null
    },
    "owner_name_may_contain": "1111111111111",
    "tenancy": {

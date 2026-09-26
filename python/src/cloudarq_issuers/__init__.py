@@ -66,6 +66,7 @@ __all__ = [
     "tenant_is_recyclable",
     "claim_is_recyclable",
     "aws_maps_condition_key",
+    "aws_condition_key",
     "owner_name_may_contain",
     "names_compare_without_case",
     "host_of",
@@ -313,11 +314,27 @@ def aws_maps_condition_key(entry: Mapping[str, Any], key: str) -> Answer:
     the answer beside it is then the cautious one, ``False``: a condition on a
     key not known to be mapped is read as unread, which never pins and never
     narrows."""
-    keys = tenancy(entry).get("aws_condition_keys")
-    if not keys:
+    if not tenancy(entry).get("aws_condition_keys"):
         return Answer(False, False)
+    return Answer(aws_condition_key(entry, key) is not None, True)
+
+
+def aws_condition_key(entry: Mapping[str, Any], key: str) -> Optional[dict]:
+    """AWS's record of ``key`` for this issuer: ``{"key", "claim"}``, with
+    ``"fallback_claim"`` where AWS reads that claim when the token sets no
+    value for ``"claim"``. The claim is not always the key's own name: on
+    AWS's Default tab ``oaud`` reads ``aud``, and ``aud`` reads ``azp``, or
+    ``aud`` when the token sets no ``azp``. It is written as AWS's table
+    writes it, which for Login with Amazon and Facebook is a phrase such as
+    ``"User ID"``. Keys compare without ASCII case, as in
+    ``aws_maps_condition_key``. ``None`` when AWS documents no such key for
+    the issuer, or when the census does not record its keys:
+    ``aws_maps_condition_key`` tells the two apart."""
     folded = _tenancy.lower_ascii(key)
-    return Answer(any(_tenancy.lower_ascii(k) == folded for k in keys), True)
+    for k in tenancy(entry).get("aws_condition_keys", []):
+        if _tenancy.lower_ascii(k["key"]) == folded:
+            return k
+    return None
 
 
 def names_compare_without_case(entry: Mapping[str, Any]) -> Answer:

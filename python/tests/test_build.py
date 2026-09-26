@@ -22,12 +22,14 @@ FACT = {"source": "https://example.com/doc", "quote": "A sentence the vendor wro
         "verified_at": "2026-09-23"}
 OBSERVATION = {"observed": "https://example.com/.well-known/openid-configuration", "method": "curl",
                "at": "2026-09-23T00:12Z", "result": "claims_supported includes x"}
-# AWS's condition-key table as its page renders it, and a key written out in
-# its example policy: what ties each recorded key to the vendor's text.
+# AWS's condition-key table as its page renders it, which ties each recorded
+# key to the claim AWS reads it from, and a key written out in an example
+# policy, which names the key and no claim.
 KEYS_TABLE = {"source": "https://example.com/keys",
-              "quote": "Condition key Claim sub sub Yes owner_id owner_id No renamed other No",
+              "quote": "Condition key Claim sub sub Yes owner_id owner_id No renamed other No aud azp If no value is "
+                       "set for azp, the aud condition key maps to the aud claim. Yes",
               "verified_at": "2026-09-23"}
-KEYS_EXAMPLE = {"source": "https://example.com/keys", "quote": '"token.example.com:aud": "sts.amazonaws.com",',
+KEYS_EXAMPLE = {"source": "https://example.com/keys", "quote": '"token.example.com:email": "a@example.com",',
                 "verified_at": "2026-09-23"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
@@ -79,8 +81,9 @@ def valid_census():
                           "evidence": [fact()]},
              "aws_condition_keys": {"value": "verified", "keys": [{"key": "sub", "claim": "sub"},
                                                                    {"key": "owner_id", "claim": "owner_id"},
-                                                                   {"key": "aud"}],
-                                    "evidence": [KEYS_TABLE, KEYS_EXAMPLE]},
+                                                                   {"key": "aud", "claim": "azp",
+                                                                    "fallback_claim": "aud"}],
+                                    "evidence": [KEYS_TABLE]},
              "research": {"population": "anyone with an account", "nested": {"read": fact()},
                           "live": {"observed": observation()}}},
             {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenancy_model": "per_tenant_host",
@@ -159,7 +162,8 @@ def test_the_sub_package_carries_only_what_is_settled(tmp_path):
          "subject_forms": [{"leading_literal": "org:", "owner_parts": [{"kind": "name", "delimiter_after": ":"}]}],
          "never_pin": ["job:"],
          "owner_name_characters": ["a-z", "-"], "platform": "Example", "declaration_namespace": "example",
-         "aws_condition_keys": ["sub", "owner_id", "aud"]},
+         "aws_condition_keys": [{"key": "sub", "claim": "sub"}, {"key": "owner_id", "claim": "owner_id"},
+                                {"key": "aud", "claim": "azp", "fallback_claim": "aud"}]},
         {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenant_placeholder": "<tenant>",
          "tenant_kind": "name", "tenant_membership": "controlled"},
         {"name": "Unresearched", "issuer": "https://other.example.net"},
@@ -280,11 +284,16 @@ REFUSALS = {
     "a character set with nothing behind it": (drop(f"{SHARED}.owner_charset", "evidence"), "non-empty list of facts"),
     "a platform with nothing behind it": (drop(f"{SHARED}.accounts", "evidence"), "non-empty list of facts"),
     "a condition key no row shows": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
-        {"key": "extra", "claim": "extra"}), "no quoted row or example shows 'extra'"),
+        {"key": "extra", "claim": "extra"}), "no quoted row shows 'extra' carrying 'extra'"),
     "a condition key with a claim no row gives it": (put(f"{SHARED}.aws_condition_keys.keys.0", "claim", "subject"),
-                                                    "no quoted row or example shows 'sub'"),
-    "a condition key no example writes out": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
-        {"key": "email"}), "no quoted row or example shows 'email'"),
+                                                    "no quoted row shows 'sub' carrying 'subject'"),
+    "a condition key recorded without its claim, although an example writes it out": (
+        lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append({"key": "email"})
+        or at(doc, f"{SHARED}.aws_condition_keys.evidence").append(KEYS_EXAMPLE), "missing 'claim'"),
+    "a fallback claim no sentence gives": (put(f"{SHARED}.aws_condition_keys.keys.0", "fallback_claim", "owner_id"),
+                                           "no quoted sentence says 'sub' reads 'owner_id'"),
+    "a fallback claim no sentence gives this key": (put(f"{SHARED}.aws_condition_keys.keys.2", "fallback_claim",
+                                                        "email"), "no quoted sentence says 'aud' reads 'email'"),
     "a condition key listed twice": (lambda doc: at(doc, f"{SHARED}.aws_condition_keys.keys").append(
         {"key": "sub", "claim": "sub"}), "listed twice"),
     "a tenancy claim AWS carries under another claim's name": (
