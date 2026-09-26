@@ -1567,44 +1567,12 @@ issuers:
     - 'derived, not tested: after a slug change, a customer who takes the old slug and turns the path on
       receives tokens whose iss is the old path, so a trust that still names the old path can admit them.'
   aws_condition_keys:
-    value: verified
-    basis: chain
-    keys:
-    - key: amr
-      claim: amr
-    - key: aud
-      claim: azp
-    - key: email
-      claim: email
-    - key: oaud
-      claim: aud
-    - key: sub
-      claim: sub
-    - key: actor
-      claim: actor
-    - key: actor_id
-      claim: actor_id
-    - key: job_workflow_ref
-      claim: job_workflow_ref
-    - key: repository
-      claim: repository
-    - key: repository_id
-      claim: repository_id
-    - key: repository_owner_id
-      claim: repository_owner_id
-    - key: workflow
-      claim: workflow
-    - key: ref
-      claim: ref
-    - key: environment
-      claim: environment
-    - key: enterprise_id
-      claim: enterprise_id
-    chain:
+    value: unverified
+    context:
     - source: https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc
       quote: 'After this setting is applied, the JWT will contain the updated `iss` value.'
       verified_at: '2026-09-24'
-      role: 'GitHub: the enterprise''s tokens are GitHub Actions'' tokens with another iss'
+      role: 'GitHub: once an enterprise sets the path, its tokens carry another iss'
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
       quote: 'GitHub Actions workflows and Google are some examples of IdPs that use the default
         implementation in their OIDC JWT ID token.'
@@ -1628,9 +1596,15 @@ issuers:
       verified_at: '2026-09-24'
       role: 'the tab''s table as the page renders it: each condition key, the claim it carries, and whether it
         is available in session'
-    note: no AWS sentence names the enterprise path; its tokens are GitHub Actions', so AWS's keys for GitHub
-      Actions apply, and a condition on repository_owner, enterprise or workflow_ref tests a key AWS does not
-      document
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Define condition keys using the name of the OIDC provider (token.actions.githubusercontent.com)
+        followed by a claim (:aud): token.actions.githubusercontent.com:aud.'
+      verified_at: '2026-09-26'
+      role: 'AWS: a condition key is named by the provider; every GitHub key the page writes out names
+        token.actions.githubusercontent.com, and none a path under it'
+    note: AWS names a condition key by the provider, and no AWS sentence names a provider at the enterprise
+      path, so which keys AWS reads for this issuer's tokens is not established; GitHub's sentence says the
+      tokens carry another iss, not that AWS reads them by GitHub's tab
   research:
     population: the repositories of the enterprise that set the path
     sources:

@@ -671,7 +671,7 @@ var recorded = map[string]struct {
 		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
 			"population_evidence", "sources"}},
 	"GitHub Actions (enterprise issuer path)": {map[string]int{"accounts": 1, "anonymous_tokens": 7,
-		"aws_condition_keys": 5, "match": 7, "tenant_membership": 1},
+		"aws_condition_keys": 6, "match": 7, "tenant_membership": 1},
 		[]string{"population", "sources"}},
 	"GitLab.com":                      {map[string]int{}, nil},
 	"HCP Terraform (Terraform Cloud)": {map[string]int{}, nil},
@@ -1202,6 +1202,35 @@ func TestAClusterIsControlledOnAChain(t *testing.T) {
 		}
 		if !administered {
 			t.Errorf("%s: no link from %s says the cluster's owner administers its authorization", name, owner.docs)
+		}
+	}
+}
+
+// AWS names a condition key by the provider, and its GitHub tab, like every
+// example it gives, uses token.actions.githubusercontent.com. No AWS sentence
+// names a provider at an enterprise's path, so which keys AWS reads for that
+// issuer's tokens is not established. A list that read as mapped would let a
+// condition on a key AWS may not read pin a tenant; unverified, a condition
+// on any of its keys reads as unread. What was read stays beside the value.
+func TestNoAWSSentenceNamesTheEnterprisePathsKeys(t *testing.T) {
+	ent := byName(t, "GitHub Actions (enterprise issuer path)", "")
+	k := ent.AWSConditionKeys
+	if k.Value != "unverified" || k.Basis != "" || len(k.Keys) != 0 || len(k.Evidence) != 0 || len(k.Chain) != 0 {
+		t.Errorf("the enterprise path's AWS condition keys read %q, basis %q, with %d keys, %d facts of evidence and %d links",
+			k.Value, k.Basis, len(k.Keys), len(k.Evidence), len(k.Chain))
+	}
+	for _, key := range []string{"sub", "aud", "oaud", "repository_owner_id", "enterprise_id"} {
+		if mapped, known := ent.Tenancy().AWSMapsConditionKey(key); mapped || known {
+			t.Errorf("the enterprise path maps %q: %v, known %v; no AWS sentence says it does", key, mapped, known)
+		}
+	}
+	read := quotes(k.Context...)
+	for _, s := range []string{
+		"After this setting is applied, the JWT will contain the updated `iss` value.",
+		"Define condition keys using the name of the OIDC provider (token.actions.githubusercontent.com) followed by a claim (:aud): token.actions.githubusercontent.com:aud.",
+	} {
+		if !strings.Contains(read, s) {
+			t.Errorf("the enterprise path's AWS condition keys do not keep what was read beside them: %q", s)
 		}
 	}
 }

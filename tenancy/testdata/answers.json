@@ -759,40 +759,40 @@
    "claim_is_recyclable": {},
    "aws_maps_condition_key": {
     "amr": [
-     true,
-     true
+     false,
+     false
     ],
     "aud": [
-     true,
-     true
+     false,
+     false
     ],
     "google/organization_number": [
      false,
-     true
+     false
     ],
     "id": [
      false,
-     true
+     false
     ],
     "oidc.circleci.com/project-id": [
      false,
-     true
+     false
     ],
     "repository_owner": [
      false,
-     true
+     false
     ],
     "repository_owner_id": [
-     true,
-     true
+     false,
+     false
     ],
     "sub": [
-     true,
-     true
+     false,
+     false
     ],
     "user_id": [
      false,
-     true
+     false
     ]
    },
    "owner_name_may_contain": "1111111111111",
@@ -804,23 +804,6 @@
     "tenant_recyclable": "yes",
     "tenant_membership": "controlled",
     "anonymous_tokens": "no",
-    "aws_condition_keys": [
-     "amr",
-     "aud",
-     "email",
-     "oaud",
-     "sub",
-     "actor",
-     "actor_id",
-     "job_workflow_ref",
-     "repository",
-     "repository_id",
-     "repository_owner_id",
-     "workflow",
-     "ref",
-     "environment",
-     "enterprise_id"
-    ],
     "platform": "GitHub"
    }
   },

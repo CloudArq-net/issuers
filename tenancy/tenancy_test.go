@@ -379,7 +379,7 @@ func TestAWSConditionKeysAreRecordedPerIssuer(t *testing.T) {
 	for issuer, keys := range map[string]map[string][2]bool{
 		github: {"sub": {true, true}, "aud": {true, true}, "repository_owner_id": {true, true}, "enterprise_id": {true, true},
 			"repository_owner": {false, true}, "enterprise": {false, true}, "workflow_ref": {false, true}},
-		githubEnt: {"sub": {true, true}, "repository_owner": {false, true}},
+		githubEnt: {"sub": {false, false}, "repository_owner": {false, false}},
 		"https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>": {"sub": {true, true}, "repository_owner_id": {false, true}},
 		"cognito-identity.amazonaws.com":                               {"amr": {true, true}, "aud": {true, true}, "email": {false, true}},
 		"graph.facebook.com":                                           {"id": {true, true}, "app_id": {true, true}, "sub": {false, true}},

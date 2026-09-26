@@ -405,6 +405,24 @@ def test_aws_condition_keys_are_recorded_per_issuer():
             assert c["claim"] == c["key"], c
 
 
+def test_no_aws_sentence_names_the_enterprise_paths_keys():
+    """AWS names a condition key by the provider, and its GitHub tab, like
+    every example it gives, uses token.actions.githubusercontent.com. No AWS
+    sentence names a provider at an enterprise's path, so a condition on any
+    key of that issuer reads as unread; what was read stays beside it."""
+    ent = by_key(GITHUB_ENTERPRISE)
+    keys = ent["aws_condition_keys"]
+    assert keys["value"] == "unverified"
+    assert not {"basis", "keys", "evidence", "chain"} & keys.keys(), keys.keys()
+    assert "aws_condition_keys" not in ci.tenancy(ent)
+    for key in ("sub", "aud", "oaud", "repository_owner_id", "enterprise_id"):
+        assert ci.aws_maps_condition_key(ent, key) == (False, False), key
+    read = "\n".join(f["quote"] for f in keys["context"])
+    assert "After this setting is applied, the JWT will contain the updated `iss` value." in read
+    assert ("Define condition keys using the name of the OIDC provider (token.actions.githubusercontent.com) "
+            "followed by a claim (:aud): token.actions.githubusercontent.com:aud.") in read
+
+
 def test_the_platform_and_the_declaration_namespace_are_data():
     """Where an issuer's tenants hold their accounts, and where a consumer
     declares its owners, are census facts: GitHub's owners alone are declared
