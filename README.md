@@ -277,10 +277,10 @@ several, known := eks.Tenancy().ClaimIsMultiValued("aud")
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
 instead. It carries the values a classifier reads and none of the sentences: 7,905 bytes of
-data (`tenancy/tenancy.json`) against the root package's 236,293 (`issuers.json`). A small
+data (`tenancy/tenancy.json`) against the root package's 236,280 (`issuers.json`). A small
 program that matches the issuer given on its command line and prints the entry's name, built
 with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,538,542 bytes through
-`tenancy` and 4,806,110 through the root package: 267,568 bytes smaller, and 47,923 smaller
+`tenancy` and 4,806,096 through the root package: 267,554 bytes smaller, and 47,891 smaller
 after `gzip -9`. None of the census's quoted sentences is in the smaller one.
 `scripts/build.py` writes the sub-package's data from the same YAML, and CI fails when it is
 out of step.
@@ -344,10 +344,10 @@ $ python3 scripts/build.py
 issuers.json: 44 entries, 17 researched in this release; tenancy/tenancy.json: 29 entries an issuer can match
 $ git status --porcelain            # empty: the committed files are what the YAML builds
 $ go vet ./... && go test ./... -count=1
-ok  	github.com/CloudArq-net/issuers	0.108s
-ok  	github.com/CloudArq-net/issuers/tenancy	0.009s
+ok  	github.com/CloudArq-net/issuers	0.114s
+ok  	github.com/CloudArq-net/issuers/tenancy	0.010s
 $ cd python && PYTHONPATH=src python3 -m pytest tests -q
-384 passed in 11.33s
+384 passed in 11.22s
 ```
 
 The Python checks need `pyyaml` and `pytest`; CI installs them, and every dependency, from

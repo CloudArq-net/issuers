@@ -368,8 +368,8 @@ issuers:
   vendor_example_verdict: unverified
   vendor_example_note: 'No AWS trust policy example was found on the OIDC overview page as fetched, and
     no vendor AWS example was located to quote, so no verdict is recorded.'
-  self_hosted_variant: 'unverified: no Buildkite sentence read says which issuer signs the tokens of a
-    self-hosted agent. The agent requests them, and the discovery document names one issuer,
+  self_hosted_variant: 'unverified: no Buildkite sentence read says which issuer signs the tokens a
+    self-hosted buildkite-agent requests. The discovery document names one issuer,
     https://agent.buildkite.com.'
   docs_url: https://buildkite.com/docs/agent/v3/cli-oidc
   verified_at: '2026-09-13'
