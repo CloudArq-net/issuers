@@ -100,9 +100,11 @@ the page, the sentence verbatim, and the date it was read.
 
 ## `unverified` never means absent
 
-Sixteen entries were fetched live against the public `.well-known` endpoint on the census
-date. Everything else says `unverified` — nobody confirmed it, which is a different claim
-from *"there is nothing there"*. No field is inferred from another field.
+Sixteen entries were fetched live against the public `.well-known` endpoint, each on the
+date in its `verified_at`. Everything else says `unverified` — nobody confirmed it, which is
+a different claim from *"there is nothing there"*. No field is inferred from another field,
+and where an older value rests on a vendor's example rather than a sentence, its note says
+so.
 
 In a tenancy field, `unverified` means exactly that no vendor sentence establishes the value
 in this release, whatever the reason, and every reader answers it the cautious way: an issuer
@@ -188,7 +190,8 @@ the pull request. Anything else is `unverified`, and that is a perfectly good st
 entry to be in. A tenancy value other than `unverified` needs the vendor's sentence behind it.
 Issues are welcome, and pull requests are accepted under Apache-2.0.
 
-A value that could make a consumer trust more than it should can be reported privately to
+A value that could make a consumer trust more than it should can be reported privately,
+through GitHub's private vulnerability reporting on the repository or to
 support@cloudarq.net.
 
 ## Licence

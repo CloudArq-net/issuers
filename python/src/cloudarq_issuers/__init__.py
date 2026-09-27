@@ -4,8 +4,8 @@ No dependencies, no network calls. The data is a snapshot taken on
 ``CENSUS_DATE``; it is not a live view. Facts added later carry their own
 ``verified_at``.
 
-Four fields are not published anywhere else, and three of them exist because the
-obvious reading of the data is wrong:
+Four fields carry most of the weight, and three of them exist because the obvious
+reading of the data is wrong:
 
 ``aud_controlled_by``
     Who picks the ``aud`` value. When it is ``"workload"``, ``aud`` is not a

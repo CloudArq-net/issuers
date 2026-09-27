@@ -6,8 +6,8 @@
 // It has no dependencies and makes no network calls. The data is embedded at
 // build time and is a snapshot, not a live view; see the census date.
 //
-// Four fields are not published anywhere else, and three of them exist because
-// the obvious reading of the data is wrong:
+// Four fields carry most of the weight, and three of them exist because the
+// obvious reading of the data is wrong:
 //
 //   - AudControlledBy names who picks the `aud` value. When it is "workload",
 //     `aud` is not a boundary: anyone who can run a job on that platform can

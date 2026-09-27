@@ -209,9 +209,11 @@ needs one.
 
 ## `unverified` never means absent
 
-16 entries were fetched live with `curl` against the public `.well-known` endpoint on the
-census date. Everything else says `unverified` — nobody confirmed it, which is a
-different claim from "there is nothing there". No field is inferred from another field.
+16 entries were fetched live with `curl` against the public `.well-known` endpoint, each on
+the date in its `verified_at`. Everything else says `unverified` — nobody confirmed it,
+which is a different claim from "there is nothing there". No field is inferred from another
+field, and where an older value rests on a vendor's example rather than a sentence, its note
+says so.
 
 The API keeps that distinction. `audience_is_boundary` returns `None`, not `False`, for
 anything unconfirmed, because a caller that reads an unknown as a boundary has widened
@@ -275,10 +277,11 @@ several, known := eks.Tenancy().ClaimIsMultiValued("aud")
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
 instead. It carries the values a classifier reads and none of the sentences: 7,905 bytes of
-data against the root package's 218,202. Built with go1.27.1 for `js/wasm` with `-trimpath`,
-a small program that matches the issuer given on its command line through `tenancy` and
-prints the entry's name came out 248,789 bytes smaller (45,437 after `gzip -9`) than the
-same program through the root package, and none of the census's quoted sentences is in it.
+data (`tenancy/tenancy.json`) against the root package's 236,293 (`issuers.json`). A small
+program that matches the issuer given on its command line and prints the entry's name, built
+with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,538,542 bytes through
+`tenancy` and 4,806,110 through the root package: 267,568 bytes smaller, and 47,923 smaller
+after `gzip -9`. None of the census's quoted sentences is in the smaller one.
 `scripts/build.py` writes the sub-package's data from the same YAML, and CI fails when it is
 out of step.
 
@@ -341,20 +344,22 @@ $ python3 scripts/build.py
 issuers.json: 44 entries, 17 researched in this release; tenancy/tenancy.json: 29 entries an issuer can match
 $ git status --porcelain            # empty: the committed files are what the YAML builds
 $ go vet ./... && go test ./... -count=1
-ok  	github.com/CloudArq-net/issuers	0.116s
-ok  	github.com/CloudArq-net/issuers/tenancy	0.010s
+ok  	github.com/CloudArq-net/issuers	0.108s
+ok  	github.com/CloudArq-net/issuers/tenancy	0.009s
 $ cd python && PYTHONPATH=src python3 -m pytest tests -q
-379 passed in 13.23s
+384 passed in 11.33s
 ```
 
-The Python checks need `pyyaml` and `pytest` (CI pins `pyyaml==6.0.3` and `pytest==9.1.1`);
-the Go module needs Go 1.24 or later.
+The Python checks need `pyyaml` and `pytest`; CI installs them, and every dependency, from
+`.github/requirements.txt`, pinned to their hashes. The Go module needs Go 1.24 or later.
 
 ## Maintenance
 
 A scheduled job (`make drift`, daily in `.github/workflows/drift.yml`) re-fetches each
-discovery document the census records as fetched at a fixed URL, and its JWKS, and opens an
-issue when one has moved; it never edits the census. A run on 2026-09-27:
+discovery document the census records as fetched at a fixed URL, and the JWKS the census
+records beside it, and opens an issue when one has moved; a `jwks_uri` the live document
+names in place of the recorded one is reported and not fetched. It never edits the census. A
+run on 2026-09-27:
 
 ```
 $ python3 scripts/drift.py
@@ -389,12 +394,14 @@ carries `evidence`. `scripts/build.py` refuses a fact with no
 source or no quote, a value that rests on an observation alone, a date no calendar has, a
 key given twice, and a value outside its field's vocabulary.
 
-Public metadata only. Nothing in this repository authenticates anywhere, probes anyone's
-infrastructure, or enumerates tenant names.
+Public metadata only. The code in this repository fetches only the public discovery URLs the
+census records, and authenticates nowhere. The control tests recorded in the data were run by
+hand against public, unauthenticated endpoints with made-up tenant IDs; where a real tenant was
+fetched beside them, its note says so, and no tenant names were enumerated.
 
 A value that could make a consumer trust more than it should — an audience recorded as a
 boundary when the workload picks it, a tenant recorded as controlled when anyone can join
-it — can be reported privately to support@cloudarq.net before it is an issue.
+it — can be reported privately before it is an issue; [SECURITY.md](SECURITY.md) says how.
 
 ## Licence
 
