@@ -123,6 +123,14 @@ type Issuer struct {
 	Notes             string         `json:"notes,omitempty"`
 	Source            string         `json:"source,omitempty"`
 
+	// Evidence holds, for an entry that carries it, the facts behind each
+	// field above that the entry states, keyed by the field's JSON name. Such
+	// an entry carries them for every value it states; a field it leaves
+	// unverified has none. What a live endpoint returned (the control test,
+	// the discovery and JWKS statuses, a known defect) may rest on an
+	// observation; every other value rests on a vendor's sentence.
+	Evidence map[string][]Fact `json:"evidence,omitempty"`
+
 	// Researched is "in_release" when this release read the entry's tenancy
 	// facts from its vendor, and "not_in_this_release" when it did not, in
 	// which case every tenancy field below is unverified.

@@ -591,3 +591,75 @@ def test_several_entries_may_share_a_host(tmp_path):
     assert status == 0, err
     sub = json.loads((tree / "tenancy" / "tenancy.json").read_text(encoding="utf-8"))
     assert [e["issuer"] for e in sub["issuers"]][-1] == "https://token.example.com/<org>"
+
+
+# An entry older than the tenancy fields may carry, under evidence, the
+# sentences behind each value it states, keyed by the field. An entry that does
+# gives them for every value it states, since a value with none is unverified.
+# A control test and the statuses of the documents are what was observed, so an
+# observation may stand behind them; no other value rests on one.
+SOURCED = "issuers.4"
+
+
+def sourced_census():
+    doc = valid_census()
+    doc["issuers"].append({
+        "name": "Sourced", "category": "ci", "issuer": "https://sourced.example.com", "tenancy_model": "shared",
+        "tenancy_claim": "org_id", "discovery_status": "unverified", "jwks_status": "unverified",
+        "control_test": "a made-up org returned HTTP 404", "control_test_result": "passed",
+        "sub_grammar": {"default": "org:<org>"}, "aud_controlled_by": "workload",
+        "vendor_example_verdict": "unverified", "docs_url": "https://example.com/doc", "verified_at": "2026-09-27",
+        "tenancy_projected_into_sub": True,
+        "evidence": {"issuer": [fact()], "tenancy_model": [fact()], "tenancy_claim": [fact()],
+                     "control_test": [observation()], "control_test_result": [observation()],
+                     "sub_grammar": [fact(), fact()], "aud_controlled_by": [fact()],
+                     "tenancy_projected_into_sub": [fact()]}})
+    return doc
+
+
+def test_an_entry_may_carry_the_evidence_for_each_value(tmp_path):
+    """The census carries the evidence of every field it writes. A field only
+    the YAML holds keeps its evidence there."""
+    status, err, tree = build(tmp_path, sourced_census())
+    assert status == 0, err
+    entry = json.loads((tree / "issuers.json").read_text(encoding="utf-8"))["issuers"][4]
+    assert entry["name"] == "Sourced"
+    assert entry["evidence"] == {
+        "issuer": [FACT], "tenancy_model": [FACT], "tenancy_claim": [FACT], "control_test": [OBSERVATION],
+        "control_test_result": [OBSERVATION], "sub_grammar": [FACT, FACT], "aud_controlled_by": [FACT]}
+    assert "tenancy_projected_into_sub" not in entry
+
+
+EVIDENCE_REFUSALS = {
+    "evidence for a value the entry does not state": (put(f"{SOURCED}.evidence", "jwks_uri", [fact()]),
+                                                      "evidence for 'jwks_uri', which is not a value the entry states"),
+    "evidence for the evidence": (put(f"{SOURCED}.evidence", "evidence", [fact()]),
+                                  "evidence for 'evidence', which is not a value the entry states"),
+    "a value stated with no evidence beside the evidence for others": (
+        drop(f"{SOURCED}.evidence", "tenancy_claim"), "tenancy_claim: stated with no evidence"),
+    "a value only the YAML holds, stated with no evidence": (
+        drop(f"{SOURCED}.evidence", "tenancy_projected_into_sub"), "tenancy_projected_into_sub: stated with no evidence"),
+    "evidence behind an unverified value": (put(SOURCED, "aud_controlled_by", "unverified"),
+                                            "aud_controlled_by: an unverified value carries evidence"),
+    "an observation behind a value a vendor documents": (put(f"{SOURCED}.evidence", "issuer", [OBSERVATION]),
+                                                         SETTLES_NOTHING),
+    "a fact with no quote in an entry's evidence": (drop(f"{SOURCED}.evidence.issuer.0", "quote"),
+                                                    "a fact needs its quote"),
+    "a fact with no page in an entry's evidence": (drop(f"{SOURCED}.evidence.sub_grammar.1", "source"),
+                                                   "a fact needs its source"),
+    "an empty list of evidence": (put(f"{SOURCED}.evidence", "issuer", []), "must be a non-empty list of facts"),
+    "evidence not keyed by field": (put(SOURCED, "evidence", [fact()]), "evidence: must be a mapping"),
+    "a survey named as the source beside the evidence": (put(SOURCED, "source", "a survey"),
+                                                          "source: an entry with evidence names each value's page there"),
+}
+
+
+@pytest.mark.parametrize("name", EVIDENCE_REFUSALS)
+def test_the_build_refuses_evidence(tmp_path, name):
+    change, message = EVIDENCE_REFUSALS[name]
+    doc = copy.deepcopy(sourced_census())
+    change(doc)
+    status, err, tree = build(tmp_path, doc)
+    assert status == 1 and message in err, f"{name}: exit {status}\n{err}"
+    assert "Traceback" not in err, f"{name}: the build crashed rather than refusing\n{err}"
+    assert not (tree / "issuers.json").exists(), f"{name}: the build wrote a census it refused"

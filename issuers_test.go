@@ -1899,3 +1899,27 @@ func mustRead(t *testing.T, path string) []byte {
 	}
 	return b
 }
+
+// An entry's evidence reaches a Go caller keyed by the field it supports, so a
+// value read through the package can be checked against its sentences.
+func TestAnEntrysEvidenceReachesGo(t *testing.T) {
+	in := `{"name":"x","issuer":"https://x.example.com","evidence":{"issuer":[` +
+		`{"source":"https://example.com/doc","quote":"The issuer is https://x.example.com.","verified_at":"2026-09-27"}]}}`
+	var e Issuer
+	if err := json.Unmarshal([]byte(in), &e); err != nil {
+		t.Fatal(err)
+	}
+	out, err := json.Marshal(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back struct {
+		Evidence map[string][]map[string]string `json:"evidence"`
+	}
+	if err := json.Unmarshal(out, &back); err != nil {
+		t.Fatal(err)
+	}
+	if fs := back.Evidence["issuer"]; len(fs) != 1 || fs[0]["quote"] != "The issuer is https://x.example.com." {
+		t.Errorf("the issuer's evidence did not survive the Go type: %s", out)
+	}
+}

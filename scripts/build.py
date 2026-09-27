@@ -11,7 +11,9 @@ refuses a census that breaks that: a fact with no source or no quote, a value
 settled by an observation rather than a sentence, a value outside its
 vocabulary, a settled value with nothing behind it, a key given twice, or two
 entries one issuer could match with nothing to choose between them. An entry
-this release did not research is written with every tenancy field unverified.
+that carries evidence for its older fields carries it for every value it
+states. An entry this release did not research is written with every tenancy
+field unverified.
 
 It reads and writes UTF-8 whatever the machine's locale, and writes the files
 below; CI fails when running it changes any of them:
@@ -769,6 +771,44 @@ def check_multi_valued_claims(c, m, one_valued):
             c.fail(cw, f"{x['claim']!r} is a tenancy claim whose sentence describes one value")
 
 
+# The fields an entry's evidence need not cover: what names and files the
+# entry, and the date its values were read, which their facts carry again.
+UNSOURCED = {'name', 'vendor', 'category', 'docs_url', 'verified_at'}
+# The values that record what a live endpoint returned. An observation is what
+# they are, so one may stand behind them; every other value needs a sentence.
+OBSERVED = {'control_test', 'control_test_result', 'discovery_status', 'jwks_status', 'known_defect',
+            'claims_advertised', 'claims_advertised_fetched_at'}
+
+
+def is_stated(value):
+    """Whether an entry's field says something: not unverified, and not empty."""
+    return value != 'unverified' and value not in (None, '', [], {})
+
+
+def check_evidence(c, e):
+    """The sentences behind each value an entry older than the tenancy fields
+    states, keyed by the field. An entry that carries them carries them for
+    every value it states, as the tenancy fields do, and names no survey in
+    source: a value with no sentence behind it is written unverified."""
+    ev = e['evidence']
+    if not isinstance(ev, dict):
+        c.fail('evidence', f"must be a mapping of fields to facts, not {type(ev).__name__}")
+        return
+    values = {k for k in e if k not in {'evidence', 'researched', 'research', *TENANCY_FIELDS}}
+    for field, facts in ev.items():
+        if field not in values:
+            c.fail('evidence', f"evidence for {field!r}, which is not a value the entry states")
+            continue
+        if not is_stated(e[field]):
+            c.fail(field, "an unverified value carries evidence; what was read goes in notes")
+        c.facts(f"evidence.{field}", facts, required=True, settles=field not in OBSERVED)
+    for field in sorted(values - UNSOURCED - {'source'} - ev.keys()):
+        if is_stated(e[field]):
+            c.fail(field, "stated with no evidence; a value no sentence supports is written unverified")
+    if 'source' in e:
+        c.fail('source', "an entry with evidence names each value's page there, not a survey here")
+
+
 def check_entry(e):
     """Everything wrong with one entry of the YAML."""
     if not isinstance(e, dict):
@@ -796,6 +836,8 @@ def check_entry(e):
                 c.fail(field, problem)
     for where, value in misspelt_unverified(e, 'entry'):
         c.fail(where.removeprefix('entry.'), f"{value!r} is spelled unverified; the census writes it in lower case")
+    if 'evidence' in e:
+        check_evidence(c, e)
     if c.errors:
         return c.errors
 
@@ -864,6 +906,9 @@ def render(e):
     `researched` and every tenancy field written out, unverified where the YAML
     holds none."""
     out = {k: clean(e[k]) for k in KEEP if k in e and e[k] not in (None, '')}
+    # A field only the YAML holds keeps its evidence there.
+    if 'evidence' in e:
+        out['evidence'] = {k: clean(v) for k, v in e['evidence'].items() if k in out}
     out['researched'] = e.get('researched', 'not_in_this_release')
     for field in TENANCY_FIELDS:
         out[field] = clean(e[field]) if field in e else {'value': 'unverified'}
