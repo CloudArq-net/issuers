@@ -1,7 +1,7 @@
 name: drift
 
 # Issuers move under you. A census nobody re-checks is a snapshot that quietly
-# becomes wrong, which is exactly what happened to the last public one.
+# becomes wrong.
 on:
   schedule:
     - cron: '23 6 * * *'   # minute offset on purpose; do not tidy it to 0

@@ -3,8 +3,7 @@
 
 Issuers change under you. Azure DevOps's vstoken issuer retires 2027-07-01; AWS
 became an issuer in its own right during 2026. A census nobody re-checks is a
-snapshot that quietly becomes wrong, which is what happened to the last public
-one.
+snapshot that quietly becomes wrong.
 
 Exits 1 when anything drifted, so a scheduled job can open an issue.
 

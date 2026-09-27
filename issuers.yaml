@@ -7,7 +7,7 @@
 # Apache-2.0. Machine-readable on purpose -- this file is meant to be depended on, not
 # cited. If you maintain a scanner and want these entries, take them.
 #
-# Four fields appear in no other public catalogue and carry most of the weight:
+# Four fields carry most of the weight:
 #
 #   aud_controlled_by       who picks the `aud` value. If it is `workload`, then `aud`
 #                           is NOT a boundary: anyone who can run a job on that platform

@@ -1496,8 +1496,9 @@ func quotes(fs ...Fact) string {
 	return b.String()
 }
 
-// What the facts QA found, each value put back on a sentence that says it,
-// or written unverified where no sentence in this release does.
+// Values whose first sentences said something else than the value claimed:
+// each now rests on a sentence that says it, or reads unverified where no
+// sentence in this release does.
 func TestEachValueRestsOnASentenceThatSaysIt(t *testing.T) {
 	for name, why := range map[string]string{
 		"Spacelift":           "who can cause a run in an account",
