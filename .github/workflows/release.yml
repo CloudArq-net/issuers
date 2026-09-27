@@ -1,10 +1,13 @@
 name: release
 
-# Publishes the Python package to PyPI when a v* tag is pushed. PyPI trusts this
-# workflow in the pypi environment by trusted publishing, so no token is stored
+# Publishes the Python package to PyPI when a v* tag is pushed, by trusted
+# publishing: PyPI accepts the upload when its project settings name this
+# repository, this workflow and the pypi environment, so no token is stored
 # anywhere, and the upload carries PEP 740 attestations signed with the same
-# identity. The pypi environment asks for a maintainer's approval and deploys
-# from v* tags only; those rules are the repository's settings, not this file's.
+# identity. A maintainer's approval and a v* deployment rule belong to the pypi
+# environment, which is a repository setting this file cannot make: GitHub
+# creates an environment a workflow names but the repository lacks, with no
+# protection rule, so the environment and its rules must exist before a tag.
 # The Go module needs no workflow: the Go proxy serves it from the tag.
 on:
   push:
