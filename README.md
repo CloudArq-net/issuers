@@ -1,10 +1,12 @@
 # issuers
 
 A census of the OIDC issuers a cloud provider will federate to for workload identity —
-GitHub Actions, GitLab, CircleCI, HCP Terraform, Kubernetes, and 39 others — with the
-fields a policy evaluator actually needs.
+GitHub Actions, GitLab, CircleCI, HCP Terraform, Kubernetes, and 39 others, 44 entries in
+all — with the fields a policy evaluator needs. It is data first: one YAML file, the JSON
+built from it, and a Go module and a Python package that embed that JSON and answer
+questions about it.
 
-**Apache-2.0. No dependencies. No network calls. Meant to be imported, not cited.**
+Apache-2.0. Neither package has a dependency, and neither makes a network call.
 
 ```
 pip install cloudarq-issuers
@@ -16,10 +18,11 @@ go get github.com/CloudArq-net/issuers
 Evaluating a cloud trust policy correctly means knowing things about the issuer that are
 not in the policy: what its subject looks like, which claims it actually emits, whether
 it is shared between every customer of that vendor, and who can get a token from it at
-all. That knowledge is scattered across each vendor's own documentation, and the closest
-public reference has not been updated since January 2025.
+all. That knowledge is scattered across each vendor's own documentation. This census
+collects it in one machine-readable file, with the vendor's sentence beside each value it
+rests on.
 
-## The four fields you will not find elsewhere
+## Four fields that carry most of the weight
 
 **`aud_controlled_by`** — who picks the `aud` value.
 
@@ -37,8 +40,8 @@ audience_is_boundary("nobody.surveyed.this")                  # None  <- not Fal
 
 **`vendor_example_verdict`** — what the vendor's own documented example admits.
 
-Nobody writes a trust policy from scratch; they copy the example. So a loose example is
-deployed at scale, silently. CircleCI's AWS example carries **no `sub` condition at all**.
+A trust policy copied from a vendor's example admits what the example admits. CircleCI's
+AWS example carries **no `sub` condition at all**.
 Google's recommended attribute condition, `assertion.repository_owner=='ORGANIZATION'`,
 admits every repository in the organisation.
 
@@ -223,7 +226,7 @@ ci.CENSUS_DATE                 # "2026-09-13"
 ci.issuers()                   # every entry
 ci.get("gitlab.com")           # one entry by host, or None if unsurveyed
 ci.multi_tenant_hosts()        # frozenset[str]
-ci.subjects_are_recyclable("oidc.eks.us-east-1.amazonaws.com")
+ci.subjects_are_recyclable("gitlab.com")     # False: GitLab's tokens carry an id claim
 
 entry, tenant = ci.match("https://oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE")
 tenant                         # "EXAMPLED539D4633E53DE1B71EXAMPLE", the cluster
@@ -274,9 +277,10 @@ A program that only classifies issuers can import `github.com/CloudArq-net/issue
 instead. It carries the values a classifier reads and none of the sentences: 7,905 bytes of
 data against the root package's 218,202. Built with go1.27.1 for `js/wasm` with `-trimpath`,
 a small program that matches the issuer given on its command line through `tenancy` and
-prints the entry's name came out 248,760 bytes smaller (45,415 after `gzip -9`) than the same program through
-the root package, and it does not contain the root census. `scripts/build.py` writes the sub-package's data from the same YAML, and CI
-fails when it is out of step.
+prints the entry's name came out 248,789 bytes smaller (45,437 after `gzip -9`) than the
+same program through the root package, and none of the census's quoted sentences is in it.
+`scripts/build.py` writes the sub-package's data from the same YAML, and CI fails when it is
+out of step.
 
 The raw data is [`issuers.yaml`](issuers.yaml) (source of truth, with comments) and
 [`issuers.json`](issuers.json) (generated, what both packages embed). Take either.
@@ -305,19 +309,55 @@ Because two of those issuers now read `unverified`, `vstoken.dev.azure.com` and
 `codeberg.org` are no longer in `MultiTenantHosts()`. A host missing from that set is not
 thereby known to identify a tenant.
 
+## Checks
+
+`make test` builds the JSON from the YAML and runs both packages' tests. CI runs the same
+steps and, before any test, fails if the build changed a committed file: the JSON, the
+sub-package's data and the Python tests' copies of the shared cases are all written by
+`scripts/build.py`, so what is tested is what the YAML says.
+
+```
+$ python3 scripts/build.py
+issuers.json: 44 entries, 17 researched in this release; tenancy/tenancy.json: 29 entries an issuer can match
+$ git status --porcelain            # empty: the committed files are what the YAML builds
+$ go vet ./... && go test ./... -count=1
+ok  	github.com/CloudArq-net/issuers	0.109s
+ok  	github.com/CloudArq-net/issuers/tenancy	0.010s
+$ cd python && PYTHONPATH=src python3 -m pytest tests -q
+365 passed in 11.64s
+```
+
+The Python checks need `pyyaml` and `pytest` (CI pins `pyyaml==6.0.3` and `pytest==9.1.1`);
+the Go module needs Go 1.24 or later.
+
 ## Maintenance
 
-A scheduled job re-fetches every discovery document and JWKS and opens an issue when
-anything changes, so drift is visible rather than silent. Issuers move: Azure DevOps's
-`vstoken` retires 2027-07-01, and AWS became an issuer in its own right at
+A scheduled job (`make drift`, daily in `.github/workflows/drift.yml`) re-fetches each
+discovery document the census records as fetched at a fixed URL, and its JWKS, and opens an
+issue when one has moved; it never edits the census. A run on 2026-09-27:
+
+```
+$ python3 scripts/drift.py
+checked 13, skipped 31 (unverified or per-tenant)
+no drift
+```
+
+Issuers do move. Azure DevOps is deprecating its own issuer, `https://vstoken.dev.azure.com`,
+which "retires on July 1, 2027", in favour of Microsoft Entra's
+([Microsoft's page](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/connect-to-azure?view=azure-devops),
+read 2026-09-27). AWS became an issuer in its own right at
 `<uuid>.tokens.sts.global.api.aws` — `sts.amazonaws.com` is not one and returns 400
 saying so.
 
 `.github/workflows/release.yml` publishes the Python package from `v*` tags by PyPI's
 trusted publishing, with attestations. Every action the workflows use is pinned to a
-commit.
+commit, and `python/tests/test_workflows.py` holds the pins, the permissions and the
+triggers.
 
 ## Contributing
+
+Issues are welcome, and pull requests are accepted under Apache-2.0: a contribution is
+licensed as the rest of the repository is.
 
 An entry with a `discovery_status` of `ok` must be reproducible: paste the `curl` and its
 output in the pull request. Anything else is `unverified`, and that is a perfectly good
@@ -330,3 +370,13 @@ key given twice, and a value outside its field's vocabulary.
 
 Public metadata only. Nothing in this repository authenticates anywhere, probes anyone's
 infrastructure, or enumerates tenant names.
+
+A value that could make a consumer trust more than it should — an audience recorded as a
+boundary when the workload picks it, a tenant recorded as controlled when anyone can join
+it — can be reported privately to support@cloudarq.net before it is an issue.
+
+## Licence
+
+Apache-2.0: see [`LICENSE`](LICENSE). The census quotes sentences from vendors'
+documentation; those sentences are their publishers' text, and [`NOTICE`](NOTICE) names each
+publisher and the licence it states for its pages.

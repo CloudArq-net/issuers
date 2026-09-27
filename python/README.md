@@ -1,10 +1,10 @@
 # cloudarq-issuers
 
 A census of the OIDC issuers a cloud provider will federate to for workload identity —
-GitHub Actions, GitLab, CircleCI, HCP Terraform, Kubernetes and 39 others — with the fields
-a policy evaluator actually needs.
+GitHub Actions, GitLab, CircleCI, HCP Terraform, Kubernetes and 39 others, 44 entries in
+all — with the fields a policy evaluator needs.
 
-**No dependencies. No network calls. Apache-2.0.**
+Apache-2.0. No dependencies, and the package makes no network call.
 
 ```bash
 pip install cloudarq-issuers
@@ -15,10 +15,10 @@ pip install cloudarq-issuers
 Evaluating a cloud trust policy correctly means knowing things about the issuer that are not
 in the policy: what its subject looks like, which claims it emits, whether it is shared
 between every customer of that vendor, and who can get a token from it at all. That knowledge
-is spread across each vendor's own documentation, and the closest public reference has not
-been updated since January 2025.
+is spread across each vendor's own documentation. This census collects it in one
+machine-readable file, with the vendor's sentence beside each value it rests on.
 
-## The four fields you will not find elsewhere
+## Four fields that carry most of the weight
 
 ### `aud_controlled_by` — who picks the audience
 
@@ -37,9 +37,8 @@ audience_is_boundary("nobody.surveyed.this")                  # None   <- not Fa
 
 ### `vendor_example_verdict` — what the vendor's own example admits
 
-Nobody writes a trust policy from scratch; they copy the documented example. A loose example
-is therefore deployed at scale, silently. CircleCI's AWS example carries **no `sub` condition
-at all**. Google's recommended attribute condition,
+A trust policy copied from a vendor's documented example admits what the example admits.
+CircleCI's AWS example carries **no `sub` condition at all**. Google's recommended attribute condition,
 `assertion.repository_owner=='ORGANIZATION'`, admits every repository in the organisation.
 
 ### `control_test` — what a bogus tenant returns
@@ -177,11 +176,23 @@ needs a YAML parser at runtime and neither has a dependency.
 
 [github.com/CloudArq-net/issuers](https://github.com/CloudArq-net/issuers)
 
-A scheduled job re-fetches every discovery document and JWKS and opens an issue when anything
-changes, so drift is visible rather than silent. Issuers move: Azure DevOps's `vstoken`
-retires 2027-07-01, and AWS became an issuer in its own right at
-`<uuid>.tokens.sts.global.api.aws` — `sts.amazonaws.com` is not one and returns 400 saying so.
+A scheduled job re-fetches each discovery document the census records as fetched at a fixed
+URL, and its JWKS, and opens an issue when one has moved, so drift is visible rather than
+silent. Issuers move: Microsoft's documentation says Azure DevOps's issuer,
+`https://vstoken.dev.azure.com`, "retires on July 1, 2027" (read 2026-09-27), and AWS became
+an issuer in its own right at `<uuid>.tokens.sts.global.api.aws` — `sts.amazonaws.com` is not
+one and returns 400 saying so.
 
 An entry with `discovery_status: ok` must be reproducible: paste the `curl` and its output in
 the pull request. Anything else is `unverified`, and that is a perfectly good state for an
 entry to be in. A tenancy value other than `unverified` needs the vendor's sentence behind it.
+Issues are welcome, and pull requests are accepted under Apache-2.0.
+
+A value that could make a consumer trust more than it should can be reported privately to
+support@cloudarq.net.
+
+## Licence
+
+Apache-2.0 (`LICENSE`). The census quotes sentences from vendors' documentation; those
+sentences are their publishers' text, and `NOTICE` names each publisher and the licence it
+states for its pages. Both files ship in the package.
