@@ -8,7 +8,10 @@ snapshot that quietly becomes wrong.
 Exits 1 when anything drifted, so a scheduled job can open an issue.
 
 It only fetches URLs already recorded in the census, and only public unauthenticated
-metadata. It never follows a host derived from anywhere else.
+metadata. A jwks_uri the live discovery document names in place of the recorded one is
+reported as drift and not fetched. What an issuer serves reaches the report as plain text:
+its report becomes the body of an issue, inside a code fence, so a backtick or a control
+character in a served value is replaced before it is printed.
 """
 import json
 import pathlib
@@ -19,6 +22,15 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 UA = 'cloudarq-issuers-drift/0.1 (+https://github.com/CloudArq-net/issuers)'
 TIMEOUT = 20
+
+
+def shown(value):
+    """A value an issuer served, as the report may print it: no backtick, which
+    could close the issue's code fence, no control character, and no more than
+    200 characters."""
+    text = str(value)
+    text = ''.join('?' if c == '`' or ord(c) < 0x20 or 0x7F <= ord(c) <= 0x9F else c for c in text)
+    return text if len(text) <= 200 else text[:200] + '...'
 
 
 def fetch(url):
@@ -54,7 +66,7 @@ def main():
         checked += 1
         status, body = fetch(url)
         if status != 200:
-            drift.append(f"{name}: discovery {url} was ok, now {status}")
+            drift.append(f"{name}: discovery {url} was ok, now {shown(status)}")
             continue
 
         try:
@@ -66,7 +78,7 @@ def main():
         recorded = e.get('jwks_uri')
         live = doc.get('jwks_uri')
         if recorded and live and recorded != live:
-            drift.append(f"{name}: jwks_uri moved\n    was {recorded}\n    now {live}")
+            drift.append(f"{name}: jwks_uri moved, and the new one was not fetched\n    was {recorded}\n    now {shown(live)}")
 
         # Compare only against what the discovery document advertised when the
         # census was taken. Comparing against `claims` would be comparing two
@@ -79,14 +91,17 @@ def main():
         if recorded_adv and live_claims:
             added, gone = live_claims - recorded_adv, recorded_adv - live_claims
             if added:
-                drift.append(f"{name}: claims_supported added: {', '.join(sorted(added))}")
+                drift.append(f"{name}: claims_supported added: {', '.join(shown(c) for c in sorted(map(str, added)))}")
             if gone:
                 drift.append(f"{name}: claims_supported REMOVED: {', '.join(sorted(gone))}")
 
-        if e.get('jwks_status') == 'ok' and live:
-            jstatus, _ = fetch(live)
+        # The recorded jwks_uri, never the live one: the census names the URLs
+        # this job fetches, and a moved one is reported above for a person to
+        # confirm.
+        if e.get('jwks_status') == 'ok' and recorded:
+            jstatus, _ = fetch(recorded)
             if jstatus != 200:
-                drift.append(f"{name}: JWKS {live} was ok, now {jstatus}")
+                drift.append(f"{name}: JWKS {recorded} was ok, now {shown(jstatus)}")
 
     print(f"checked {checked}, skipped {skipped} (unverified or per-tenant)")
     if not drift:
