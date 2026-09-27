@@ -9,8 +9,10 @@ carry.
 """
 
 import hashlib
+import json
 import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 REPO = Path(__file__).resolve().parents[2]
 PACKAGE = REPO / "python"
@@ -40,6 +42,27 @@ def test_the_notice_names_every_publisher_the_census_quotes():
     notice = (REPO / "NOTICE").read_text(encoding="utf-8")
     hosts = set(re.findall(r"^\s*-?\s*source: https://([^/\s]+)/", (REPO / "issuers.yaml").read_text(encoding="utf-8"),
                            re.M))
+    assert len(hosts) >= 10, f"examined {len(hosts)} hosts"
+    missing = sorted(h for h in hosts if h not in notice)
+    assert not missing, f"the notice does not name {missing}"
+
+
+# The entry fields that carry a vendor's words: a passage in double quotes, or
+# the vendor's example policy itself. Such an entry's docs_url is the vendor's
+# page it rests on.
+QUOTING_FIELDS = ("aud_evidence", "vendor_example", "vendor_example_note", "self_hosted_variant")
+
+
+def test_the_notice_names_the_publisher_of_every_entry_s_quoted_documentation():
+    """The fields older than the tenancy facts quote vendors too, without a
+    source record of their own, so the publisher is read from docs_url."""
+    notice = (REPO / "NOTICE").read_text(encoding="utf-8")
+    entries = json.loads((REPO / "issuers.json").read_text(encoding="utf-8"))["issuers"]
+    hosts = {
+        urlparse(e["docs_url"]).hostname
+        for e in entries
+        if any('"' in e.get(f, "") for f in QUOTING_FIELDS) and e.get("docs_url", "").startswith("https://")
+    }
     assert len(hosts) >= 10, f"examined {len(hosts)} hosts"
     missing = sorted(h for h in hosts if h not in notice)
     assert not missing, f"the notice does not name {missing}"

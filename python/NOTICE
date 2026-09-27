@@ -8,11 +8,15 @@ Quoted documentation
 --------------------
 
 issuers.yaml, issuers.json, and the copy of issuers.json in the Python package
-quote sentences from vendors' public documentation. Each quotation is
-verbatim and unmodified, and sits beside the URL of the page it was read on
-and the date it was read. The quoted sentences are their publishers' text: the
-Apache License above covers this project's own work and does not relicense
-them.
+quote vendors' public documentation. The quoted words are their publishers'
+text: the Apache License above covers this project's own work and does not
+relicense them.
+
+The tenancy facts quote sentences verbatim, each beside the URL of the page it
+was read on and the date it was read. The entry fields aud_evidence,
+vendor_example, vendor_example_note and self_hosted_variant quote shorter
+passages and the vendors' example policies, naming the vendor; not every one
+carries the page's URL and the date it was read.
 
 Where a publisher states a licence for the pages quoted, it is recorded here as
 read on 2026-09-27:
@@ -22,10 +26,10 @@ read on 2026-09-27:
 - kubernetes.io (Kubernetes documentation, The Kubernetes Authors): Creative
   Commons Attribution 4.0 International, per the LICENSE of
   https://github.com/kubernetes/website and the pages' footer.
-- cloud.google.com, docs.cloud.google.com and developers.google.com (Google):
-  the pages quoted say "Except as otherwise noted, the content of this page is
-  licensed under the Creative Commons Attribution 4.0 License, and code
-  samples are licensed under the Apache 2.0 License."
+- cloud.google.com/docs, docs.cloud.google.com and developers.google.com
+  (Google): the pages quoted say "Except as otherwise noted, the content of
+  this page is licensed under the Creative Commons Attribution 4.0 License,
+  and code samples are licensed under the Apache 2.0 License."
 - learn.microsoft.com (Microsoft): the Azure Kubernetes Service pages are
   published from https://github.com/MicrosoftDocs/azure-aks-docs, whose
   LICENSE is Creative Commons Attribution 4.0 International; the Microsoft
@@ -39,8 +43,16 @@ The census also quotes pages on these hosts, under their publishers' own terms:
 
 - docs.aws.amazon.com and developer.amazon.com (Amazon Web Services and Amazon)
 - support.atlassian.com (Atlassian)
+- buildkite.com (Buildkite)
 - circleci.com (CircleCI)
+- codefresh.io (Codefresh)
+- docs.gitlab.com (GitLab)
+- developer.hashicorp.com (HashiCorp)
+- www.pulumi.com (Pulumi)
+- docs.semaphore.io (Semaphore)
 - docs.spacelift.io (Spacelift)
+- spiffe.io (the SPIFFE project)
 - github.blog (GitHub)
+- cloud.google.com/blog (the Google Cloud blog)
 - developers.facebook.com (Meta)
 - git-scm.com (the Git reference documentation)
