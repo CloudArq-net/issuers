@@ -1,0 +1,46 @@
+issuers: a census of OIDC issuers for workload identity
+Copyright 2026 Abdallah Khaldi
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+
+Quoted documentation
+--------------------
+
+issuers.yaml, issuers.json, and the copy of issuers.json in the Python package
+quote sentences from vendors' public documentation. Each quotation is
+verbatim and unmodified, and sits beside the URL of the page it was read on
+and the date it was read. The quoted sentences are their publishers' text: the
+Apache License above covers this project's own work and does not relicense
+them.
+
+Where a publisher states a licence for the pages quoted, it is recorded here as
+read on 2026-09-27:
+
+- docs.github.com (GitHub Docs): Creative Commons Attribution 4.0
+  International, per the LICENSE of https://github.com/github/docs.
+- kubernetes.io (Kubernetes documentation, The Kubernetes Authors): Creative
+  Commons Attribution 4.0 International, per the LICENSE of
+  https://github.com/kubernetes/website and the pages' footer.
+- cloud.google.com, docs.cloud.google.com and developers.google.com (Google):
+  the pages quoted say "Except as otherwise noted, the content of this page is
+  licensed under the Creative Commons Attribution 4.0 License, and code
+  samples are licensed under the Apache 2.0 License."
+- learn.microsoft.com (Microsoft): the Azure Kubernetes Service pages are
+  published from https://github.com/MicrosoftDocs/azure-aks-docs, whose
+  LICENSE is Creative Commons Attribution 4.0 International; the Microsoft
+  Entra pages are published from https://github.com/MicrosoftDocs/entra-docs,
+  whose LICENSE is the MIT License, Copyright (c) Microsoft Corporation.
+
+Creative Commons Attribution 4.0 International:
+https://creativecommons.org/licenses/by/4.0/
+
+The census also quotes pages on these hosts, under their publishers' own terms:
+
+- docs.aws.amazon.com and developer.amazon.com (Amazon Web Services and Amazon)
+- support.atlassian.com (Atlassian)
+- circleci.com (CircleCI)
+- docs.spacelift.io (Spacelift)
+- github.blog (GitHub)
+- developers.facebook.com (Meta)
+- git-scm.com (the Git reference documentation)
