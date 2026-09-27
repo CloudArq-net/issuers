@@ -321,10 +321,10 @@ $ python3 scripts/build.py
 issuers.json: 44 entries, 17 researched in this release; tenancy/tenancy.json: 29 entries an issuer can match
 $ git status --porcelain            # empty: the committed files are what the YAML builds
 $ go vet ./... && go test ./... -count=1
-ok  	github.com/CloudArq-net/issuers	0.109s
-ok  	github.com/CloudArq-net/issuers/tenancy	0.010s
+ok  	github.com/CloudArq-net/issuers	0.160s
+ok  	github.com/CloudArq-net/issuers/tenancy	0.012s
 $ cd python && PYTHONPATH=src python3 -m pytest tests -q
-365 passed in 11.64s
+366 passed in 20.12s
 ```
 
 The Python checks need `pyyaml` and `pytest` (CI pins `pyyaml==6.0.3` and `pytest==9.1.1`);
