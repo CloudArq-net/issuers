@@ -727,7 +727,9 @@ MOMENT = re.compile(r"^(\d{4}-\d{2}-\d{2})(T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?Z)
 # Where an observation may stand: beside a value rather than behind it, in
 # research, or behind a claim or a leading literal that never pins. Anywhere
 # else a fact settles a value, and only the vendor's sentence settles one.
-MAY_STAND = re.compile(r"^research|^not_tenancy\.|\.never_pin\[|(^|\.)context(\[|\.|$)")
+MAY_STAND = re.compile(r"^research|^not_tenancy\.|\.never_pin\[|(^|\.)context(\[|\.|$)"
+                       r"|^evidence\.(control_test|control_test_result|discovery_status|jwks_status|known_defect"
+                       r"|claims_advertised|claims_advertised_fetched_at)\[")
 
 
 def facts_in(value, where, out):
@@ -761,7 +763,7 @@ def is_page(value):
 def test_every_fact_has_a_source_a_quote_and_a_date():
     found = []
     for e in ci.issuers():
-        for k in TENANCY_FIELDS + ("research",):
+        for k in TENANCY_FIELDS + ("research", "evidence"):
             if k in e:
                 in_entry = []
                 facts_in(e[k], k, in_entry)
@@ -866,3 +868,26 @@ def test_the_shared_answers_cover_the_census():
     known = [w["name"] for _, w in entries_in_census_order() if w["claim_is_multi_valued"]["aud"] == [True, True]]
     assert set(known) == SEVERAL_AUDIENCES, known
     assert all(w["claim_is_multi_valued"]["Aud"] == [True, False] for _, w in entries_in_census_order())
+
+
+NINE = {("Depot", "https://identity.depot.dev"), ("Harness", "https://app.harness.io/ng/api/oidc/account/<ACCOUNT_ID>"),
+        ("Namespace", "https://federation.namespaceapis.com"), ("Modal", "https://oidc.modal.com"),
+        ("Cognition", "https://app.devin.ai"), ("Cursor", "https://api.cursor.com"),
+        ("Cursor", "https://api2.cursor.sh/cloud-agent/identity"), ("Warp", "https://app.warp.dev"),
+        ("Chainguard", "https://issuer.enforce.dev")}
+
+
+def test_the_entries_once_sourced_to_a_survey_rest_on_pages():
+    """Nine entries named a survey as their only source. Each now names none
+    and carries the vendor's sentences behind the values it states."""
+    examined = 0
+    for e in ci.issuers():
+        assert "ai-agent" not in e.get("source", ""), (e["name"], e.get("source"))
+        key = (e["name"], e.get("issuer") or e.get("issuer_pattern"))
+        if key not in NINE:
+            continue
+        examined += 1
+        identity = "issuer" if "issuer" in e else "issuer_pattern"
+        assert "source" not in e and e["evidence"][identity] and e["evidence"]["tenancy_model"], key
+        assert e["verified_at"] == "2026-09-27", key
+    assert examined == len(NINE), f"examined {examined} of the {len(NINE)} entries"

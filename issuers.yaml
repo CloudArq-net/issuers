@@ -107,6 +107,21 @@
 # with no source or no quote. An observation settles no value: it stands in context, in research,
 # or behind a claim or a leading literal that never pins.
 #
+# evidence, on an entry that carries it, holds the facts behind each field above the tenancy
+# fields that the entry states, keyed by the field: every value it states has its sentences, and
+# a value no sentence supports is written unverified. What a live endpoint returned (control_test,
+# control_test_result, discovery_status, jwks_status, known_defect) may rest on an observation;
+# no other value does. Such an entry names no survey in source.
+#
+# Two fields appear on some entries in this file and are not written to the JSON:
+#   tenancy_projected_into_sub   whether sub carries the tenant: true (in the subject minted by
+#                                default), opt_in_only (when the token request asks for it),
+#                                aws_form_only (in the form minted for AWS), or unverified.
+#   on_aws_shared_idp_registry   whether AWS's table of shared OIDC providers, which IAM requires
+#                                identity-provider controls for, names the issuer: true, false, or
+#                                unverified. false reads: the table did not name it on the date
+#                                its fact was read.
+#
 schema_version: 3
 census_date: '2026-09-13'
 issuers:
@@ -679,13 +694,65 @@ issuers:
   discovery_status: unverified
   jwks_status: unverified
   sub_grammar:
-    default: spiffe://identity.depot.dev/org/<orgID>/ci/github/<owner>/<repo>/ref/<ref>/sandbox/<id>
+    default: spiffe://identity.depot.dev/org/<orgID>/ci/github/<owner>/<repo>/ref/<ref>/sandbox/<sandboxID>
   token_lifetime_s: 300
   aud_controlled_by: workload
   vendor_example_verdict: scoped
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  source: ai-agent census 2026-09-12
+  docs_url: https://depot.dev/docs/ci/oidc
+  verified_at: '2026-09-27'
+  evidence:
+    issuer:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: Add https://identity.depot.dev as a trusted OIDC issuer.
+      verified_at: '2026-09-27'
+    tenancy_model:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: Add https://identity.depot.dev as a trusted OIDC issuer.
+      verified_at: '2026-09-27'
+      role: 'one issuer for every customer: the page names no other'
+    - source: https://depot.dev/docs/ci/oidc
+      quote: 'org/<orgID> Example: org/org_1a2b3c4d Stable for the life of your Depot organization. Yes
+        — recommended on every policy.'
+      verified_at: '2026-09-27'
+      role: an organization is told apart in the subject
+    tenancy_claim:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: org_id Depot organization ID
+      verified_at: '2026-09-27'
+    tenancy_projected_into_sub:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: The sub value already encodes the org, owner, repo, and ref, so a single sub condition is
+        enough to restrict access to a repository or branch.
+      verified_at: '2026-09-27'
+    sub_grammar:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: 'The sub claim is how you restrict a trust policy to a specific org, repository, or branch.
+        It reads left to right, from the most stable identifier to the most ephemeral. The full claim
+        has the following format: spiffe://identity.depot.dev/org/<orgID>/ci/github/<owner>/<repo>/ref/<ref>/sandbox/<sandboxID>'
+      verified_at: '2026-09-27'
+    token_lifetime_s:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: exp Expiry time (5 minutes from issuance)
+      verified_at: '2026-09-27'
+    aud_controlled_by:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: aud Audience — set by the workload request (for example sts.amazonaws.com)
+      verified_at: '2026-09-27'
+    vendor_example_verdict:
+    - source: https://depot.dev/docs/ci/oidc
+      quote: '"identity.depot.dev:sub": "spiffe://identity.depot.dev/org/<orgID>/ci/github/my-org/my-repo/*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's AWS example
+    - source: https://depot.dev/docs/ci/oidc
+      quote: The sub claim scopes trust to a specific Depot org and GitHub repository.
+      verified_at: '2026-09-27'
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
 - name: GitHub Actions
   category: ci
   issuer: https://token.actions.githubusercontent.com
@@ -1908,19 +1975,58 @@ issuers:
   category: ci
   issuer_pattern: https://app.harness.io/ng/api/oidc/account/<ACCOUNT_ID>
   tenancy_model: per_tenant_path
-  control_test: PASSED — well-formed but non-existent account IDs return HTTP 401
+  control_test: 'passed: two made-up account IDs returned HTTP 401 and a sign-in page, not a discovery
+    document'
   discovery_status: unverified
   jwks_status: unverified
   aud_controlled_by: unverified
   vendor_example_verdict: unverified
-  known_defect: 'The discovery document advertises jwks_uri as ".../.wellknown/jwks" -- a non-standard
-    path missing the hyphen. Strict OIDC clients that normalise the path to /.well-known/jwks receive
-    HTTP 400 and fail to fetch keys.
-
-    '
-  verified_at: 2026-09-12
-  source: ai-agent census 2026-09-12
+  known_defect: unverified
+  docs_url: https://developer.harness.io/cloud-cost-management/resources/oidc-auth
+  verified_at: '2026-09-27'
+  notes: 'Harness names four hosts for this path, by the cluster an account is on: "The hostname should
+    be as follows, even if a Vanity URL is set up for an account. Cluster HostName Prod1/Prod2 app.harness.io
+    Prod3 app3.harness.io Prod0/Prod4 accounts.harness.io EU clusters accounts.eu.harness.io". This entry
+    covers app.harness.io.'
   control_test_result: passed
+  on_aws_shared_idp_registry: false
+  evidence:
+    issuer_pattern:
+    - source: https://developer.harness.io/cloud-cost-management/resources/oidc-auth
+      quote: 'Harness OIDC provider endpoint: https://app.harness.io/ng/api/oidc/account/<ACCOUNT_ID>'
+      verified_at: '2026-09-27'
+    tenancy_model:
+    - source: https://developer.harness.io/cloud-cost-management/resources/oidc-auth
+      quote: The Issuer URL format should follow https://<HOSTNAME>/ng/api/oidc/account/<YOUR_HARNESS_ACCOUNT_ID>.
+      verified_at: '2026-09-27'
+    control_test:
+    - observed: https://app.harness.io/ng/api/oidc/account/AbCdEfGhIjKlMnOpQrStUv/.well-known/openid-configuration
+        and https://app.harness.io/ng/api/oidc/account/zzzzzzzzzzzzzzzzzzzzzz/.well-known/openid-configuration,
+        two account IDs made up for the test
+      method: curl, with no credentials
+      at: 2026-09-27T17:14Z
+      result: HTTP 401 for both, with an HTML page titled "Harness Redirect" that sends a browser to sign
+        in; no discovery document
+    control_test_result:
+    - observed: https://app.harness.io/ng/api/oidc/account/AbCdEfGhIjKlMnOpQrStUv/.well-known/openid-configuration
+        and https://app.harness.io/ng/api/oidc/account/zzzzzzzzzzzzzzzzzzzzzz/.well-known/openid-configuration,
+        two account IDs made up for the test
+      method: curl, with no credentials
+      at: 2026-09-27T17:14Z
+      result: HTTP 401 for both, with an HTML page titled "Harness Redirect" that sends a browser to sign
+        in; no discovery document
+    notes:
+    - source: https://developer.harness.io/cloud-cost-management/resources/oidc-auth
+      quote: The hostname should be as follows, even if a Vanity URL is set up for an account. Cluster
+        HostName Prod1/Prod2 app.harness.io Prod3 app3.harness.io Prod0/Prod4 accounts.harness.io EU clusters
+        accounts.eu.harness.io
+      verified_at: '2026-09-27'
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
 - name: Harness
   category: ci
   issuer: unverified
@@ -2022,11 +2128,66 @@ issuers:
   jwks_status: unverified
   sub_grammar:
     default: <workspace-id>/...
-  aud_controlled_by: issuer
+  aud_controlled_by: workload
   vendor_example_verdict: scoped
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  source: ai-agent census 2026-09-12
+  docs_url: https://namespace.so/docs/federation/openid
+  verified_at: '2026-09-27'
+  evidence:
+    issuer:
+    - source: https://namespace.so/docs/federation/openid
+      quote: The ID token is issued by https://federation.namespaceapis.com and contains standard OIDC
+        claims including your Namespace workspace identity.
+      verified_at: '2026-09-27'
+    tenancy_model:
+    - source: https://namespace.so/docs/federation/openid
+      quote: The ID token is issued by https://federation.namespaceapis.com and contains standard OIDC
+        claims including your Namespace workspace identity.
+      verified_at: '2026-09-27'
+      role: 'one issuer for every customer: the page names no other'
+    tenancy_claim:
+    - source: https://namespace.so/docs/federation/gcp
+      quote: Namespace maps each workspace to the federated subject assertion.tenant_id.
+      verified_at: '2026-09-27'
+    tenancy_projected_into_sub:
+    - source: https://namespace.so/docs/federation/aws
+      quote: '"federation.namespaceapis.com:sub": "<workspace-id>/*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's AWS trust policy
+    - source: https://namespace.so/docs/federation/aws
+      quote: Replace <identity-provider-arn> with the ARN of the new identity provider, and <workspace-id>
+        with your complete Namespace workspace identifier (found in the Dashboard).
+      verified_at: '2026-09-27'
+    sub_grammar:
+    - source: https://namespace.so/docs/federation/aws
+      quote: '"federation.namespaceapis.com:sub": "<workspace-id>/*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's AWS trust policy
+    - source: https://namespace.so/docs/federation/aws
+      quote: Replace <identity-provider-arn> with the ARN of the new identity provider, and <workspace-id>
+        with your complete Namespace workspace identifier (found in the Dashboard).
+      verified_at: '2026-09-27'
+    aud_controlled_by:
+    - source: https://namespace.so/docs/federation/openid
+      quote: 'You can generate an OpenID Connect ID token from Namespace to authenticate with external
+        systems: nsc auth issue-id-token --audience <aud> Replace <aud> with the audience claim required
+        by your target system.'
+      verified_at: '2026-09-27'
+    vendor_example_verdict:
+    - source: https://namespace.so/docs/federation/aws
+      quote: '"federation.namespaceapis.com:sub": "<workspace-id>/*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's AWS trust policy
+    - source: https://namespace.so/docs/federation/aws
+      quote: Replace <identity-provider-arn> with the ARN of the new identity provider, and <workspace-id>
+        with your complete Namespace workspace identifier (found in the Dashboard).
+      verified_at: '2026-09-27'
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
 - name: Semaphore
   category: ci
   issuer: https://<organization>.semaphoreci.com
@@ -3133,12 +3294,72 @@ issuers:
   jwks_status: unverified
   sub_grammar:
     default: modal:workspace_id:<ws>:environment_name:<env>:app_name:<app>:function_name:<fn>:container_id:<cid>
-  aud_controlled_by: issuer
+  aud_controlled_by: unverified
   vendor_example_verdict: scoped
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  notes: all isolation rests on the sub prefix, because aud is shared
-  source: ai-agent census 2026-09-12
+  docs_url: https://modal.com/docs/guide/oidc-integration
+  verified_at: '2026-09-27'
+  notes: 'Modal: "Ideally, we would use the custom claims for role limiting. Unfortunately, AWS does not
+    support matching on custom claims, so we use the sub claim instead."'
+  evidence:
+    issuer:
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: Discovery documents are always hosted at /.well-known/openid-configuration, and you can view
+        ours at https://oidc.modal.com/.well-known/openid-configuration.
+      verified_at: '2026-09-27'
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: '"iss": "https://oidc.modal.com",'
+      verified_at: '2026-09-27'
+      role: the example token
+    tenancy_model:
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: Discovery documents are always hosted at /.well-known/openid-configuration, and you can view
+        ours at https://oidc.modal.com/.well-known/openid-configuration.
+      verified_at: '2026-09-27'
+      role: 'one issuer for every customer: the page names no other'
+    tenancy_claim:
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: Note how we use workspace_id to limit the scope of the role. This means that the IAM role
+        can only be assumed by Functions in your Workspace.
+      verified_at: '2026-09-27'
+    tenancy_projected_into_sub:
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: These tokens contain the full identity of the Function in the sub claim, and they use custom
+        claims to make this information more easily accessible.
+      verified_at: '2026-09-27'
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: '"oidc.modal.com:sub": "modal:workspace_id:ac-12345abcd:*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's AWS trust policy
+    sub_grammar:
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: These tokens contain the full identity of the Function in the sub claim, and they use custom
+        claims to make this information more easily accessible.
+      verified_at: '2026-09-27'
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: '"sub": "modal:workspace_id:ac-12345abcd:environment_name:modal-examples:app_name:oidc-token-test:function_name:jwt_return_func:container_id:ta-12345abcd",'
+      verified_at: '2026-09-27'
+      role: the example token
+    vendor_example_verdict:
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: '"oidc.modal.com:sub": "modal:workspace_id:ac-12345abcd:*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's AWS trust policy
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: Note how we use workspace_id to limit the scope of the role. This means that the IAM role
+        can only be assumed by Functions in your Workspace.
+      verified_at: '2026-09-27'
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
+    notes:
+    - source: https://modal.com/docs/guide/oidc-integration
+      quote: Ideally, we would use the custom claims for role limiting. Unfortunately, AWS does not support
+        matching on custom claims, so we use the sub claim instead.
+      verified_at: '2026-09-27'
 - name: SPIFFE / SPIRE (OIDC Discovery Provider)
   category: runtime
   issuer: https://<oidc-discovery-host>
@@ -4167,10 +4388,60 @@ issuers:
   sub_grammar:
     default: org_id:<uuid>
   aud_controlled_by: workload
-  vendor_example_verdict: no_subject_constraint
+  vendor_example_verdict: unverified
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  source: ai-agent census 2026-09-12
+  docs_url: https://docs.devin.ai/product-guides/oidc
+  verified_at: '2026-09-27'
+  notes: 'The workload picks the claims its subject is built from. Cognition: "Tokens carry the following
+    identity claims, which you can reference in trust policies and use to compose the token subject via
+    subject-keys." For AWS: "The role''s subject condition must match the claims selected by subject-keys.
+    With the default org_id, the subject is org_id:<your-org-id>."'
+  evidence:
+    issuer:
+    - source: https://docs.devin.ai/product-guides/oidc
+      quote: The issuer is your Devin webapp origin — https://app.devin.ai, or your own domain for enterprise
+        deployments (e.g. https://yourdomain.devinenterprise.com).
+      verified_at: '2026-09-27'
+    tenancy_model:
+    - source: https://docs.devin.ai/product-guides/oidc
+      quote: The issuer is your Devin webapp origin — https://app.devin.ai, or your own domain for enterprise
+        deployments (e.g. https://yourdomain.devinenterprise.com).
+      verified_at: '2026-09-27'
+      role: one issuer for every organization outside an enterprise deployment
+    tenancy_claim:
+    - source: https://docs.devin.ai/product-guides/oidc
+      quote: org_id Organization the session was launched in
+      verified_at: '2026-09-27'
+    tenancy_projected_into_sub:
+    - source: https://docs.devin.ai/product-guides/oidc
+      quote: The subject is built from key:value pairs of the selected claims — for example, --subject-keys
+        "org_id" (the default) produces a subject like org_id:a67b8de8-9483-4a9c-9662-51c3d2a45e88.
+      verified_at: '2026-09-27'
+    sub_grammar:
+    - source: https://docs.devin.ai/product-guides/oidc
+      quote: The subject is built from key:value pairs of the selected claims — for example, --subject-keys
+        "org_id" (the default) produces a subject like org_id:a67b8de8-9483-4a9c-9662-51c3d2a45e88.
+      verified_at: '2026-09-27'
+    aud_controlled_by:
+    - source: https://docs.devin.ai/product-guides/oidc
+      quote: 'For your own APIs and internal services, use the base CLI to request a token for any audience
+        your service accepts: devin-oidc token --audience my-api --subject-keys "org_id"'
+      verified_at: '2026-09-27'
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
+    notes:
+    - source: https://docs.devin.ai/product-guides/oidc
+      quote: Tokens carry the following identity claims, which you can reference in trust policies and
+        use to compose the token subject via subject-keys.
+      verified_at: '2026-09-27'
+    - source: https://github.com/CognitionAI/actions/blob/main/setup-aws-oidc/README.md
+      quote: The role's subject condition must match the claims selected by subject-keys. With the default
+        org_id, the subject is org_id:<your-org-id>.
+      verified_at: '2026-09-27'
 - name: Cursor
   vendor: Cursor
   category: ai-agent-platform
@@ -4186,11 +4457,9 @@ issuers:
   token_lifetime_s: 300
   aud_controlled_by: workload
   vendor_example_verdict: admits_any_principal
-  vendor_example_note: 'The same docs page documents the correct team_id form immediately below. This
-    is a documentation-ergonomics failure, not a vendor that misunderstands the problem. Write it up that
-    way.
-
-    '
+  vendor_example_note: 'The same page then scopes the role to a team: "AWS trust policies only match aud
+    and sub, so scope trust to a team by minting with "sub_claim":"team_id" and matching the projected
+    subject".'
   correct_condition:
     aws:
       StringEquals:
@@ -4199,29 +4468,110 @@ issuers:
       subject: team_id:<YOUR_TEAM_ID>
     gcp: assertion.sub == 'team_id:<YOUR_TEAM_ID>'
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  source: ai-agent census 2026-09-12
+  docs_url: https://cursor.com/docs/cloud-agent/identity
+  verified_at: '2026-09-27'
+  evidence:
+    issuer:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: 'Publish these URLs to your identity provider or resource server: Endpoint URL Issuer https://api.cursor.com'
+      verified_at: '2026-09-27'
+    tenancy_model:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: 'Publish these URLs to your identity provider or resource server: Endpoint URL Issuer https://api.cursor.com'
+      verified_at: '2026-09-27'
+      role: 'one issuer for every customer: the page names no other'
+    tenancy_claim:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: team_id When known Owning team id, as a decimal string.
+      verified_at: '2026-09-27'
+    tenancy_projected_into_sub:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: 'sub Yes Stable owner subject: user:<id> or service_account:<id> by default, or <claim>:<value>
+        (for example team_id:123) when the mint request set sub_claim. Not an email.'
+      verified_at: '2026-09-27'
+    sub_grammar:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: 'sub Yes Stable owner subject: user:<id> or service_account:<id> by default, or <claim>:<value>
+        (for example team_id:123) when the mint request set sub_claim. Not an email.'
+      verified_at: '2026-09-27'
+    token_lifetime_s:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: Tokens are valid for 5 minutes. There is no refresh endpoint.
+      verified_at: '2026-09-27'
+    aud_controlled_by:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: Cursor doesn't allowlist audiences. Your verifier must reject unexpected aud values.
+      verified_at: '2026-09-27'
+    vendor_example_verdict:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: '"api.cursor.com:sub": "user:*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's example trust policy
+    vendor_example_note:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: AWS trust policies only match aud and sub, so scope trust to a team by minting with "sub_claim":"team_id"
+        and matching the projected subject
+      verified_at: '2026-09-27'
+    correct_condition:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: AWS trust policies only match aud and sub, so scope trust to a team by minting with "sub_claim":"team_id"
+        and matching the projected subject
+      verified_at: '2026-09-27'
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: '"api.cursor.com:sub": "team_id:123"'
+      verified_at: '2026-09-27'
+      role: the vendor's team condition
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
 - name: Cursor
   vendor: Cursor
   category: ai-agent-platform
   issuer: https://api2.cursor.sh/cloud-agent/identity
   tenancy_model: shared
-  tenancy_claim: team_id
+  tenancy_claim: unverified
   discovery_status: unverified
   jwks_status: unverified
-  aud_controlled_by: workload
+  aud_controlled_by: unverified
   vendor_example_verdict: unverified
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  notes: legacy endpoint, still live
-  source: ai-agent census 2026-09-12
+  docs_url: https://cursor.com/docs/cloud-agent/identity
+  verified_at: '2026-09-27'
+  notes: 'Cursor: "Cursor still serves a second discovery document at https://api2.cursor.sh/cloud-agent/identity.
+    Minted tokens no longer carry that issuer. Point verifiers at https://api.cursor.com."'
+  evidence:
+    issuer:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: Cursor still serves a second discovery document at https://api2.cursor.sh/cloud-agent/identity.
+        Minted tokens no longer carry that issuer. Point verifiers at https://api.cursor.com.
+      verified_at: '2026-09-27'
+    tenancy_model:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: Cursor still serves a second discovery document at https://api2.cursor.sh/cloud-agent/identity.
+        Minted tokens no longer carry that issuer. Point verifiers at https://api.cursor.com.
+      verified_at: '2026-09-27'
+      role: 'one issuer for every customer: the page names no other'
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
+    notes:
+    - source: https://cursor.com/docs/cloud-agent/identity
+      quote: Cursor still serves a second discovery document at https://api2.cursor.sh/cloud-agent/identity.
+        Minted tokens no longer carry that issuer. Point verifiers at https://api.cursor.com.
+      verified_at: '2026-09-27'
 - name: Warp
   vendor: Warp
   category: ai-agent-platform
   issuer: https://app.warp.dev
   tenancy_model: shared
   tenancy_claim: teams
-  tenancy_projected_into_sub: true
+  tenancy_projected_into_sub: aws_form_only
   discovery_status: unverified
   jwks_status: unverified
   sub_grammar:
@@ -4230,9 +4580,70 @@ issuers:
   aud_controlled_by: workload
   vendor_example_verdict: scoped
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  notes: only agent platform found shipping a distinct AWS-specific tenant-scoped sub form
-  source: ai-agent census 2026-09-12
+  docs_url: https://docs.warp.dev/platform/integrations/cloud-providers/
+  verified_at: '2026-09-27'
+  notes: 'Warp: "The scoped_principal component isn’t available for users who belong to multiple teams."'
+  evidence:
+    issuer:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: iss The issuer, https://app.warp.dev.
+      verified_at: '2026-09-27'
+    tenancy_model:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: iss The issuer, https://app.warp.dev.
+      verified_at: '2026-09-27'
+      role: 'one issuer for every customer: the page names no other'
+    tenancy_claim:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: 'teams: the UIDs of the teams the principal belongs to. Users on multiple teams get multiple
+        values, and users on no team don’t get this claim.'
+      verified_at: '2026-09-27'
+    tenancy_projected_into_sub:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: 'When authenticating to AWS, the Automation Platform uses a different sub claim format because
+        AWS trust policies can’t match on custom OIDC claims. The format above is prefixed with your team
+        UID:'
+      verified_at: '2026-09-27'
+    sub_grammar:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: 'By default, the sub claim uses the format <principal-type>:<principal-id>:'
+      verified_at: '2026-09-27'
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: 'When authenticating to AWS, the Automation Platform uses a different sub claim format because
+        AWS trust policies can’t match on custom OIDC claims. The format above is prefixed with your team
+        UID:'
+      verified_at: '2026-09-27'
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: 'scoped_principal:xyz789/user:abc123def456: Identifies the user abc123def456, who is a member
+        of team xyz789.'
+      verified_at: '2026-09-27'
+    aud_controlled_by:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: 'Within the agent environment, use the oz federate issue-token command to produce an OIDC
+        token with your provider as the audience:'
+      verified_at: '2026-09-27'
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: Replace AUDIENCE with the identifier expected by your provider.
+      verified_at: '2026-09-27'
+    vendor_example_verdict:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: '"app.warp.dev:sub": "scoped_principal:<team-uid>/*"'
+      verified_at: '2026-09-27'
+      role: the condition in the vendor's AWS trust policy
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: The example above uses StringLike with the scoped_principal:<team-uid>/* pattern to allow
+        any user or automation on your team to assume the role.
+      verified_at: '2026-09-27'
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer
+    notes:
+    - source: https://docs.warp.dev/platform/integrations/cloud-providers/
+      quote: The scoped_principal component isn’t available for users who belong to multiple teams.
+      verified_at: '2026-09-27'
 - name: Chainguard
   vendor: Chainguard
   category: platform
@@ -4244,7 +4655,39 @@ issuers:
   aud_controlled_by: unverified
   vendor_example_verdict: unverified
   on_aws_shared_idp_registry: false
-  verified_at: 2026-09-12
-  notes: discovery document confirmed live; grammar not yet confirmed from vendor docs
-  source: ai-agent census 2026-09-12
+  docs_url: https://github.com/chainguard-dev/terraform-aws-chainguard-account-association/blob/main/README.md
+  verified_at: '2026-09-27'
   subject_format: unverified
+  evidence:
+    issuer:
+    - source: https://github.com/chainguard-dev/terraform-aws-chainguard-account-association/blob/main/README.md
+      quote: Chainguard has an OIDC identity provider. This module configures your AWS acccount to recognize
+        that OIDC identity provider and allows certain tokens to bind to certain IAM roles.
+      verified_at: '2026-09-27'
+    - source: https://github.com/chainguard-dev/terraform-aws-chainguard-account-association/blob/main/main.tf
+      quote: url            = "https://issuer.${var.environment}"
+      verified_at: '2026-09-27'
+      role: the identity provider the vendor's module creates in the customer's AWS account
+    - source: https://github.com/chainguard-dev/terraform-aws-chainguard-account-association/blob/main/variables.tf
+      quote: default     = "enforce.dev"
+      verified_at: '2026-09-27'
+      role: the module's environment, unless the caller sets another
+    tenancy_model:
+    - source: https://github.com/chainguard-dev/terraform-aws-chainguard-account-association/blob/main/main.tf
+      quote: url            = "https://issuer.${var.environment}"
+      verified_at: '2026-09-27'
+      role: 'one issuer for every customer''s account: the module takes no tenant'
+    - source: https://github.com/chainguard-dev/terraform-aws-chainguard-account-association/blob/main/variables.tf
+      quote: default     = "enforce.dev"
+      verified_at: '2026-09-27'
+      role: the module's environment, unless the caller sets another
+    - source: https://github.com/chainguard-dev/terraform-aws-chainguard-account-association/blob/main/canary.tf
+      quote: '"issuer.${var.environment}:sub" : [for id in var.group_ids : "canary:${id}"]'
+      verified_at: '2026-09-27'
+      role: a customer's groups are told apart in the subject
+    on_aws_shared_idp_registry:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
+      quote: The following table lists the shared OIDC providers that require identity-provider controls
+        in role trust policies and additional information to help you configure identity-provider controls.
+      verified_at: '2026-09-27'
+      role: AWS's sentence; the table's rows, read on 2026-09-27, do not name this issuer

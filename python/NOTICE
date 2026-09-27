@@ -12,11 +12,12 @@ quote vendors' public documentation. The quoted words are their publishers'
 text: the Apache License above covers this project's own work and does not
 relicense them.
 
-The tenancy facts quote sentences verbatim, each beside the URL of the page it
-was read on and the date it was read. The entry fields aud_evidence,
-vendor_example, vendor_example_note and self_hosted_variant quote shorter
-passages and the vendors' example policies, naming the vendor; not every one
-carries the page's URL and the date it was read.
+The tenancy facts, and the evidence some entries carry for their older fields,
+quote sentences verbatim, each beside the URL of the page it was read on and
+the date it was read. The entry fields aud_evidence, vendor_example,
+vendor_example_note and self_hosted_variant quote shorter passages and the
+vendors' example policies, naming the vendor; not every one carries the page's
+URL and the date it was read.
 
 Where a publisher states a licence for the pages quoted, it is recorded here as
 read on 2026-09-27:
@@ -35,6 +36,8 @@ read on 2026-09-27:
   LICENSE is Creative Commons Attribution 4.0 International; the Microsoft
   Entra pages are published from https://github.com/MicrosoftDocs/entra-docs,
   whose LICENSE is the MIT License, Copyright (c) Microsoft Corporation.
+- github.com/chainguard-dev/terraform-aws-chainguard-account-association
+  (Chainguard): Apache License 2.0, per the repository's LICENSE.
 
 Creative Commons Attribution 4.0 International:
 https://creativecommons.org/licenses/by/4.0/
@@ -46,8 +49,15 @@ The census also quotes pages on these hosts, under their publishers' own terms:
 - buildkite.com (Buildkite)
 - circleci.com (CircleCI)
 - codefresh.io (Codefresh)
+- cursor.com (Cursor)
+- depot.dev (Depot)
+- developer.harness.io (Harness)
+- docs.devin.ai and github.com/CognitionAI/actions (Cognition)
+- docs.warp.dev (Warp)
 - docs.gitlab.com (GitLab)
 - developer.hashicorp.com (HashiCorp)
+- modal.com (Modal)
+- namespace.so (Namespace)
 - www.pulumi.com (Pulumi)
 - docs.semaphore.io (Semaphore)
 - docs.spacelift.io (Spacelift)

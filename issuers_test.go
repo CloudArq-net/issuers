@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"reflect"
@@ -341,6 +342,12 @@ func scribble(v reflect.Value) int {
 				n += scribble(elem.Elem())
 				continue
 			}
+			// A slice in a map shares its elements with the map's, so they
+			// are written through it, as Evidence's facts are.
+			if elem := v.MapIndex(k); elem.Kind() == reflect.Slice {
+				n += scribble(elem)
+				continue
+			}
 			v.SetMapIndex(k, reflect.ValueOf("scribbled").Convert(v.Type().Elem()))
 			n++
 		}
@@ -565,6 +572,9 @@ func facts(e Issuer) map[string][]Fact {
 	add("aws_condition_keys.context", e.AWSConditionKeys.Context...)
 	add("built_in.evidence", e.BuiltIn.Evidence...)
 	add("built_in.discrepancy", e.BuiltIn.Discrepancy...)
+	for field, fs := range e.Evidence {
+		add("evidence."+field, fs...)
+	}
 	for _, c := range e.MultiValuedClaims.Claims {
 		add("multi_valued_claims."+c.Claim, c.Evidence...)
 		add("multi_valued_claims."+c.Claim+".context", c.Context...)
@@ -654,8 +664,14 @@ func isMoment(s string) bool {
 // sentence establishes it.
 func observationMayStand(where string) bool {
 	return strings.HasSuffix(where, ".context") || strings.HasPrefix(where, "research") ||
-		strings.HasPrefix(where, "not_tenancy.") || strings.HasPrefix(where, "subject_forms.never_pin.")
+		strings.HasPrefix(where, "not_tenancy.") || strings.HasPrefix(where, "subject_forms.never_pin.") ||
+		observedValues[strings.TrimPrefix(where, "evidence.")] && strings.HasPrefix(where, "evidence.")
 }
+
+// observedValues are the older fields that record what a live endpoint
+// returned, so an observation is what stands behind them.
+var observedValues = map[string]bool{"control_test": true, "control_test_result": true, "discovery_status": true,
+	"jwks_status": true, "known_defect": true, "claims_advertised": true, "claims_advertised_fetched_at": true}
 
 // N5: every fact keeps its own source URL, its exact quote and the date it
 // was read; an observation keeps what was requested, how, when and what came
@@ -1921,5 +1937,71 @@ func TestAnEntrysEvidenceReachesGo(t *testing.T) {
 	}
 	if fs := back.Evidence["issuer"]; len(fs) != 1 || fs[0]["quote"] != "The issuer is https://x.example.com." {
 		t.Errorf("the issuer's evidence did not survive the Go type: %s", out)
+	}
+}
+
+// Nine entries named a survey as their only source, a label nothing in the
+// repository defined. Each now names no survey and carries the vendor's
+// sentences behind every value it states, read on the day it says; a value no
+// sentence supports reads unverified. The build refuses an entry whose
+// evidence leaves a stated value bare, so this holds which entries those are.
+func TestTheEntriesOnceSourcedToASurveyRestOnPages(t *testing.T) {
+	nine := map[[2]string]bool{
+		{"Depot", "https://identity.depot.dev"}: true, {"Harness", "https://app.harness.io/ng/api/oidc/account/<ACCOUNT_ID>"}: true,
+		{"Namespace", "https://federation.namespaceapis.com"}: true, {"Modal", "https://oidc.modal.com"}: true,
+		{"Cognition", "https://app.devin.ai"}: true, {"Cursor", "https://api.cursor.com"}: true,
+		{"Cursor", "https://api2.cursor.sh/cloud-agent/identity"}: true, {"Warp", "https://app.warp.dev"}: true,
+		{"Chainguard", "https://issuer.enforce.dev"}: true,
+	}
+	examined := 0
+	for _, e := range All() {
+		if strings.Contains(e.Source, "ai-agent") {
+			t.Errorf("%s %s%s: source %q names a survey", e.Name, e.Issuer, e.IssuerPattern, e.Source)
+		}
+		if !nine[[2]string{e.Name, e.Issuer + e.IssuerPattern}] {
+			continue
+		}
+		examined++
+		id := "issuer"
+		if e.IssuerPattern != "" {
+			id = "issuer_pattern"
+		}
+		if e.Source != "" || len(e.Evidence[id]) == 0 || len(e.Evidence["tenancy_model"]) == 0 || e.VerifiedAt != "2026-09-27" {
+			t.Errorf("%s %s%s: source %q, verified_at %s, evidence for %v", e.Name, e.Issuer, e.IssuerPattern, e.Source,
+				e.VerifiedAt, slices.Sorted(maps.Keys(e.Evidence)))
+		}
+	}
+	if examined != len(nine) {
+		t.Fatalf("examined %d of the %d entries", examined, len(nine))
+	}
+}
+
+// What the nine entries' vendors say against their earlier values.
+func TestTheCorrectionsTheNineVendorsForce(t *testing.T) {
+	if e := byName(t, "Namespace", ""); e.AudControlledBy != "workload" || !strings.Contains(quotes(e.Evidence["aud_controlled_by"]...), "--audience <aud>") {
+		t.Errorf("Namespace: aud_controlled_by %q on %+v; a workload names the audience it asks for", e.AudControlledBy, e.Evidence["aud_controlled_by"])
+	}
+	if e := byName(t, "Modal", ""); e.AudControlledBy != "unverified" || strings.Contains(e.Notes, "because aud is shared") {
+		t.Errorf("Modal: aud_controlled_by %q, notes %q; no sentence says who sets the audience", e.AudControlledBy, e.Notes)
+	}
+	if e := byName(t, "Cognition", ""); e.VendorExampleVerdict != "unverified" {
+		t.Errorf("Cognition: vendor_example_verdict %q; the vendor prints no example policy", e.VendorExampleVerdict)
+	}
+	if e := byName(t, "Cursor", "https://api2.cursor.sh/cloud-agent/identity"); e.TenancyClaim != "unverified" || e.AudControlledBy != "unverified" {
+		t.Errorf("Cursor's older issuer: tenancy_claim %q, aud_controlled_by %q; its tokens are no longer minted", e.TenancyClaim, e.AudControlledBy)
+	}
+	if e := byName(t, "Cursor", "https://api.cursor.com"); strings.Contains(e.VendorExampleNote, "Write it up") {
+		t.Errorf("Cursor: the note says how to write it up: %q", e.VendorExampleNote)
+	}
+	if e := byName(t, "Warp", ""); strings.Contains(e.Notes, "only agent platform") {
+		t.Errorf("Warp: a comparison no page supports survives: %q", e.Notes)
+	}
+	if e := byName(t, "Chainguard", ""); e.Notes != "" {
+		t.Errorf("Chainguard: notes %q rest on no page", e.Notes)
+	}
+	for _, e := range All() {
+		if e.IssuerPattern == "https://app.harness.io/ng/api/oidc/account/<ACCOUNT_ID>" && (e.KnownDefect != "unverified" || len(e.Evidence["control_test"]) == 0) {
+			t.Errorf("Harness: known_defect %q, control test evidence %+v", e.KnownDefect, e.Evidence["control_test"])
+		}
 	}
 }

@@ -309,6 +309,26 @@ Because two of those issuers now read `unverified`, `vstoken.dev.azure.com` and
 `codeberg.org` are no longer in `MultiTenantHosts()`. A host missing from that set is not
 thereby known to identify a tenant.
 
+Nine entries named no page for their values, only a survey: Depot, Harness's account path,
+Namespace, Modal, Cognition, Cursor's two issuers, Warp and Chainguard. Each now carries,
+under `evidence`, the vendor's sentences behind every value it states, read on 2026-09-27,
+and a value no page supports reads `unverified`. Reading them changed these values:
+
+- Namespace: `aud_controlled_by` is `workload`, not `issuer`. Its CLI mints a token with
+  `--audience <aud>`, "the audience claim required by your target system".
+- Modal: `aud_controlled_by` reads `unverified`, and the note that all isolation rests on
+  `sub` because `aud` is shared is withdrawn. No sentence says who sets the audience.
+- Cognition: `vendor_example_verdict` reads `unverified`. The vendor prints no example
+  policy; it says the role's subject condition "must match the claims selected by
+  subject-keys".
+- Cursor's older issuer, `api2.cursor.sh`: `tenancy_claim` and `aud_controlled_by` read
+  `unverified`. Cursor: "Minted tokens no longer carry that issuer."
+- Harness's account path: `known_defect` reads `unverified`. The discovery document it
+  described was not fetched again, and the control test was run again with two made-up
+  account IDs.
+- Depot: the last segment of `sub_grammar` is `<sandboxID>`, as Depot writes it.
+- Warp and Chainguard: notes that no page supports are withdrawn.
+
 ## Checks
 
 `make test` builds the JSON from the YAML and runs both packages' tests. CI runs the same
@@ -364,7 +384,8 @@ output in the pull request. Anything else is `unverified`, and that is a perfect
 state for an entry to be in.
 
 A tenancy value other than `unverified` needs the vendor's sentence behind it: its page,
-the sentence verbatim, and the date it was read. `scripts/build.py` refuses a fact with no
+the sentence verbatim, and the date it was read. So does every value of an entry that
+carries `evidence`. `scripts/build.py` refuses a fact with no
 source or no quote, a value that rests on an observation alone, a date no calendar has, a
 key given twice, and a value outside its field's vocabulary.
 
