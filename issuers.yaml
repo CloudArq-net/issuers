@@ -455,7 +455,7 @@ issuers:
   self_hosted_variant: n/a - CircleCI server self-hosted OIDC not verified.
   docs_url: https://circleci.com/docs/openid-connect-tokens/
   verified_at: '2026-09-13'
-  notes: 'TENANCY CONTROL TEST FAILED - see findings. A deliberately bogus org UUID (00000000-0000-0000-0000-000000000000)
+  notes: 'TENANCY CONTROL TEST FAILED. A deliberately bogus org UUID (00000000-0000-0000-0000-000000000000)
     returns HTTP 200 for BOTH the discovery document (echoing the bogus UUID as `issuer`) AND the JWKS,
     which serves a key byte-identical to the root https://oidc.circleci.com JWKS (kid MRvUxaues...). A
     non-UUID returns 400 "invalid org id: must be a uuid" - only the FORMAT is checked. All CircleCI orgs
@@ -2049,7 +2049,7 @@ issuers:
   notes: Both https://app.harness.io/.well-known/openid-configuration and the per-account path returned
     HTTP 401 with a "Harness Redirect" HTML login page. The documentation URL returned by search 404s.
     Harness OIDC almost certainly exists (their docs describe AWS and GCP WIF) but I could not verify
-    the issuer string, discovery document or JWKS without authenticating, which is out of scope. Deliberately
+    the issuer string, discovery document or JWKS without authenticating, and nothing in this census authenticates. Deliberately
     left unverified.
   source: both
 - name: Jenkins (OpenID Connect Provider plugin)
