@@ -140,3 +140,44 @@ def test_checkout_keeps_no_credential():
                     examined += 1
                     assert step.get("with", {}).get("persist-credentials") is False, path.name
     assert examined >= 3
+
+
+# The Python tools CI and the release install: one file that pins every
+# distribution, dependencies included, to a version and its hashes, generated
+# by pip-compile --generate-hashes from requirements.in beside it.
+REQUIREMENTS = ".github/requirements.txt"
+PIP_INSTALL = f"pip install --require-hashes --no-deps -r {REQUIREMENTS}"
+REQUIREMENT = re.compile(r"^([A-Za-z0-9._-]+)==([^\s\\]+)")
+
+
+def test_every_pip_install_takes_the_hash_pinned_file():
+    """Every action is pinned to a commit, and the tools that build and test
+    the released wheel are pinned as hard: a version alone leaves the file
+    behind it, and every unpinned dependency, to whatever the index serves."""
+    installs = 0
+    for path in workflows():
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for job in doc["jobs"].values():
+            for step in job["steps"]:
+                for line in run_lines(step):
+                    if re.search(r"\bpip3?\b.*\binstall\b", line):
+                        installs += 1
+                        assert line == PIP_INSTALL, f"{path.name}: {line!r}; install as {PIP_INSTALL!r}"
+    assert installs >= 2, f"examined {installs} pip installs"
+
+
+def test_the_requirements_pin_every_distribution_to_its_hashes():
+    text = (WORKFLOWS.parent / "requirements.txt").read_text(encoding="utf-8")
+    entries = re.split(r"\n(?=[A-Za-z0-9])", text.split("\n", 1)[1] if text.startswith("#") else text)
+    pinned = {}
+    for entry in entries:
+        m = REQUIREMENT.match(entry)
+        if not m:
+            continue
+        name, version = m.group(1).lower().replace("_", "-"), m.group(2)
+        hashes = re.findall(r"--hash=sha256:[0-9a-f]{64}", entry)
+        assert hashes, f"{name}=={version} has no sha256 hash"
+        pinned[name] = version
+    for tool, version in {"build": "1.6.1", "hatchling": "1.32.4", "pyyaml": "6.0.3", "pytest": "9.1.1"}.items():
+        assert pinned.get(tool) == version, f"{tool} is pinned to {pinned.get(tool)}, want {version}"
+    assert len(pinned) >= 8, f"examined {len(pinned)} pinned distributions; the tools' dependencies are pinned too"

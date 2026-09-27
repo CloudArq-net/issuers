@@ -37,8 +37,10 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Every distribution, dependencies included, by version and hash: the
+      # tools here build the wheel the publish job uploads.
       - name: install the build tools
-        run: pip install build==1.6.1 hatchling==1.32.4 pyyaml==6.0.3 pytest==9.1.1
+        run: pip install --require-hashes --no-deps -r .github/requirements.txt
 
       - name: the tag names the package's version
         run: test "$GITHUB_REF_NAME" = "v$(sed -n 's/^version = "\(.*\)"$/\1/p' python/pyproject.toml)"

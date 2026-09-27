@@ -1,0 +1,8 @@
+# The Python tools CI and the release install. requirements.txt beside this
+# file pins them and every dependency to a version and its hashes; regenerate
+# it, from the repository's root, with:
+#   pip-compile --generate-hashes --allow-unsafe --strip-extras --output-file=.github/requirements.txt .github/requirements.in
+build==1.6.1
+hatchling==1.32.4
+pyyaml==6.0.3
+pytest==9.1.1

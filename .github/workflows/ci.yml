@@ -27,8 +27,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Every distribution, dependencies included, by version and hash.
       - name: install build deps
-        run: pip install pyyaml==6.0.3 pytest==9.1.1
+        run: pip install --require-hashes --no-deps -r .github/requirements.txt
 
       # The JSON, the tenancy sub-package's data and the Python tests' copies of
       # the shared cases are all written by the build, the only step here that
