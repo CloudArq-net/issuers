@@ -35,7 +35,7 @@ RESEARCHED = {
 }
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "repository_charset", "names_unique_regardless_of_case", "match", "tenant_membership", "built_in",
-                  "accounts", "aws_condition_keys", "multi_valued_claims")
+                  "accounts", "aws_condition_keys", "aws_identity_provider_controls", "multi_valued_claims")
 
 
 def match_key(entry):
@@ -431,6 +431,25 @@ def test_aws_condition_keys_are_recorded_per_issuer():
     for c in gh["aws_condition_keys"]["keys"]:
         if c["key"] in {t["claim"] for t in gh["tenancy_claims"]["claims"]} | {"sub"}:
             assert c["claim"] == c["key"], c
+
+
+def test_aws_requires_github_s_subject_only_when_a_trust_policy_is_saved():
+    """AWS refuses to create or update a trust policy that trusts GitHub's
+    issuer unless it tests ``sub`` with a value that is not solely a wildcard
+    character or null, and does not evaluate trust policies that existed
+    before. The census verifies it for GitHub Actions alone, and the tenancy
+    projection carries the key as Go carries it."""
+    gh = by_name("GitHub Actions")
+    c = gh["aws_identity_provider_controls"]
+    assert (c["value"], c["key"], c["existing_trust_policies"]) == ("verified", "sub", "not_evaluated")
+    assert {f["source"].rsplit("/", 1)[1] for f in c["evidence"]} == {
+        "id_roles_create_for-idp_oidc.html", "id_roles_providers_oidc_secure-by-default.html"}
+    assert any("job_workflow_ref" in f["quote"] for f in c["discrepancy"])
+    assert ci.tenancy(gh)["aws_required_condition_key"] == "sub"
+    carried = [e["name"] for e in ci.issuers() if "aws_required_condition_key" in ci.tenancy(e)]
+    assert carried == ["GitHub Actions"]
+    entry = {"name": "x", "aws_identity_provider_controls": {"value": "unverified"}}
+    assert "aws_required_condition_key" not in ci.tenancy(entry)
 
 
 def test_every_condition_key_carries_its_claim():

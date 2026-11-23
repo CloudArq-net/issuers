@@ -729,8 +729,8 @@ var recorded = map[string]struct {
 		"tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "aws_condition_keys": 5,
-		"names_unique_regardless_of_case": 2, "not_tenancy": 20,
-		"owner_charset": 6, "repository_charset": 2, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
+		"aws_identity_provider_controls": 6, "names_unique_regardless_of_case": 2, "not_tenancy": 20,
+		"owner_charset": 6, "repository_charset": 2, "research": 23, "subject_forms": 22, "tenancy_claims": 11},
 		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
 			"population_evidence", "sources"}},
 	"GitHub Actions (enterprise issuer path)": {map[string]int{"accounts": 1, "anonymous_tokens": 7,
@@ -984,7 +984,7 @@ func TestEveryEntrySaysWhetherItWasResearched(t *testing.T) {
 	}
 	fields := []string{"anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
 		"repository_charset", "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
-		"aws_condition_keys"}
+		"aws_condition_keys", "aws_identity_provider_controls"}
 	var inRelease []string
 	unresearched := 0
 	for _, e := range doc.Issuers {
@@ -1172,6 +1172,123 @@ func TestGitHubsRepositoryCharacterSetIsGitHubs(t *testing.T) {
 	}
 	if carried != 1 {
 		t.Errorf("%d entries of the tenancy sub-package carry repository characters; the census verifies GitHub's alone", carried)
+	}
+}
+
+// AWS checks a trust policy that trusts GitHub's issuer when it is created or
+// updated: the policy must test token.actions.githubusercontent.com:sub, with
+// a value that is not solely a wildcard character or null. It does not
+// evaluate trust policies that existed before. The census records both as a
+// field of its own, on AWS's sentences alone, with AWS's table of shared
+// providers beside them where it names job_workflow_ref too, and the tenancy
+// sub-package carries the key, so a reader can tell that such a policy saved
+// today tests it and one that exists may not.
+func TestAWSChecksGitHubsSubjectOnlyWhenATrustPolicyIsSaved(t *testing.T) {
+	type controls struct {
+		Value                 string `json:"value"`
+		Key                   string `json:"key"`
+		ExistingTrustPolicies string `json:"existing_trust_policies"`
+		Evidence              []Fact `json:"evidence"`
+		Discrepancy           []Fact `json:"discrepancy"`
+	}
+	const (
+		oidc  = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html"
+		table = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html"
+	)
+	sentences := map[string]string{
+		"When GitHub's OIDC IdP is the trusted Principal for your role, IAM checks the role trust policy condition " +
+			"to verify that the condition key `token.actions.githubusercontent.com:sub` is present and that its value " +
+			"is not solely a wildcard character (* and ?) or null.": oidc,
+		"IAM performs this check when the trust policy is created or updated.": oidc,
+		"If the condition key `token.actions.githubusercontent.com:sub` is not present, or the key value doesn't " +
+			"satisfy the mentioned value criteria, the request will fail and return an error.": oidc,
+		"Identity-provider controls will not be evaluated by IAM for existing OIDC role trust policies.": table,
+		"For any modifications to the role trust policy for existing OIDC roles, IAM will require that " +
+			"identity-provider controls be included in the role trust policy.": table,
+	}
+	var doc struct {
+		Issuers []map[string]json.RawMessage `json:"issuers"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, e := range doc.Issuers {
+		var name string
+		if err := json.Unmarshal(e["name"], &name); err != nil {
+			t.Fatal(err)
+		}
+		if name != "GitHub Actions" {
+			continue
+		}
+		found = true
+		if _, ok := e["aws_identity_provider_controls"]; !ok {
+			t.Fatal("GitHub Actions writes out no aws_identity_provider_controls")
+		}
+		var c controls
+		if err := json.Unmarshal(e["aws_identity_provider_controls"], &c); err != nil {
+			t.Fatalf("GitHub Actions aws_identity_provider_controls: %v", err)
+		}
+		if c.Value != "verified" || c.Key != "sub" || c.ExistingTrustPolicies != "not_evaluated" {
+			t.Errorf("AWS's check on GitHub's issuer reads %q, key %q, existing trust policies %q; AWS's sentences "+
+				"say verified, sub and not_evaluated", c.Value, c.Key, c.ExistingTrustPolicies)
+		}
+		quoted := map[string]bool{}
+		for _, f := range c.Evidence {
+			if f.VerifiedAt != "2026-11-23" || f.Role == "" {
+				t.Errorf("AWS's check rests on a sentence not read on 23 November, or with no role: %+v", f)
+			}
+			if sentences[f.Quote] == f.Source {
+				quoted[f.Quote] = true
+			}
+		}
+		if len(quoted) != len(sentences) || len(c.Evidence) != len(sentences) {
+			t.Errorf("AWS's check quotes %d of AWS's %d sentences, in %d facts", len(quoted), len(sentences), len(c.Evidence))
+		}
+		if len(c.Discrepancy) != 1 || !strings.Contains(c.Discrepancy[0].Quote, "token.actions.githubusercontent.com:job_workflow_ref") ||
+			!strings.HasPrefix(c.Discrepancy[0].Source, strings.TrimSuffix(table, ".html")) || c.Discrepancy[0].VerifiedAt != "2026-11-23" {
+			t.Errorf("AWS's table of shared providers, which names job_workflow_ref beside sub, is not held as the "+
+				"check's one discrepancy: %+v", c.Discrepancy)
+		}
+		var research struct {
+			AWS map[string]json.RawMessage `json:"aws"`
+		}
+		if err := json.Unmarshal(e["research"], &research); err != nil {
+			t.Fatal(err)
+		}
+		for k, v := range research.AWS {
+			for s := range sentences {
+				if strings.Contains(string(v), s[:40]) {
+					t.Errorf("research.aws.%s still holds AWS's sentence %q", k, s[:40])
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no census entry GitHub Actions")
+	}
+	var sub struct {
+		Issuers []map[string]json.RawMessage `json:"issuers"`
+	}
+	readJSON(t, "tenancy/tenancy.json", &sub)
+	carried := 0
+	for _, e := range sub.Issuers {
+		var name, key string
+		if err := json.Unmarshal(e["name"], &name); err != nil {
+			t.Fatal(err)
+		}
+		if b, ok := e["aws_required_condition_key"]; ok {
+			if err := json.Unmarshal(b, &key); err != nil {
+				t.Fatal(err)
+			}
+			carried++
+		}
+		if name == "GitHub Actions" && key != "sub" {
+			t.Errorf("the tenancy sub-package carries the key AWS requires of GitHub's trust policies as %q, want sub", key)
+		}
+	}
+	if carried != 1 {
+		t.Errorf("%d entries of the tenancy sub-package carry a key AWS requires; the census verifies GitHub's alone", carried)
 	}
 }
 
