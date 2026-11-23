@@ -243,7 +243,8 @@ def test_issues_anonymous_tokens():
     assert ci.issues_anonymous_tokens(by_name("Amazon Cognito identity pools")) == (True, True)
     assert ci.issues_anonymous_tokens(by_name("GitHub Actions")) == (False, True)
     assert ci.issues_anonymous_tokens(by_name("Facebook")) == (True, False)
-    for name in ("GitLab.com", "HCP Terraform (Terraform Cloud)", "Buildkite"):
+    assert ci.issues_anonymous_tokens(by_name("HCP Terraform (Terraform Cloud)")) == (False, True)
+    for name in ("GitLab.com", "Buildkite"):
         assert ci.issues_anonymous_tokens(by_name(name)) == (True, False), name
     assert ci.issues_anonymous_tokens({"name": "x", "anonymous_tokens": {"value": "maybe"}}) == (True, False)
 
@@ -415,7 +416,7 @@ def test_every_condition_key_carries_its_claim():
     keys = [(e["name"], k) for e in ci.issuers() for k in ci.tenancy(e).get("aws_condition_keys", [])]
     for name, k in keys:
         assert isinstance(k, dict) and k.get("key") and bool(k.get("claim")) != bool(k.get("table_claim")), (name, k)
-    assert len(keys) == 66, f"examined {len(keys)} condition keys; the census records 66"
+    assert len(keys) == 71, f"examined {len(keys)} condition keys; the census records 71"
 
 
 def test_aws_reads_each_condition_key_from_its_claim():
@@ -459,7 +460,7 @@ AMR_ISSUERS = {
     "Bitbucket Pipelines", "GitHub Actions", "Spacelift", "Amazon EKS (Kubernetes service account issuer / IRSA)",
     "Azure Kubernetes Service (AKS workload identity)", "Google Kubernetes Engine (GKE)",
     "AWS (outbound identity federation)", "Google (accounts.google.com)", "Amazon Cognito identity pools",
-    "Microsoft Entra ID",
+    "Microsoft Entra ID", "HCP Terraform (Terraform Cloud)",
 }
 
 
@@ -485,7 +486,7 @@ def test_aws_documents_amr_as_multivalued():
             else:
                 assert "multivalued" not in k and answer == (True, False), (e["name"], k, answer)
     assert carrying == AMR_ISSUERS, carrying ^ AMR_ISSUERS
-    assert examined == 66, f"examined {examined} condition keys; the census records 66"
+    assert examined == 71, f"examined {examined} condition keys; the census records 71"
     # A key AWS does not document for the issuer, and any key of an issuer
     # whose keys are not recorded, is not known either.
     for name, key in (("GitHub Actions", "repository_owner"), ("GitLab.com", "amr"),
