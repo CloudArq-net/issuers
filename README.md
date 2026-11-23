@@ -302,10 +302,14 @@ several, known := eks.Tenancy().ClaimIsMultiValued("aud")
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
 instead. It carries the values a classifier reads and none of the sentences: 8,658 bytes of
 data (`tenancy/tenancy.json`) against the root package's 249,536 (`issuers.json`). A small
-program that matches the issuer given on its command line and prints the entry's name, built
-with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,540,060 bytes through
-`tenancy` and 4,821,767 through the root package: 281,707 bytes smaller, and 49,862 smaller
-after `gzip -9`. None of the census's quoted sentences is in the smaller one.
+program whose `main` calls `tenancy.Match(os.Args[1])` and, when it matches,
+`fmt.Println(e.Name)` came out 4,540,073 bytes as js/wasm; the same program calling the root
+package's `issuers.Match` came out 4,821,769: 281,696 bytes smaller through `tenancy`, and
+49,762 smaller after `gzip -9`. Each was built as `wasmsize/main.go` at the root of a copy of
+the tree made by `git archive HEAD | tar -x`, which carries no VCS stamp, with go1.27.1 by
+`GOOS=js GOARCH=wasm go build -trimpath -o main.wasm ./wasmsize`, and measured by
+`wc -c < main.wasm` and `gzip -9 < main.wasm | wc -c`. The sizes move by a few bytes with the
+directory's name. None of the census's quoted sentences is in the smaller one.
 `scripts/build.py` writes the sub-package's data from the same YAML, and CI fails when it is
 out of step.
 
