@@ -1129,12 +1129,72 @@ func TestCognitosAudienceNamesThePoolNotATenant(t *testing.T) {
 	}
 }
 
-// GitLab.com, HCP Terraform and Buildkite are researched for
-// anonymous_tokens only. The research recorded who can open an account,
-// not that tokens need one, so the value is unverified and says why, and
-// every other tenancy field is unverified too.
-func TestGitLabHCPTerraformAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
-	for _, name := range []string{"GitLab.com", "HCP Terraform (Terraform Cloud)", "Buildkite"} {
+// HCP Terraform has no tab of its own on AWS's reference, so AWS reads its
+// tokens by the Default tab: sub from sub, and aud from azp, or from aud
+// where the token sets no azp. Its subjects lead with the organization's
+// name, which ends at a colon no organization name holds.
+func TestHCPTerraformIsReadByAWSsDefaultTabAndPinsItsOrganization(t *testing.T) {
+	e := byName(t, "HCP Terraform (Terraform Cloud)", "")
+	tg := e.Tenancy()
+	if e.AWSConditionKeys.Value != "verified" {
+		t.Fatalf("HCP Terraform: aws_condition_keys is %q; AWS's Default tab covers an issuer with no tab of its own",
+			e.AWSConditionKeys.Value)
+	}
+	if k, ok := tg.AWSConditionKey("sub"); !ok || k.Claim != "sub" || k.FallbackClaim != "" {
+		t.Errorf("HCP Terraform: sub reads %+v, %v; the Default tab reads sub from sub alone", k, ok)
+	}
+	if k, ok := tg.AWSConditionKey("aud"); !ok || k.Claim != "azp" || k.FallbackClaim != "aud" {
+		t.Errorf("HCP Terraform: aud reads %+v, %v; the Default tab reads it from azp, or aud where azp is not set", k, ok)
+	}
+	quoted := false
+	for _, f := range e.AWSConditionKeys.Evidence {
+		quoted = quoted || strings.HasPrefix(f.Source, "https://docs.aws.amazon.com/") &&
+			f.Quote == "Use this mapping if your IdP is not listed in the tab options."
+	}
+	if !quoted {
+		t.Error("HCP Terraform: the keys do not quote AWS's sentence that an issuer with no tab reads by the Default tab")
+	}
+	if e.SubjectForms.Value != "verified" || len(tg.SubjectForms) == 0 {
+		t.Fatalf("HCP Terraform: subject_forms is %q with %d forms", e.SubjectForms.Value, len(tg.SubjectForms))
+	}
+	for _, f := range tg.SubjectForms {
+		if f.LeadingLiteral != "organization:" || len(f.OwnerParts) != 1 ||
+			f.OwnerParts[0] != (tenancy.Part{Kind: "name", DelimiterAfter: ":"}) || len(f.RepositoryParts) != 0 {
+			t.Errorf("HCP Terraform: form %+v; each documented subject leads with organization:, then the name and a colon", f)
+		}
+	}
+	if e.OwnerCharset.Value != "verified" || len(e.OwnerCharset.Evidence) == 0 || tg.OwnerNameMayContain(':') {
+		t.Errorf("HCP Terraform: owner_charset %+v; HashiCorp's sentence names the characters, and the colon is not one",
+			e.OwnerCharset)
+	}
+	claims := map[string]tenancy.Claim{}
+	for _, c := range tg.TenancyClaims {
+		claims[c.Claim] = c
+	}
+	name := claims["terraform_organization_name"]
+	if name.Kind != "name" || name.Scope != "owner" {
+		t.Errorf("HCP Terraform: terraform_organization_name is %+v; it names the organization", name)
+	}
+	if recyclable, known := name.ValueIsRecyclable(); !recyclable || !known {
+		t.Errorf("HCP Terraform: terraform_organization_name recyclable = %v, %v; HashiCorp says organization names can be changed",
+			recyclable, known)
+	}
+	if withoutCase, known := tg.NamesCompareWithoutCase(); withoutCase || known {
+		t.Errorf("HCP Terraform: names compare without case = %v, %v; no sentence read says so", withoutCase, known)
+	}
+}
+
+// GitLab.com and Buildkite are researched for anonymous_tokens only. The
+// research recorded who can open an account, not that tokens need one, so
+// the value is unverified and says why, and every other tenancy field is
+// unverified too. HCP Terraform's anonymous_tokens is unverified on the same
+// research.
+func TestGitLabAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
+	hcp := byName(t, "HCP Terraform (Terraform Cloud)", "")
+	if hcp.AnonymousTokens.Value != "unverified" || hcp.AnonymousTokens.WhyUnverified == "" {
+		t.Errorf("HCP Terraform: anonymous_tokens %+v", hcp.AnonymousTokens)
+	}
+	for _, name := range []string{"GitLab.com", "Buildkite"} {
 		e := byName(t, name, "")
 		if e.Researched != "in_release" || e.AnonymousTokens.Value != "unverified" || e.AnonymousTokens.WhyUnverified == "" {
 			t.Errorf("%s: researched %q, anonymous_tokens %+v", name, e.Researched, e.AnonymousTokens)
