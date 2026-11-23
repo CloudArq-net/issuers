@@ -7132,7 +7132,7 @@
     ],
     "amr": [
      true,
-     false
+     true
     ],
     "aud": [
      true,
@@ -7179,6 +7179,9 @@
       "key": "sub",
       "claim": "sub"
      }
+    ],
+    "multi_valued_claims": [
+     "amr"
     ]
    }
   },

@@ -759,7 +759,7 @@ var recorded = map[string]struct {
 	"Google (accounts.google.com)": {map[string]int{"accounts": 1, "anonymous_tokens": 9,
 		"aws_condition_keys": 7, "built_in": 3}, []string{"sources"}},
 	"Amazon Cognito identity pools": {map[string]int{"anonymous_tokens": 9, "aws_condition_keys": 5,
-		"built_in": 3, "not_tenancy": 4,
+		"built_in": 3, "multi_valued_claims": 2, "not_tenancy": 4,
 		"research": 6, "subject_forms": 2}, []string{"aws", "population", "sources"}},
 	"Login with Amazon": {map[string]int{"anonymous_tokens": 3, "aws_condition_keys": 2, "built_in": 3,
 		"research": 1},

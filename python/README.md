@@ -93,7 +93,9 @@ the page, the sentence verbatim, and the date it was read.
   and Bitbucket Pipelines record `aud`: Kubernetes says of a service account token's
   audience "May be repeated to request a token valid for multiple audiences.", AWS's
   `GetWebIdentityToken` takes an array of up to ten, and a pipeline declares a list,
-  "Maximum of 10 audiences allowed." A claim not listed is not thereby one value.
+  "Maximum of 10 audiences allowed." Amazon Cognito identity pools record `amr`: Cognito's
+  guide calls it "the multi-value amr claim" of the token an identity pool issues. A claim
+  not listed is not thereby one value.
 - `accounts`: the platform whose accounts hold the issuer's tenants, as the vendor names it,
   and, for GitHub Actions, the namespace a consumer declares its owners under, `github`.
 - `researched`: whether this release researched the entry at all.

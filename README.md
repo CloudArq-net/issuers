@@ -207,7 +207,10 @@ valid for multiple audiences.", and the EKS, AKS and GKE cluster issuers record 
 sentence beside their vendor's sentence tying the issuer to the tokens the cluster's API
 server signs. AWS's outbound tokens record it on `GetWebIdentityToken`'s audiences, an array
 of up to ten that "populates the aud claim in the JWT", and Bitbucket Pipelines on a
-pipeline's list of audiences, "Maximum of 10 audiences allowed." A claim not listed is not
+pipeline's list of audiences, "Maximum of 10 audiences allowed." Amazon Cognito identity
+pools record `amr` on Cognito's sentence that a trust policy tests "one of the array members
+of the multi-value amr claim" of the token an identity pool issues; AWS's sentence that the
+`amr` condition key is multivalued stays with `aws_condition_keys`. A claim not listed is not
 thereby one value: no sentence here says a claim holds one. The build refuses a listed claim
 with no sentence behind it, and a tenancy claim whose own sentence describes one value.
 `claim_is_multi_valued` and `ClaimIsMultiValued` read it, comparing claim names as written,

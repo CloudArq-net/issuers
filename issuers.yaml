@@ -4144,6 +4144,21 @@ issuers:
         authenticated. If amr is authenticated, the token includes any providers used during authentication.'
       verified_at: '2026-09-27'
       role: 'Cognito: a signed-in user''s amr names the providers as well as authenticated'
+  multi_valued_claims:
+    value: verified
+    claims:
+    - claim: amr
+      evidence:
+      - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: 'Finally, the policy specifies that one of the array members of the multi-value amr claim of the
+          token issued by the Amazon Cognito GetOpenIdToken API operation has the value unauthenticated.'
+        verified_at: '2026-11-23'
+        role: 'Cognito: the amr claim of an identity pool token is a list, one of whose members a trust policy tests'
+      - source: https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html
+        quote: 'When Amazon Cognito creates a token, it sets the amr of the token as either unauthenticated or
+          authenticated. If amr is authenticated, the token includes any providers used during authentication.'
+        verified_at: '2026-11-23'
+        role: 'Cognito: a signed-in user''s amr holds the providers as well as authenticated'
   research:
     aws:
       shared_issuer_row:
