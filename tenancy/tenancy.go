@@ -88,14 +88,16 @@ type Issuer struct {
 	// on <provider>:<key> tests for a key not listed here, AWS does not
 	// document. Empty when the census does not record them.
 	AWSConditionKeys []ConditionKey `json:"aws_condition_keys,omitempty"`
-	// AWSRequiredConditionKey is the condition key, named as AWSConditionKeys
-	// names keys, that AWS requires a trust policy trusting the issuer to
-	// test: IAM refuses to create or update one whose condition does not test
-	// <provider>:<key>, or tests it with a value that is solely a wildcard
-	// character (* and ?) or null. IAM does not evaluate trust policies that
-	// existed before, so one of those may lack the key. Empty when the census
-	// does not record the check.
-	AWSRequiredConditionKey string `json:"aws_required_condition_key,omitempty"`
+	// AWSIdentityProviderControlKeys are the condition keys, named as
+	// AWSConditionKeys names keys, of which AWS requires a trust policy
+	// trusting the issuer to test one: IAM refuses to create or update one
+	// whose condition tests none of them as <provider>:<key>. Where AWS's
+	// pages name different keys, these are each key a page names, so a policy
+	// that tests none of them is refused on every page, and one that tests
+	// only a key some page leaves out may still be refused. IAM does not
+	// evaluate trust policies that existed before, so one of those may test
+	// none of them. Empty when the census does not record the check.
+	AWSIdentityProviderControlKeys []string `json:"aws_identity_provider_control_keys,omitempty"`
 	// MultiValuedClaims are the claims a sentence says the issuer's tokens
 	// may carry with several values, as Kubernetes says of a service account
 	// token's audience. A claim not listed is not thereby one value.
@@ -336,6 +338,7 @@ func (i Issuer) clone() Issuer {
 	i.NotTenancy = slices.Clone(i.NotTenancy)
 	i.NeverPin = slices.Clone(i.NeverPin)
 	i.AWSConditionKeys = slices.Clone(i.AWSConditionKeys)
+	i.AWSIdentityProviderControlKeys = slices.Clone(i.AWSIdentityProviderControlKeys)
 	i.MultiValuedClaims = slices.Clone(i.MultiValuedClaims)
 	i.OwnerNameCharacters = slices.Clone(i.OwnerNameCharacters)
 	i.RepositoryNameCharacters = slices.Clone(i.RepositoryNameCharacters)

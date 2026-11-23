@@ -470,7 +470,7 @@ func TestTenancyKeepsOnlyWhatIsVerified(t *testing.T) {
 		NamesUniqueRegardlessOfCase: NameCase{Value: "unverified"},
 		Match:                       MatchRule{Value: "unverified", IssuerPattern: "https://<t>.example.com", TenantRecyclable: "no"},
 		TenantMembership:            TenantMembership{Value: "unverified"},
-		AWSIdentityProviderControls: AWSIdentityProviderControls{Value: "unverified", Key: "sub"},
+		AWSIdentityProviderControls: AWSIdentityProviderControls{Value: "unverified", Keys: []string{"sub"}},
 	}
 	want := tenancy.Issuer{Name: "invented", Issuer: "https://example.com",
 		TenancyClaims: []tenancy.Claim{{Claim: "single", Kind: "id", Scope: "owner"}}}
@@ -941,9 +941,9 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 		if o := e.RepositoryCharset; o.Value == "verified" && (len(o.Characters) == 0 || len(o.Evidence) == 0 || o.Description == "") {
 			t.Errorf("%s: a repository character set needs its characters, its description and its evidence", n)
 		}
-		if p := e.AWSIdentityProviderControls; p.Value == "verified" && (p.Key == "" || p.ExistingTrustPolicies != "not_evaluated" ||
-			len(p.Evidence) == 0) || p.Value != "verified" && (p.Key != "" || p.ExistingTrustPolicies != "" || len(p.Evidence) != 0) {
-			t.Errorf("%s: AWS's check %+v; a verified check needs its key, its reading of existing trust policies and its "+
+		if p := e.AWSIdentityProviderControls; p.Value == "verified" && (len(p.Keys) == 0 || p.ExistingTrustPolicies != "not_evaluated" ||
+			len(p.Evidence) == 0) || p.Value != "verified" && (len(p.Keys) != 0 || p.ExistingTrustPolicies != "" || len(p.Evidence) != 0) {
+			t.Errorf("%s: AWS's check %+v; a verified check needs its keys, its reading of existing trust policies and its "+
 				"evidence, and an unverified one names none", n, p)
 		}
 		if v := e.NamesUniqueRegardlessOfCase.Value; (v == "yes" || v == "no") && len(e.NamesUniqueRegardlessOfCase.Evidence) == 0 {

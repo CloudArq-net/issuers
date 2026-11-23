@@ -9,11 +9,13 @@
   carries the set as `repository_name_characters`.
 - **AWS's check on GitHub's trust policies.** `aws_identity_provider_controls` records that,
   when a role's trust policy trusts GitHub's issuer, IAM checks on creating or updating the
-  policy that it tests the key `sub` with a value that is not solely a wildcard or null, and
-  that trust policies that existed before are not evaluated
-  (`existing_trust_policies: not_evaluated`). AWS's table of shared providers, which names
-  `job_workflow_ref` beside `sub`, is kept as the field's discrepancy. Every other entry holds
-  `unverified`. The `tenancy` package carries the key as `aws_required_condition_key`.
+  policy that it tests one of its `keys`, and that trust policies that existed before are not
+  evaluated (`existing_trust_policies: not_evaluated`). The keys are `sub` and
+  `job_workflow_ref`, as AWS's table of shared providers names them; AWS's page on creating a
+  role for an OIDC provider names `sub` alone, with a value that is not solely a wildcard or
+  null, and is kept as the field's discrepancy, so a policy that tests neither key is refused
+  on both pages. Every other entry holds `unverified`. The `tenancy` package carries the keys
+  as `aws_identity_provider_control_keys`.
 - **HCP Terraform.** AWS's condition-keys page has no tab for HCP Terraform, so its keys are
   read by the Default tab, which AWS says is for an IdP the tabs do not list: `sub`, `aud`
   (from `azp`, or from `aud` where `azp` is not set), `oaud`, `email` and `amr`, which is

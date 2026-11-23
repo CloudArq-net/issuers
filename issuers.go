@@ -438,16 +438,21 @@ type AWSConditionKeys struct {
 
 // AWSIdentityProviderControls records the check AWS makes of a trust policy
 // that trusts the issuer, which AWS calls its identity-provider controls: IAM
-// refuses to create or update one whose condition does not test
-// <provider>:<Key>, or tests it with a value that is solely a wildcard
-// character (* and ?) or null. It does not evaluate trust policies that
-// existed before, so one of those may lack the key and still admit.
+// refuses to create or update one whose condition tests none of the Keys as
+// <provider>:<key>. Of GitHub's sub, AWS adds that a value that is solely a
+// wildcard character (* and ?) or null fails as well. It does not evaluate
+// trust policies that existed before, so one of those may test none of the
+// keys and still admit.
 type AWSIdentityProviderControls struct {
 	// Value is "verified" or "unverified".
 	Value string `json:"value"`
-	// Key is the condition key the check requires, as AWSConditionKeys
-	// names keys: one AWS documents for the issuer.
-	Key string `json:"key,omitempty"`
+	// Keys are the condition keys of which the check requires a trust policy
+	// to test one, as AWSConditionKeys names keys: each one AWS documents for
+	// the issuer. Where AWS's pages name different keys, Keys holds each key
+	// a page names and Discrepancy the page that names fewer, so a policy
+	// that tests none of them is refused on every page, and one that tests
+	// only a key some page leaves out may still be refused.
+	Keys []string `json:"keys,omitempty"`
 	// ExistingTrustPolicies is "not_evaluated": AWS does not check a trust
 	// policy that existed before, until it is changed.
 	ExistingTrustPolicies string `json:"existing_trust_policies,omitempty"`
@@ -600,7 +605,7 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 		}
 	}
 	if i.AWSIdentityProviderControls.Value == "verified" {
-		t.AWSRequiredConditionKey = i.AWSIdentityProviderControls.Key
+		t.AWSIdentityProviderControlKeys = slices.Clone(i.AWSIdentityProviderControls.Keys)
 	}
 	if i.MultiValuedClaims.Value == "verified" {
 		for _, c := range i.MultiValuedClaims.Claims {

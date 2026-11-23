@@ -181,19 +181,24 @@ whose sentence the census quotes. `aws_condition_key_is_multivalued` and `IsMult
 it.
 
 **`aws_identity_provider_controls`** — the check AWS makes of a trust policy that trusts the
-issuer, which AWS calls its identity-provider controls: the condition `key` the policy must
-test, one of the issuer's `aws_condition_keys`, and `existing_trust_policies`. For GitHub
-Actions, AWS says "IAM checks the role trust policy condition to verify that the condition
-key `token.actions.githubusercontent.com:sub` is present and that its value is not solely a
-wildcard character (* and ?) or null", that "IAM performs this check when the trust policy is
-created or updated", and that "Identity-provider controls will not be evaluated by IAM for
-existing OIDC role trust policies." So a trust policy saved today tests `sub`, and one that
-existed before may not and still admit; `existing_trust_policies` reads `not_evaluated`. AWS's
-table of shared providers, read the same day, names `sub` or `job_workflow_ref` for GitHub
-actions; the census keeps that row as the check's `discrepancy`, since the GitHub sentence names
-`sub` alone and no AWS sentence says which values of `job_workflow_ref` the check refuses.
-Verified for GitHub Actions alone. The tenancy sub-package carries the key as
-`aws_required_condition_key`, and `AWSRequiredConditionKey` in Go.
+issuer, which AWS calls its identity-provider controls: the condition `keys` of which the
+policy must test one, each one of the issuer's `aws_condition_keys`, and
+`existing_trust_policies`. For GitHub Actions, AWS's page on creating a role for an OIDC
+provider says "IAM checks the role trust policy condition to verify that the condition key
+`token.actions.githubusercontent.com:sub` is present and that its value is not solely a
+wildcard character (* and ?) or null", and that "IAM performs this check when the trust policy
+is created or updated". Its page on identity-provider controls names `sub` or
+`job_workflow_ref` for GitHub actions, in its table of shared providers, and says
+"Identity-provider controls will not be evaluated by IAM for existing OIDC role trust
+policies." The census records both keys, `sub` and `job_workflow_ref`, with the table among the
+evidence, and keeps the first page's sentence, which names `sub` alone, as the check's
+`discrepancy`. So a trust policy saved today tests one of the two: one that tests neither is
+refused on both pages. One that tests `job_workflow_ref` and not `sub` fails the first page's
+check and meets the second's, and no AWS sentence says which values of `job_workflow_ref` the
+check refuses. A trust policy that existed before may test neither and still admit;
+`existing_trust_policies` reads `not_evaluated`. Verified for GitHub Actions alone. The tenancy
+sub-package carries the keys as `aws_identity_provider_control_keys`, and
+`AWSIdentityProviderControlKeys` in Go.
 
 **`multi_valued_claims`** — the claims the issuer's tokens may carry with several values,
 each on the sentences that say so. RFC 7519 says that in the general case `aud` is an array.
@@ -300,12 +305,12 @@ several, known := eks.Tenancy().ClaimIsMultiValued("aud")
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 8,658 bytes of
-data (`tenancy/tenancy.json`) against the root package's 249,536 (`issuers.json`). A small
+instead. It carries the values a classifier reads and none of the sentences: 8,687 bytes of
+data (`tenancy/tenancy.json`) against the root package's 250,440 (`issuers.json`). A small
 program whose `main` calls `tenancy.Match(os.Args[1])` and, when it matches,
-`fmt.Println(e.Name)` came out 4,540,073 bytes as js/wasm; the same program calling the root
-package's `issuers.Match` came out 4,821,769: 281,696 bytes smaller through `tenancy`, and
-49,762 smaller after `gzip -9`. Each was built as `wasmsize/main.go` at the root of a copy of
+`fmt.Println(e.Name)` came out 4,540,733 bytes as js/wasm; the same program calling the root
+package's `issuers.Match` came out 4,823,313: 282,580 bytes smaller through `tenancy`, and
+49,842 smaller after `gzip -9`. Each was built as `wasmsize/main.go` at the root of a copy of
 the tree made by `git archive HEAD | tar -x`, which carries no VCS stamp, with go1.27.1 by
 `GOOS=js GOARCH=wasm go build -trimpath -o main.wasm ./wasmsize`, and measured by
 `wc -c < main.wasm` and `gzip -9 < main.wasm | wc -c`. The sizes move by a few bytes with the
@@ -372,10 +377,10 @@ $ python3 scripts/build.py
 issuers.json: 44 entries, 17 researched in this release; tenancy/tenancy.json: 29 entries an issuer can match
 $ git status --porcelain            # empty: the committed files are what the YAML builds
 $ go vet ./... && go test ./... -count=1
-ok  	github.com/CloudArq-net/issuers	0.131s
-ok  	github.com/CloudArq-net/issuers/tenancy	0.013s
+ok  	github.com/CloudArq-net/issuers	0.133s
+ok  	github.com/CloudArq-net/issuers/tenancy	0.009s
 $ cd python && PYTHONPATH=src python3 -m pytest tests -q
-398 passed in 11.70s
+402 passed in 15.82s
 ```
 
 The Python checks need `pyyaml` and `pytest`; CI installs them, and every dependency, from

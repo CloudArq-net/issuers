@@ -740,23 +740,37 @@ def check_aws_condition_keys(c, a, pinned):
 
 def check_identity_provider_controls(c, p, documented):
     """The check AWS makes of a trust policy that trusts the issuer when the
-    policy is created or updated: the condition key it must test, with a value
-    that is not solely a wildcard character or null, which is one of the keys
-    AWS documents for the issuer, and AWS's sentence that a trust policy that
-    existed before is not evaluated. An unverified check names neither, and
-    rests on no evidence."""
+    policy is created or updated: the condition keys of which it must test
+    one, each a key AWS documents for the issuer and none listed twice, and
+    AWS's sentence that a trust policy that existed before is not evaluated.
+    Where AWS's pages name different keys, the list holds each key a page
+    names, so a policy that tests none of them is refused on every page. An
+    unverified check names no key and no reading of existing trust policies,
+    and rests on no evidence."""
     w = 'aws_identity_provider_controls'
-    if not c.keys(w, p, {'value', 'key', 'existing_trust_policies', 'evidence', 'discrepancy', 'note'}, ['value']):
+    if not c.keys(w, p, {'value', 'keys', 'existing_trust_policies', 'evidence', 'discrepancy', 'note'}, ['value']):
         return
     c.one_of(f'{w}.value', p['value'], LISTED)
     if p['value'] != 'verified':
-        for k in ('key', 'existing_trust_policies', 'evidence'):
+        for k in ('keys', 'existing_trust_policies', 'evidence'):
             if k in p:
                 c.fail(w, f"an unverified check carries {k}")
     else:
-        c.text(f'{w}.key', p.get('key'))
-        if isinstance(p.get('key'), str) and p['key'] not in documented:
-            c.fail(f'{w}.key', f"{p['key']!r} is not a condition key the census records AWS documenting for the issuer")
+        keys = p.get('keys')
+        if not isinstance(keys, list) or not keys:
+            c.fail(f'{w}.keys', "a verified check needs its keys")
+            keys = []
+        seen = set()
+        for i, k in enumerate(keys):
+            kw = f'{w}.keys[{i}]'
+            c.text(kw, k)
+            if not isinstance(k, str):
+                continue
+            if k in seen:
+                c.fail(kw, f"{k!r} is listed twice")
+            seen.add(k)
+            if k not in documented:
+                c.fail(kw, f"{k!r} is not a condition key the census records AWS documenting for the issuer")
         c.one_of(f'{w}.existing_trust_policies', p.get('existing_trust_policies'), {'not_evaluated'})
         c.facts(f'{w}.evidence', p.get('evidence'), required=True)
     c.facts(f'{w}.discrepancy', p.get('discrepancy'))

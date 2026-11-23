@@ -1454,15 +1454,25 @@ issuers:
       key AWS does not document for this issuer
   aws_identity_provider_controls:
     value: verified
-    key: sub
+    keys:
+    - sub
+    - job_workflow_ref
     existing_trust_policies: not_evaluated
     evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.md
+      quote: '| [GitHub actions](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
+        | https://token.actions.githubusercontent.com | sub or job\_workflow\_ref | `token.actions.githubusercontent.com:sub`<br
+        />or<br />`token.actions.githubusercontent.com:job_workflow_ref` |'
+      verified_at: '2026-11-23'
+      role: 'AWS''s table of the shared providers that have identity-provider controls, in the markdown AWS
+        serves for the page: it lists GitHub actions, which puts the sentences on existing trust policies on
+        GitHub''s issuer, and names the keys, sub or job_workflow_ref'
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
       quote: 'When GitHub''s OIDC IdP is the trusted Principal for your role, IAM checks the role trust policy
         condition to verify that the condition key `token.actions.githubusercontent.com:sub` is present and that
         its value is not solely a wildcard character (* and ?) or null.'
       verified_at: '2026-11-23'
-      role: 'AWS: the key a trust policy that trusts GitHub''s issuer must test, and the values it must not hold
+      role: 'AWS: the check of a trust policy that trusts GitHub''s issuer, and the values sub must not hold
         alone'
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
       quote: IAM performs this check when the trust policy is created or updated.
@@ -1476,23 +1486,27 @@ issuers:
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
       quote: Identity-provider controls will not be evaluated by IAM for existing OIDC role trust policies.
       verified_at: '2026-11-23'
-      role: 'AWS: a trust policy that existed before is not checked, so it may lack the key and still admit'
+      role: 'AWS: a trust policy that existed before is not checked, so it may test neither key and still
+        admit'
     - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.html
       quote: For any modifications to the role trust policy for existing OIDC roles, IAM will require that
         identity-provider controls be included in the role trust policy.
       verified_at: '2026-11-23'
       role: 'AWS: a change to a trust policy that existed before is checked'
     discrepancy:
-    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_secure-by-default.md
-      quote: '| [GitHub actions](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
-        | https://token.actions.githubusercontent.com | sub or job\_workflow\_ref | `token.actions.githubusercontent.com:sub`<br
-        />or<br />`token.actions.githubusercontent.com:job_workflow_ref` |'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html
+      quote: 'When GitHub''s OIDC IdP is the trusted Principal for your role, IAM checks the role trust policy
+        condition to verify that the condition key `token.actions.githubusercontent.com:sub` is present and that
+        its value is not solely a wildcard character (* and ?) or null.'
       verified_at: '2026-11-23'
-      role: 'AWS''s table of the shared providers that have identity-provider controls, in the markdown AWS
-        serves for the page: it lists GitHub actions, which puts the sentences on existing trust policies on
-        GitHub''s issuer, and names job_workflow_ref beside sub where the GitHub sentence names sub alone'
-    note: the key is the one the GitHub sentence names; the table names sub or job_workflow_ref, and no AWS
-      sentence says which values of job_workflow_ref the check refuses
+      role: 'AWS''s page on creating a role for an OIDC provider names sub alone as the key the check reads,
+        where the table names sub or job_workflow_ref'
+    note: AWS's page on creating a role for an OIDC provider says IAM refuses a trust policy that trusts
+      GitHub's issuer unless it tests sub with a value that is not solely a wildcard character (* and ?) or
+      null; AWS's page on identity-provider controls names sub or job_workflow_ref for GitHub actions; so a
+      policy that tests neither key is refused on both pages, one that tests job_workflow_ref and not sub
+      fails the first page's check and meets the second page's, and no AWS sentence says which values of
+      job_workflow_ref the check refuses
   research:
     population: 'anyone with a GitHub account: Actions is free for public repositories and on self-hosted
       runners'

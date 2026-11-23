@@ -1575,7 +1575,10 @@
       "claim": "enterprise_id"
      }
     ],
-    "aws_required_condition_key": "sub",
+    "aws_identity_provider_control_keys": [
+     "sub",
+     "job_workflow_ref"
+    ],
     "platform": "GitHub",
     "declaration_namespace": "github"
    }
