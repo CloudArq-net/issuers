@@ -862,7 +862,7 @@ def test_a_census_note_is_not_a_host():
 def test_the_version_is_the_release():
     pyproject = (HERE.parent / "pyproject.toml").read_text(encoding="utf-8")
     declared = re.search(r'^version = "([^"]+)"$', pyproject, re.M).group(1)
-    assert declared == ci.__version__ == "0.2.0"
+    assert declared == ci.__version__ == "0.3.0"
 
 
 def entries_in_census_order():
