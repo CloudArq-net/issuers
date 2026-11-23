@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.3.0
+
+- **Repository characters.** `repository_charset` records the characters a repository's name
+  can hold, in `owner_charset`'s shape. GitHub Actions holds A-Z, a-z, 0-9, `.`, `-` and `_`,
+  on GitHub's sentence that a repository name "can only contain ASCII letters, digits, and the
+  characters `.`, `-`, and `_`"; every other entry holds `unverified`. The `tenancy` package
+  carries the set as `repository_name_characters`.
+- **AWS's check on GitHub's trust policies.** `aws_identity_provider_controls` records that,
+  when a role's trust policy trusts GitHub's issuer, IAM checks on creating or updating the
+  policy that it tests the key `sub` with a value that is not solely a wildcard or null, and
+  that trust policies that existed before are not evaluated
+  (`existing_trust_policies: not_evaluated`). AWS's table of shared providers, which names
+  `job_workflow_ref` beside `sub`, is kept as the field's discrepancy. Every other entry holds
+  `unverified`. The `tenancy` package carries the key as `aws_required_condition_key`.
+- **HCP Terraform.** AWS's condition-keys page has no tab for HCP Terraform, so its keys are
+  read by the Default tab, which AWS says is for an IdP the tabs do not list: `sub`, `aud`
+  (from `azp`, or from `aud` where `azp` is not set), `oaud`, `email` and `amr`, which is
+  multivalued. Its organization is pinned: `terraform_organization_name` and
+  `terraform_organization_id` name it, its subjects lead with `organization:` and the
+  organization's name, and the name holds numbers, letters, underscores and hyphens, read as
+  ASCII by the census. `anonymous_tokens` reads `no`, on a chain of HashiCorp's sentences.
+
 ## v0.2.0
 
 - **Tenancy.** The 17 entries researched in this release record who can hold a token the
