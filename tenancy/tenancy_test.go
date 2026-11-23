@@ -3,6 +3,7 @@ package tenancy
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"reflect"
 	"regexp"
@@ -627,42 +628,51 @@ func TestAWSDocumentsWhichConditionKeysAreMultivalued(t *testing.T) {
 // allowed." A reader that compared a condition on aud with one string would
 // find no token meeting two such conditions, and read a role that names two
 // audiences as admitting nobody. So those five issuers carry aud as
-// multi-valued, and no other issuer carries a claim so: a claim not carried
-// reads not known, with the cautious answer beside it, and claim names
-// compare as written, as a token's do.
-func TestTheTokensThatMayCarrySeveralAudiences(t *testing.T) {
-	several := []string{
-		"https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>",
-		"https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/",
-		"https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>",
-		"https://<tenant_uuid>.tokens.sts.global.api.aws",
-		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc",
+// multi-valued. Amazon Cognito's guide calls a Cognito identity pool token's
+// amr "the multi-value amr claim", one of whose array members a trust policy
+// tests, so Cognito's issuer carries amr. No other issuer carries a claim so,
+// and no issuer another claim: a claim not carried reads not known, with the
+// cautious answer beside it, and claim names compare as written, as a token's
+// do.
+func TestTheTokensThatMayCarrySeveralValuesInAClaim(t *testing.T) {
+	cognito := "cognito-identity.amazonaws.com"
+	carried := map[string][]string{
+		"https://oidc.eks.<region>.amazonaws.com/id/<cluster_oidc_id>":                                   {"aud"},
+		"https://<region>.oic.prod-aks.azure.com/<tenant_id>/<cluster_uuid>/":                            {"aud"},
+		"https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>": {"aud"},
+		"https://<tenant_uuid>.tokens.sts.global.api.aws":                                                {"aud"},
+		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc":            {"aud"},
+		cognito: {"amr"},
 	}
 	var carrying []string
 	examined := 0
 	for _, e := range All() {
 		examined++
+		want := carried[e.Issuer]
 		if len(e.MultiValuedClaims) > 0 {
 			carrying = append(carrying, e.Issuer)
-			if !slices.Equal(e.MultiValuedClaims, []string{"aud"}) {
-				t.Errorf("%s carries %q as multi-valued; want aud alone", e.Name, e.MultiValuedClaims)
+		}
+		if !slices.Equal(e.MultiValuedClaims, want) {
+			t.Errorf("%s carries %q as multi-valued; want %q", e.Name, e.MultiValuedClaims, want)
+		}
+		for _, claim := range []string{"aud", "sub", "Aud", "amr", "AMR", "azp", ""} {
+			multiValued, known := e.ClaimIsMultiValued(claim)
+			if !multiValued || known != slices.Contains(want, claim) {
+				t.Errorf("%s ClaimIsMultiValued(%q) = %v, %v; want true, %v", e.Name, claim, multiValued, known, slices.Contains(want, claim))
 			}
 		}
-		for _, claim := range []string{"sub", "Aud", "amr", "azp", ""} {
-			if multiValued, known := e.ClaimIsMultiValued(claim); !multiValued || known {
-				t.Errorf("%s ClaimIsMultiValued(%q) = %v, %v; no sentence the census holds says either way", e.Name, claim, multiValued, known)
+	}
+	if got, want := slices.Sorted(slices.Values(carrying)), slices.Sorted(maps.Keys(carried)); !slices.Equal(got, want) {
+		t.Errorf("the issuers the sub-package carries a multi-valued claim of: %q; want %q", got, want)
+	}
+	for _, issuer := range slices.Sorted(maps.Keys(carried)) {
+		for _, claim := range carried[issuer] {
+			if multiValued, known := find(t, issuer).ClaimIsMultiValued(claim); !multiValued || !known {
+				t.Errorf("%s ClaimIsMultiValued(%q) = %v, %v; want true, true", issuer, claim, multiValued, known)
 			}
 		}
 	}
-	if !slices.Equal(slices.Sorted(slices.Values(carrying)), slices.Sorted(slices.Values(several))) {
-		t.Errorf("the issuers whose aud the sub-package carries as multi-valued: %q; want %q", carrying, several)
-	}
-	for _, issuer := range several {
-		if multiValued, known := find(t, issuer).ClaimIsMultiValued("aud"); !multiValued || !known {
-			t.Errorf("%s ClaimIsMultiValued(aud) = %v, %v; want true, true", issuer, multiValued, known)
-		}
-	}
-	for _, issuer := range []string{github, entra, "cognito-identity.amazonaws.com", "https://accounts.google.com"} {
+	for _, issuer := range []string{github, entra, cognito, "https://accounts.google.com"} {
 		if multiValued, known := find(t, issuer).ClaimIsMultiValued("aud"); !multiValued || known {
 			t.Errorf("%s ClaimIsMultiValued(aud) = %v, %v; want true, false", issuer, multiValued, known)
 		}
@@ -670,9 +680,11 @@ func TestTheTokensThatMayCarrySeveralAudiences(t *testing.T) {
 	if examined < 29 {
 		t.Fatalf("examined %d entries; the sub-package carries at least 29", examined)
 	}
-	if n := strings.Count(string(raw), `"multi_valued_claims":["aud"]`); n != len(several) || strings.Count(string(raw), `"multi_valued_claims"`) != n {
-		t.Errorf("the sub-package carries aud as multi-valued %d times, and %d multi-valued claim lists; want %d of each",
-			n, strings.Count(string(raw), `"multi_valued_claims"`), len(several))
+	aud, amr, lists := strings.Count(string(raw), `"multi_valued_claims":["aud"]`), strings.Count(string(raw), `"multi_valued_claims":["amr"]`),
+		strings.Count(string(raw), `"multi_valued_claims"`)
+	if aud != 5 || amr != 1 || lists != len(carried) {
+		t.Errorf("the sub-package carries aud alone as multi-valued %d times, amr alone %d times, and %d multi-valued claim lists; want 5, 1 and %d",
+			aud, amr, lists, len(carried))
 	}
 }
 

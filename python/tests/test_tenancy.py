@@ -560,34 +560,57 @@ SEVERAL_AUDIENCES = {
 }
 
 
-def test_the_tokens_that_may_carry_several_audiences():
+# The token Amazon Cognito's identity pools issue, whose amr Cognito's guide
+# calls "the multi-value amr claim", and the page that says so.
+COGNITO = "Amazon Cognito identity pools"
+COGNITO_ROLES_PAGE = "https://docs.aws.amazon.com/cognito/latest/developerguide/iam-roles.html"
+MULTI_VALUE_AMR = ("Finally, the policy specifies that one of the array members of the multi-value amr claim of the "
+                   "token issued by the Amazon Cognito GetOpenIdToken API operation has the value unauthenticated.")
+
+
+def test_the_tokens_that_may_carry_several_values_in_a_claim():
     """RFC 7519 says that in the general case aud is an array. Kubernetes says
     of a service account token's audience "May be repeated to request a token
     valid for multiple audiences.", AWS that the audience of its outbound
     token populates the aud claim and is an array of up to ten, and Atlassian
     that a pipeline declares its audiences as a list, "Maximum of 10 audiences
     allowed." Those five issuers record aud as multi-valued, each on its
-    sentences; no other issuer records a claim so, and a claim not recorded
-    reads not known, with the cautious answer beside it that it may carry
-    several values."""
+    sentences. Amazon Cognito's guide calls an identity pool token's amr "the
+    multi-value amr claim", and Cognito's issuer records amr on that sentence.
+    No other issuer records a claim so, and no issuer another claim: a claim
+    not recorded reads not known, with the cautious answer beside it that it
+    may carry several values."""
+    carried = {name: ["aud"] for name in SEVERAL_AUDIENCES} | {COGNITO: ["amr"]}
     carrying = set()
     for e in ci.issuers():
+        want = carried.get(e["name"], [])
         claims = ci.tenancy(e).get("multi_valued_claims", [])
+        assert claims == want, (e["name"], claims)
         if claims:
             carrying.add(e["name"])
-            assert claims == ["aud"], (e["name"], claims)
-            assert ci.claim_is_multi_valued(e, "aud") == (True, True), e["name"]
-            block = e["multi_valued_claims"]["claims"][0]
-            assert block["claim"] == "aud" and block["evidence"], e["name"]
+            blocks = e["multi_valued_claims"]["claims"]
+            assert [b["claim"] for b in blocks] == want and all(b["evidence"] for b in blocks), e["name"]
         else:
             assert e["multi_valued_claims"] == {"value": "unverified"}, e["name"]
-            assert ci.claim_is_multi_valued(e, "aud") == (True, False), e["name"]
         # claim names are compared as written: a JWT's claim names are
         # case-sensitive
-        for claim in ("sub", "Aud", "amr", ""):
-            assert ci.claim_is_multi_valued(e, claim) == (True, False), (e["name"], claim)
-    assert carrying == SEVERAL_AUDIENCES, carrying ^ SEVERAL_AUDIENCES
+        for claim in ("aud", "sub", "Aud", "amr", "AMR", ""):
+            assert ci.claim_is_multi_valued(e, claim) == (True, claim in want), (e["name"], claim)
+    assert carrying == set(carried), carrying ^ set(carried)
     assert ci.claim_is_multi_valued({"name": "x"}, "aud") == (True, False)
+
+
+def test_cognito_s_amr_rests_on_cognito_s_own_sentence():
+    """The claim is Cognito's: its guide says a trust policy tests "one of the
+    array members of the multi-value amr claim of the token issued by the
+    Amazon Cognito GetOpenIdToken API operation", and that a signed-in user's
+    token names the providers beside authenticated. AWS's sentence that the
+    condition key is multivalued is about the key, and stays with the keys."""
+    block = by_name(COGNITO)["multi_valued_claims"]
+    assert block["value"] == "verified" and [c["claim"] for c in block["claims"]] == ["amr"]
+    said = [f for f in block["claims"][0]["evidence"] if f["quote"] == MULTI_VALUE_AMR]
+    assert len(said) == 1 and said[0]["source"] == COGNITO_ROLES_PAGE, said
+    assert not any(f["source"] == AWS_KEYS_PAGE for f in block["claims"][0]["evidence"])
 
 
 def test_each_multivalued_key_rests_on_its_tab_s_sentence():
@@ -926,6 +949,8 @@ def test_the_shared_answers_cover_the_census():
     # it, and on a spelling of it no token's claim has.
     known = [w["name"] for _, w in entries_in_census_order() if w["claim_is_multi_valued"]["aud"] == [True, True]]
     assert set(known) == SEVERAL_AUDIENCES, known
+    known = [w["name"] for _, w in entries_in_census_order() if w["claim_is_multi_valued"]["amr"] == [True, True]]
+    assert known == [COGNITO], known
     assert all(w["claim_is_multi_valued"]["Aud"] == [True, False] for _, w in entries_in_census_order())
 
 
