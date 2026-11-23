@@ -163,7 +163,7 @@ func TestMultiTenantHostsIsUsefullyPopulated(t *testing.T) {
 }
 
 // The entries this release researched: the issuers and per-tenant patterns
-// the tenancy research read, and three issuers researched for
+// the tenancy research read, and two issuers researched for
 // anonymous_tokens alone. Every other entry is not_in_this_release.
 var researched = []string{
 	"Bitbucket Pipelines", "Buildkite", "CircleCI", "GitHub Actions", "GitHub Actions (enterprise issuer path)",
@@ -734,8 +734,9 @@ var recorded = map[string]struct {
 	"GitHub Actions (enterprise issuer path)": {map[string]int{"accounts": 1, "anonymous_tokens": 7,
 		"aws_condition_keys": 6, "match": 7, "tenant_membership": 1},
 		[]string{"population", "sources"}},
-	"GitLab.com":                      {map[string]int{}, nil},
-	"HCP Terraform (Terraform Cloud)": {map[string]int{}, nil},
+	"GitLab.com": {map[string]int{}, nil},
+	"HCP Terraform (Terraform Cloud)": {map[string]int{"anonymous_tokens": 3, "aws_condition_keys": 4,
+		"owner_charset": 1, "subject_forms": 2, "tenancy_claims": 3}, nil},
 	"Spacelift": {map[string]int{"anonymous_tokens": 1, "aws_condition_keys": 4, "match": 1, "tenant_membership": 2},
 		[]string{"population", "sources"}},
 	"Amazon EKS (Kubernetes service account issuer / IRSA)": {map[string]int{"anonymous_tokens": 1,
@@ -1187,13 +1188,8 @@ func TestHCPTerraformIsReadByAWSsDefaultTabAndPinsItsOrganization(t *testing.T) 
 // GitLab.com and Buildkite are researched for anonymous_tokens only. The
 // research recorded who can open an account, not that tokens need one, so
 // the value is unverified and says why, and every other tenancy field is
-// unverified too. HCP Terraform's anonymous_tokens is unverified on the same
-// research.
+// unverified too.
 func TestGitLabAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
-	hcp := byName(t, "HCP Terraform (Terraform Cloud)", "")
-	if hcp.AnonymousTokens.Value != "unverified" || hcp.AnonymousTokens.WhyUnverified == "" {
-		t.Errorf("HCP Terraform: anonymous_tokens %+v", hcp.AnonymousTokens)
-	}
 	for _, name := range []string{"GitLab.com", "Buildkite"} {
 		e := byName(t, name, "")
 		if e.Researched != "in_release" || e.AnonymousTokens.Value != "unverified" || e.AnonymousTokens.WhyUnverified == "" {
@@ -1214,9 +1210,10 @@ func TestGitLabAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
 }
 
 // A no that rests on a chain of sentences says so. That covers GitHub, the
-// enterprise path, Google and the per-tenant patterns, and nothing else.
+// enterprise path, Google, HCP Terraform and the per-tenant patterns, and
+// nothing else.
 func TestAChainedValueIsMarked(t *testing.T) {
-	want := append([]string{"GitHub Actions", "Google (accounts.google.com)"}, perTenant...)
+	want := append([]string{"GitHub Actions", "Google (accounts.google.com)", "HCP Terraform (Terraform Cloud)"}, perTenant...)
 	var got []string
 	for _, e := range All() {
 		if e.AnonymousTokens.Basis == "chain" {
@@ -1233,6 +1230,16 @@ func TestAChainedValueIsMarked(t *testing.T) {
 	}
 	if gh := byName(t, "GitHub Actions", ""); len(gh.AnonymousTokens.Chain) != 5 {
 		t.Errorf("GitHub's chain has %d links; the research recorded five", len(gh.AnonymousTokens.Chain))
+	}
+	// HashiCorp says a token is minted for a run's plan or apply, that an
+	// organization performs the run, and that an organization is created or
+	// joined by HCP Terraform accounts.
+	hcp := byName(t, "HCP Terraform (Terraform Cloud)", "")
+	if len(hcp.AnonymousTokens.Chain) != 3 {
+		t.Errorf("HCP Terraform's chain has %d links; the research recorded three", len(hcp.AnonymousTokens.Chain))
+	}
+	if anonymous, known := hcp.Tenancy().IssuesAnonymousTokens(); anonymous || !known {
+		t.Errorf("HCP Terraform: IssuesAnonymousTokens() = %v, %v; the chain reads no", anonymous, known)
 	}
 }
 
@@ -1433,8 +1440,8 @@ func TestEachMultivaluedKeyRestsOnAWSsSentence(t *testing.T) {
 			}
 		}
 	}
-	if multivalued != 10 || unverified != 56 {
-		t.Fatalf("examined %d keys recorded multivalued and %d recorded unverified; the census records 10 and 56",
+	if multivalued != 11 || unverified != 60 {
+		t.Fatalf("examined %d keys recorded multivalued and %d recorded unverified; the census records 11 and 60",
 			multivalued, unverified)
 	}
 }
@@ -1950,8 +1957,8 @@ func TestGoAndPythonAgree(t *testing.T) {
 			knownMultivalued++
 		}
 	}
-	if knownMultivalued != 10 {
-		t.Fatalf("%d entries read amr as known multivalued; the census records 10, so the shared file holds the answer both ways", knownMultivalued)
+	if knownMultivalued != 11 {
+		t.Fatalf("%d entries read amr as known multivalued; the census records 11, so the shared file holds the answer both ways", knownMultivalued)
 	}
 	severalAudiences := 0
 	for _, e := range got.Entries {

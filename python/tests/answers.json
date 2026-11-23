@@ -3506,8 +3506,8 @@
     "tenant": ""
    },
    "anonymous_tokens": [
-    true,
-    false
+    false,
+    true
    ],
    "names_compare_without_case": [
     false,
@@ -3527,75 +3527,105 @@
      false
     ]
    },
-   "claim_is_recyclable": {},
+   "claim_is_recyclable": {
+    "terraform_organization_id": [
+     true,
+     false
+    ],
+    "terraform_organization_name": [
+     true,
+     true
+    ]
+   },
    "aws_maps_condition_key": {
     "AMR": [
-     false,
-     false
+     true,
+     true
     ],
     "OAUD": [
-     false,
-     false
+     true,
+     true
     ],
     "amr": [
-     false,
-     false
+     true,
+     true
     ],
     "aud": [
-     false,
-     false
+     true,
+     true
     ],
     "google/organization_number": [
      false,
-     false
+     true
     ],
     "id": [
      false,
-     false
+     true
     ],
     "oaud": [
-     false,
-     false
+     true,
+     true
     ],
     "oidc.circleci.com/project-id": [
      false,
-     false
+     true
     ],
     "repository_owner": [
      false,
-     false
+     true
     ],
     "repository_owner_id": [
      false,
-     false
+     true
     ],
     "sub": [
-     false,
-     false
+     true,
+     true
     ],
     "user_id": [
      false,
-     false
+     true
     ]
    },
    "aws_condition_key": {
-    "AMR": null,
-    "OAUD": null,
-    "amr": null,
-    "aud": null,
+    "AMR": {
+     "key": "amr",
+     "claim": "amr",
+     "multivalued": "yes"
+    },
+    "OAUD": {
+     "key": "oaud",
+     "claim": "aud"
+    },
+    "amr": {
+     "key": "amr",
+     "claim": "amr",
+     "multivalued": "yes"
+    },
+    "aud": {
+     "key": "aud",
+     "claim": "azp",
+     "fallback_claim": "aud"
+    },
     "google/organization_number": null,
     "id": null,
-    "oaud": null,
+    "oaud": {
+     "key": "oaud",
+     "claim": "aud"
+    },
     "oidc.circleci.com/project-id": null,
     "repository_owner": null,
     "repository_owner_id": null,
-    "sub": null,
+    "sub": {
+     "key": "sub",
+     "claim": "sub"
+    },
     "user_id": null
    },
    "aws_condition_key_is_multivalued": {
     "AMR": [
      true,
-     false
+     true
     ],
     "OAUD": [
      true,
@@ -3603,7 +3633,7 @@
     ],
     "amr": [
      true,
-     false
+     true
     ],
     "aud": [
      true,
@@ -3668,10 +3698,75 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "0001100111100",
    "tenancy": {
     "name": "HCP Terraform (Terraform Cloud)",
-    "issuer": "https://app.terraform.io"
+    "issuer": "https://app.terraform.io",
+    "anonymous_tokens": "no",
+    "tenancy_claims": [
+     {
+      "claim": "terraform_organization_name",
+      "kind": "name",
+      "scope": "owner",
+      "immutable": "no"
+     },
+     {
+      "claim": "terraform_organization_id",
+      "kind": "id",
+      "scope": "owner"
+     }
+    ],
+    "subject_forms": [
+     {
+      "leading_literal": "organization:",
+      "owner_parts": [
+       {
+        "kind": "name",
+        "delimiter_after": ":"
+       }
+      ]
+     },
+     {
+      "leading_literal": "organization:",
+      "owner_parts": [
+       {
+        "kind": "name",
+        "delimiter_after": ":"
+       }
+      ]
+     }
+    ],
+    "owner_name_characters": [
+     "A-Z",
+     "a-z",
+     "0-9",
+     "-",
+     "_"
+    ],
+    "aws_condition_keys": [
+     {
+      "key": "amr",
+      "claim": "amr",
+      "multivalued": "yes"
+     },
+     {
+      "key": "aud",
+      "claim": "azp",
+      "fallback_claim": "aud"
+     },
+     {
+      "key": "email",
+      "claim": "email"
+     },
+     {
+      "key": "oaud",
+      "claim": "aud"
+     },
+     {
+      "key": "sub",
+      "claim": "sub"
+     }
+    ]
    }
   },
   {

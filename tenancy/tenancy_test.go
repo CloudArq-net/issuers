@@ -440,8 +440,8 @@ func TestEveryConditionKeyCarriesItsClaim(t *testing.T) {
 			}
 		}
 	}
-	if examined != 66 {
-		t.Fatalf("examined %d condition keys; the census records 66 for the issuers whose keys it verified", examined)
+	if examined != 71 {
+		t.Fatalf("examined %d condition keys; the census records 71 for the issuers whose keys it verified", examined)
 	}
 }
 
@@ -540,7 +540,7 @@ func TestAWSDocumentsWhichConditionKeysAreMultivalued(t *testing.T) {
 		"https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>",
 		"https://<account>.app.spacelift.io",
 		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc",
-		"https://<tenant_uuid>.tokens.sts.global.api.aws"}
+		"https://<tenant_uuid>.tokens.sts.global.api.aws", "https://app.terraform.io"}
 	for _, issuer := range amrIssuers {
 		e := find(t, issuer)
 		for _, key := range []string{"amr", "AMR"} {
@@ -568,8 +568,8 @@ func TestAWSDocumentsWhichConditionKeysAreMultivalued(t *testing.T) {
 	if !slices.Equal(slices.Sorted(slices.Values(carrying)), slices.Sorted(slices.Values(amrIssuers))) {
 		t.Errorf("the issuers whose amr the sub-package carries: %q; want %q", carrying, amrIssuers)
 	}
-	if examined != 66 {
-		t.Fatalf("examined %d condition keys; the census records 66", examined)
+	if examined != 71 {
+		t.Fatalf("examined %d condition keys; the census records 71", examined)
 	}
 	// A key AWS does not document, and any key of an issuer whose keys are not
 	// recorded, is not known either.
@@ -750,8 +750,8 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 		}
 	}
 
-	// GitLab.com, HCP Terraform and Buildkite carry anonymous_tokens only, and
-	// no sentence in this release settles it.
+	// GitLab.com and Buildkite carry anonymous_tokens only, and no sentence in
+	// this release settles it. HCP Terraform's no rests on a chain.
 	for issuer, want := range map[string]string{
 		"cognito-identity.amazonaws.com": "yes",
 		"www.amazon.com":                 "no",
@@ -759,12 +759,34 @@ func TestTheResearchedFactsReachTheSubPackage(t *testing.T) {
 		"https://accounts.google.com":    "no",
 		githubEnt:                        "no",
 		"https://gitlab.com":             "",
-		"https://app.terraform.io":       "",
+		"https://app.terraform.io":       "no",
 		"https://agent.buildkite.com":    "",
 	} {
 		if got := find(t, issuer).AnonymousTokens; got != want {
 			t.Errorf("%s anonymous_tokens = %q, want %q", issuer, got, want)
 		}
+	}
+	// HCP Terraform's subjects lead with organization: and the organization's
+	// name, which ends at a colon no organization name holds.
+	hcp := find(t, "https://app.terraform.io")
+	wantHCP := []SubjectForm{
+		{LeadingLiteral: "organization:", OwnerParts: []Part{{Kind: "name", DelimiterAfter: ":"}}},
+		{LeadingLiteral: "organization:", OwnerParts: []Part{{Kind: "name", DelimiterAfter: ":"}}},
+	}
+	if !reflect.DeepEqual(hcp.SubjectForms, wantHCP) {
+		t.Errorf("HCP Terraform subject forms = %+v, want %+v", hcp.SubjectForms, wantHCP)
+	}
+	if want := []Claim{
+		{Claim: "terraform_organization_name", Kind: "name", Scope: "owner", Immutable: "no"},
+		{Claim: "terraform_organization_id", Kind: "id", Scope: "owner"},
+	}; !reflect.DeepEqual(hcp.TenancyClaims, want) {
+		t.Errorf("HCP Terraform tenancy claims = %+v, want %+v", hcp.TenancyClaims, want)
+	}
+	if want := []string{"A-Z", "a-z", "0-9", "-", "_"}; !slices.Equal(hcp.OwnerNameCharacters, want) {
+		t.Errorf("HCP Terraform owner name characters = %q, want %q", hcp.OwnerNameCharacters, want)
+	}
+	if k, ok := hcp.AWSConditionKey("aud"); !ok || k.Claim != "azp" || k.FallbackClaim != "aud" {
+		t.Errorf("HCP Terraform AWSConditionKey(aud) = %+v, %v; the Default tab reads azp, or aud where azp is not set", k, ok)
 	}
 	// A pool id in aud pins the pool, never who can get into it, so Cognito
 	// names no tenant by any claim.
@@ -834,6 +856,7 @@ func TestUnresearchedEntriesCarryNothing(t *testing.T) {
 		"https://oidc.circleci.com/org/<organization_id>":                                                true,
 		"https://api.bitbucket.org/2.0/workspaces/<workspace>/pipelines-config/identity/oidc":            true,
 		"https://<tenant_uuid>.tokens.sts.global.api.aws":                                                true,
+		"https://app.terraform.io":                                                                       true,
 	}
 	unresearched := 0
 	for _, e := range All() {
@@ -845,8 +868,8 @@ func TestUnresearchedEntriesCarryNothing(t *testing.T) {
 			t.Errorf("%s (%s) carries a tenancy fact the research did not record: %+v", e.Name, e.Issuer, e)
 		}
 	}
-	if unresearched < 15 {
-		t.Fatalf("examined %d unresearched entries; the census has at least 15", unresearched)
+	if unresearched < 14 {
+		t.Fatalf("examined %d unresearched entries; the census has at least 14", unresearched)
 	}
 }
 

@@ -2303,9 +2303,140 @@ issuers:
   claims_advertised_fetched_at: '2026-09-13'
   researched: in_release
   anonymous_tokens:
-    value: unverified
-    why_unverified: The research recorded who can open an account on this platform, not whether its tokens
-      are minted only for account holders; no vendor sentence in this release establishes the value.
+    value: 'no'
+    basis: chain
+    chain:
+    - source: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/workload-identity-tokens
+      quote: 'The “identity card” in this analogy is a workload identity token: a JSON Web Token (JWT) that contains
+        information about a plan or apply, is signed by HCP Terraform’s private key, and expires at the end of
+        the plan or apply timeout.'
+      verified_at: '2026-11-23'
+      role: a token is minted for a run's plan or apply
+    - source: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/workload-identity-tokens
+      quote: Human-readable name of the HCP Terraform organization performing the run.
+      verified_at: '2026-11-23'
+      role: a run is performed by an organization, whose name the token carries
+    - source: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/users
+      quote: After you create an account, you do not belong to any organizations. To begin using HCP Terraform,
+        you can either create an organization or ask an organization owner to send you an invitation email to
+        join their organization.
+      verified_at: '2026-11-23'
+      role: an organization is created or joined by HCP Terraform accounts
+    note: no single sentence says only; read in order, the links say a token is minted for a run an organization
+      performs, and an organization is created or joined by HCP Terraform accounts
+  tenancy_claims:
+    value: verified
+    claims:
+    - claim: terraform_organization_name
+      kind: name
+      scope: owner
+      multi_valued: 'no'
+      immutable: 'no'
+      evidence:
+        source: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/workload-identity-tokens
+        quote: Human-readable name of the HCP Terraform organization performing the run.
+        verified_at: '2026-11-23'
+      immutable_evidence:
+      - source: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/workload-identity-tokens
+        quote: Note that organization names can be changed.
+        verified_at: '2026-11-23'
+    - claim: terraform_organization_id
+      kind: id
+      scope: owner
+      multi_valued: 'no'
+      immutable: unverified
+      evidence:
+        source: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/workload-identity-tokens
+        quote: ID of the HCP Terraform organization performing the run.
+        verified_at: '2026-11-23'
+      note: HashiCorp does not say whether an organization's ID can pass to another organization
+  subject_forms:
+    value: verified
+    forms:
+    - form: workspace run
+      leading_literal: 'organization:'
+      shape: organization:<org>:project:<project>:workspace:<workspace>:run_phase:<phase>
+      owner_parts:
+      - kind: name
+        delimiter_after: ':'
+      evidence:
+        source: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/workload-identity-tokens
+        quote: 'Fully qualified path to a workspace, followed by the run phase. For example: organization:my-organization-name:project:Default
+          Project:workspace:my-workspace-name:run_phase:apply'
+        verified_at: '2026-11-23'
+    - form: module test run
+      leading_literal: 'organization:'
+      shape: organization:<org>:module:<module>:operation:test_run
+      owner_parts:
+      - kind: name
+        delimiter_after: ':'
+      evidence:
+        source: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/workload-identity-tokens
+        quote: 'For module test runs, the subject claim has a different format than workspace runs: organization:{ORGANIZATION_NAME}:module:{MODULE_NAME}:operation:test_run'
+        verified_at: '2026-11-23'
+  owner_charset:
+    value: verified
+    description: numbers, letters, underscores and hyphens, as HashiCorp's sentence names them; HashiCorp
+      does not say which letters and numbers, and reading them as ASCII is the census's, not HashiCorp's words
+    characters:
+    - A-Z
+    - a-z
+    - 0-9
+    - '-'
+    - _
+    evidence:
+    - source: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/organizations
+      quote: Organization names can include numbers, letters, underscores (_), and hyphens (-).
+      verified_at: '2026-11-23'
+      role: 'HashiCorp, the page that creates an organization: it names the classes, and the ASCII reading
+        of its letters and numbers is the census''s'
+  aws_condition_keys:
+    value: verified
+    keys:
+    - key: amr
+      claim: amr
+      multivalued: 'yes'
+    - key: aud
+      claim: azp
+      fallback_claim: aud
+      multivalued: unverified
+    - key: email
+      claim: email
+      multivalued: unverified
+    - key: oaud
+      claim: aud
+      multivalued: unverified
+    - key: sub
+      claim: sub
+      multivalued: unverified
+    evidence:
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'Use this mapping if your IdP is not listed in the tab options.'
+      verified_at: '2026-11-23'
+      role: 'AWS: an issuer with no tab of its own reads by the Default tab'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'AWS STS condition key IdP JWT claim Available in session amr amr Yes aud azp If no value is set
+        for azp, the aud condition key maps to the aud claim. Yes email email No oaud aud No sub sub Yes'
+      verified_at: '2026-11-23'
+      role: 'the Default tab''s table as the page renders it: each condition key, the claim it carries, and
+        whether it is available in session'
+    - source: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      quote: 'amr Works with string operators. The key is multivalued, meaning that you test it in a policy
+        using condition set operators. Example: token.actions.githubusercontent.com:amr Authentication Methods
+        Reference includes login information about the user. The key can contain the following values: If the
+        user is unauthenticated, the key contains only unauthenticated. If the user is authenticated, the key
+        contains the value authenticated and the name of the login provider used in the call
+        (accounts.google.com).'
+      verified_at: '2026-11-23'
+      role: 'the Default tab''s amr as the page renders it: AWS documents the key as multivalued, and a
+        signed-in user''s holds authenticated and the provider'
+    context:
+    - observed: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html
+      method: curl
+      at: 2026-11-23T00:48Z
+      result: the tabs are Default, AWS STS, Amazon Cognito, Login with Amazon, Facebook, GitHub, Google,
+        CircleCI, Oracle Cloud Infrastructure (OCI), GitLab.com and Buildkite; none is this issuer's, and
+        the page does not name Terraform
 - name: Pulumi Cloud
   category: iac
   issuer: https://api.pulumi.com/oidc

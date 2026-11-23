@@ -98,12 +98,15 @@ led by either id, so those two rest on a chain marked `basis: chain`: GitHub's i
 to require one, the key-colon-value subjects it prints for other templates, and its
 encoding of a colon inside a value. `never_pin` lists leading literals whose subjects name
 no tenant of the token's, `job_workflow_ref:` first. A subject led by a literal the entry
-does not list names no tenant.
+does not list names no tenant. HCP Terraform's two forms, a workspace run's and a module
+test run's, lead with `organization:` and the organization's name.
 
 **`owner_charset`** — the characters an owner name can hold. A delimiter outside the set
 cannot occur inside a name, which is what lets a `sub` prefix pin an owner. GitHub's is
 letters, digits and dashes, plus the underscore of managed users, from GitHub's sentences
-and one of AWS's, which the census labels as AWS's.
+and one of AWS's, which the census labels as AWS's. HCP Terraform's is numbers, letters,
+underscores and hyphens, from HashiCorp's sentence. HashiCorp does not say which letters
+and numbers: reading them as ASCII is the census's, not HashiCorp's words.
 
 **`names_unique_regardless_of_case`** — whether two names that differ only in case are one
 owner. For GitHub it is `unverified`: no GitHub page read says so, and names compare
@@ -150,13 +153,13 @@ Google's `google/organization_number` has no `claim`: AWS's table spells it
 inside a `google` claim, and no page says which AWS reads, so the key keeps AWS's spelling in
 `table_claim` and gives a reader no claim to look up.
 AWS does not document what a condition on a key it does not list tests; read as unread,
-such a condition never pins and never narrows, whichever it tests. Recorded for 13 of the
+such a condition never pins and never narrows, whichever it tests. Recorded for 14 of the
 17 researched entries. GitHub's enterprise path reads `unverified`: AWS names a condition
-key by the provider, and no AWS sentence names a provider at that path. GitLab.com, HCP
-Terraform and Buildkite read `unverified` because this release researched them for
-`anonymous_tokens` alone, not because AWS does not read their tokens: AWS's reference has a
-tab for GitLab.com and one for Buildkite, and its page on OIDC roles names the condition key
-`app.terraform.io:sub` for HCP Terraform. `aws_maps_condition_key` and `AWSMapsConditionKey`
+key by the provider, and no AWS sentence names a provider at that path. GitLab.com and
+Buildkite read `unverified` because this release researched them for `anonymous_tokens`
+alone, not because AWS does not read their tokens: AWS's reference has a tab for GitLab.com
+and one for Buildkite. HCP Terraform has no tab of its own, so its keys are the Default
+tab's. `aws_maps_condition_key` and `AWSMapsConditionKey`
 answer whether a key is one, and `aws_condition_key` and `AWSConditionKey` return its
 record; both compare names without ASCII case, as AWS does.
 
@@ -203,9 +206,9 @@ absent, and every reader in both packages answers it the cautious way:
   census does not hold at all is unsurveyed, which is never the same as safe.
 
 An entry with `researched: not_in_this_release` holds `unverified` in every tenancy field.
-GitLab.com, HCP Terraform and Buildkite were researched for `anonymous_tokens` alone, and
-it is `unverified`: the research recorded who can open an account there, not that a token
-needs one.
+GitLab.com and Buildkite were researched for `anonymous_tokens` alone, and it is
+`unverified`: the research recorded who can open an account there, not that a token needs
+one.
 
 ## `unverified` never means absent
 
@@ -276,11 +279,11 @@ several, known := eks.Tenancy().ClaimIsMultiValued("aud")
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 7,905 bytes of
-data (`tenancy/tenancy.json`) against the root package's 236,280 (`issuers.json`). A small
+instead. It carries the values a classifier reads and none of the sentences: 8,562 bytes of
+data (`tenancy/tenancy.json`) against the root package's 242,446 (`issuers.json`). A small
 program that matches the issuer given on its command line and prints the entry's name, built
-with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,538,542 bytes through
-`tenancy` and 4,806,096 through the root package: 267,554 bytes smaller, and 47,891 smaller
+with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,539,059 bytes through
+`tenancy` and 4,812,801 through the root package: 273,742 bytes smaller, and 48,345 smaller
 after `gzip -9`. None of the census's quoted sentences is in the smaller one.
 `scripts/build.py` writes the sub-package's data from the same YAML, and CI fails when it is
 out of step.
