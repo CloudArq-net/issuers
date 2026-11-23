@@ -84,8 +84,8 @@ KEEP = ['name', 'vendor', 'category', 'issuer', 'issuer_pattern', 'tenancy_model
 # entry the YAML does not mark `researched: in_release` holds none of them in the
 # YAML, and each is written unverified.
 TENANCY_FIELDS = ['anonymous_tokens', 'tenancy_claims', 'not_tenancy', 'subject_forms', 'owner_charset',
-                  'names_unique_regardless_of_case', 'match', 'tenant_membership', 'built_in', 'accounts',
-                  'aws_condition_keys', 'multi_valued_claims']
+                  'repository_charset', 'names_unique_regardless_of_case', 'match', 'tenant_membership',
+                  'built_in', 'accounts', 'aws_condition_keys', 'multi_valued_claims']
 
 # A field must have one shape across every entry. A field that is a string on
 # one entry and a map on another silently breaks any typed consumer -- Go
@@ -491,17 +491,19 @@ def check_subject_forms(c, s):
                               f"pin and never pin")
 
 
-def check_owner_charset(c, o):
-    if not c.keys('owner_charset', o, {'value', 'characters', 'description', 'evidence', 'context'}, ['value']):
+def check_charset(c, field, o):
+    """owner_charset and repository_charset: the characters a name can hold,
+    as single characters and ranges, on the vendor's sentences."""
+    if not c.keys(field, o, {'value', 'characters', 'description', 'evidence', 'context'}, ['value']):
         return
-    c.one_of('owner_charset.value', o['value'], LISTED)
+    c.one_of(f'{field}.value', o['value'], LISTED)
     if o['value'] != 'verified':
         if 'characters' in o:
-            c.fail('owner_charset', "an unverified set carries characters")
+            c.fail(field, "an unverified set carries characters")
         return
     chars = o.get('characters')
     if not isinstance(chars, list) or not chars:
-        c.fail('owner_charset.characters', "a verified set needs its characters")
+        c.fail(f'{field}.characters', "a verified set needs its characters")
     else:
         for i, x in enumerate(chars):
             # Printable ASCII only: the Go reader counts bytes where Python
@@ -509,11 +511,11 @@ def check_owner_charset(c, o):
             ok = isinstance(x, str) and x.isascii() and x.isprintable() and (
                 len(x) == 1 or len(x) == 3 and x[1] == '-' and x[0] < x[2])
             if not ok:
-                c.fail(f"owner_charset.characters[{i}]",
+                c.fail(f"{field}.characters[{i}]",
                        f"{x!r} is neither one character nor a range such as a-z, in printable ASCII")
-    c.text('owner_charset.description', o.get('description'))
-    c.facts('owner_charset.evidence', o.get('evidence'), required=True)
-    c.context('owner_charset.context', o.get('context'))
+    c.text(f'{field}.description', o.get('description'))
+    c.facts(f'{field}.evidence', o.get('evidence'), required=True)
+    c.context(f'{field}.context', o.get('context'))
 
 
 def check_name_case(c, n):
@@ -857,8 +859,9 @@ def check_entry(e):
         check_not_tenancy(c, e['not_tenancy'], claims)
     if 'subject_forms' in e:
         check_subject_forms(c, e['subject_forms'])
-    if 'owner_charset' in e:
-        check_owner_charset(c, e['owner_charset'])
+    for field in ('owner_charset', 'repository_charset'):
+        if field in e:
+            check_charset(c, field, e[field])
     if 'names_unique_regardless_of_case' in e:
         check_name_case(c, e['names_unique_regardless_of_case'])
     if 'match' in e:

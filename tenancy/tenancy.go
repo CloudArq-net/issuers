@@ -14,7 +14,7 @@
 // guess, and every reader below answers an absent value the cautious way: an
 // issuer may mint tokens to people with no account, a tenant is not known to
 // control who joins it and its name may pass to someone else, any character
-// may occur in an owner name, and names compare exactly.
+// may occur in an owner's or a repository's name, and names compare exactly.
 package tenancy
 
 import (
@@ -76,6 +76,10 @@ type Issuer struct {
 	// occur inside a name, which is what lets a subject form's delimiter end
 	// the owner.
 	OwnerNameCharacters []string `json:"owner_name_characters,omitempty"`
+	// RepositoryNameCharacters is the character set of repository names, in
+	// OwnerNameCharacters' form. A character outside it occurs in no
+	// repository's name.
+	RepositoryNameCharacters []string `json:"repository_name_characters,omitempty"`
 	// NamesUniqueRegardlessOfCase is "yes" when the vendor documents that two
 	// owners' names never differ only in case.
 	NamesUniqueRegardlessOfCase string `json:"names_unique_regardless_of_case,omitempty"`
@@ -272,11 +276,25 @@ func (i Issuer) AWSConditionKey(key string) (record ConditionKey, ok bool) {
 // OwnerNameMayContain reports whether r can occur in an owner name. With no
 // recorded character set, or one this package cannot read, any character may.
 func (i Issuer) OwnerNameMayContain(r rune) bool {
-	if len(i.OwnerNameCharacters) == 0 {
+	return mayContain(i.OwnerNameCharacters, r)
+}
+
+// RepositoryNameMayContain reports whether r can occur in a repository's
+// name. With no recorded character set, or one this package cannot read, any
+// character may.
+func (i Issuer) RepositoryNameMayContain(r rune) bool {
+	return mayContain(i.RepositoryNameCharacters, r)
+}
+
+// mayContain reports whether r is in set, single characters and ranges such
+// as "a-z"; an empty set, or one with an item it cannot read, holds any
+// character.
+func mayContain(set []string, r rune) bool {
+	if len(set) == 0 {
 		return true
 	}
 	found := false
-	for _, c := range i.OwnerNameCharacters {
+	for _, c := range set {
 		switch {
 		case len(c) == 1:
 			found = found || rune(c[0]) == r
@@ -312,6 +330,7 @@ func (i Issuer) clone() Issuer {
 	i.AWSConditionKeys = slices.Clone(i.AWSConditionKeys)
 	i.MultiValuedClaims = slices.Clone(i.MultiValuedClaims)
 	i.OwnerNameCharacters = slices.Clone(i.OwnerNameCharacters)
+	i.RepositoryNameCharacters = slices.Clone(i.RepositoryNameCharacters)
 	if i.SubjectForms != nil {
 		forms := make([]SubjectForm, len(i.SubjectForms))
 		for n, f := range i.SubjectForms {

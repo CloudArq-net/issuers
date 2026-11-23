@@ -63,6 +63,8 @@
 #                           list names no tenant.
 #   owner_charset           the characters an owner name can hold, as single characters and ranges
 #                           such as a-z. A delimiter outside the set ends the owner.
+#   repository_charset      the characters a repository's name can hold, in owner_charset's shape. A
+#                           character outside the set occurs in no repository's name.
 #   names_unique_regardless_of_case
 #                           value: yes | no | unverified.
 #   match                   for an issuer whose URL names its tenant: issuer_pattern, the
@@ -1327,11 +1329,27 @@ issuers:
         Enterprise Managed Users, usernames are created by users, not GitHub.
       verified_at: '2026-09-23'
       role: 'GitHub, the same page''s scope: Enterprise Managed Users'
+  repository_charset:
+    value: verified
+    description: ASCII letters, digits and the characters ., - and _
+    characters:
+    - A-Z
+    - a-z
+    - 0-9
+    - .
+    - '-'
+    - _
+    evidence:
     - source: https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
       quote: The repository name must not exceed 100 characters, and can only contain ASCII letters, digits,
         and the characters `.`, `-`, and `_`.
-      verified_at: '2026-09-23'
-      role: 'GitHub: repository names, which follow the owner in the repo: forms'
+      verified_at: '2026-11-23'
+      role: 'GitHub: the characters of a repository''s name, which follows the owner''s / in the repo: forms'
+    - source: https://docs.github.com/en/actions/reference/security/oidc
+      quote: The `@` separator is used between names and IDs because `@` cannot appear in GitHub usernames
+        or repository names.
+      verified_at: '2026-11-23'
+      role: 'GitHub, the OIDC reference: no repository''s name holds the @ of the immutable repo: form'
   names_unique_regardless_of_case:
     value: unverified
     context:

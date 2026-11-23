@@ -108,6 +108,12 @@ and one of AWS's, which the census labels as AWS's. HCP Terraform's is numbers, 
 underscores and hyphens, from HashiCorp's sentence. HashiCorp does not say which letters
 and numbers: reading them as ASCII is the census's, not HashiCorp's words.
 
+**`repository_charset`** — the characters a repository's name can hold, in `owner_charset`'s
+shape. A character outside the set occurs in no repository's name. GitHub's is ASCII letters,
+digits and the characters `.`, `-` and `_`, from GitHub's sentence on naming a repository,
+with its OIDC reference's sentence that `@` cannot appear in a repository's name. In both
+`repo:` forms the repository's name follows the owner's `/`.
+
 **`names_unique_regardless_of_case`** — whether two names that differ only in case are one
 owner. For GitHub it is `unverified`: no GitHub page read says so, and names compare
 exactly.
@@ -279,11 +285,11 @@ several, known := eks.Tenancy().ClaimIsMultiValued("aud")
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 8,562 bytes of
-data (`tenancy/tenancy.json`) against the root package's 242,446 (`issuers.json`). A small
+instead. It carries the values a classifier reads and none of the sentences: 8,623 bytes of
+data (`tenancy/tenancy.json`) against the root package's 244,854 (`issuers.json`). A small
 program that matches the issuer given on its command line and prints the entry's name, built
-with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,539,059 bytes through
-`tenancy` and 4,812,801 through the root package: 273,742 bytes smaller, and 48,345 smaller
+with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,539,916 bytes through
+`tenancy` and 4,816,421 through the root package: 276,505 bytes smaller, and 48,894 smaller
 after `gzip -9`. None of the census's quoted sentences is in the smaller one.
 `scripts/build.py` writes the sub-package's data from the same YAML, and CI fails when it is
 out of step.
@@ -347,10 +353,10 @@ $ python3 scripts/build.py
 issuers.json: 44 entries, 17 researched in this release; tenancy/tenancy.json: 29 entries an issuer can match
 $ git status --porcelain            # empty: the committed files are what the YAML builds
 $ go vet ./... && go test ./... -count=1
-ok  	github.com/CloudArq-net/issuers	0.114s
-ok  	github.com/CloudArq-net/issuers/tenancy	0.010s
+ok  	github.com/CloudArq-net/issuers	0.113s
+ok  	github.com/CloudArq-net/issuers/tenancy	0.009s
 $ cd python && PYTHONPATH=src python3 -m pytest tests -q
-384 passed in 11.22s
+397 passed in 10.55s
 ```
 
 The Python checks need `pyyaml` and `pytest`; CI installs them, and every dependency, from

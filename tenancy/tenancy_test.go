@@ -325,6 +325,39 @@ func TestOwnerNameMayContain(t *testing.T) {
 	}
 }
 
+// GitHub's repository names hold ASCII letters, digits, ., - and _ alone, so
+// no repository's name holds a * or a ?.
+func TestRepositoryNameMayContain(t *testing.T) {
+	gh := find(t, github)
+	for _, r := range "*?/@:%~ é" {
+		if gh.RepositoryNameMayContain(r) {
+			t.Errorf("GitHub: a repository's name may contain %q; the census says it cannot", r)
+		}
+	}
+	for _, r := range "aAzZ09.-_" {
+		if !gh.RepositoryNameMayContain(r) {
+			t.Errorf("GitHub: a repository's name may not contain %q; the census says it can", r)
+		}
+	}
+	if gh.OwnerNameMayContain('.') {
+		t.Error("GitHub: an owner name may contain '.'; the repository's characters were read as the owner's")
+	}
+	for _, r := range "*?/@:%" {
+		if !(Issuer{}).RepositoryNameMayContain(r) {
+			t.Errorf("an entry with no recorded character set says a repository's name cannot contain %q", r)
+		}
+	}
+	carried := 0
+	for _, i := range All() {
+		if len(i.RepositoryNameCharacters) > 0 {
+			carried++
+		}
+	}
+	if carried != 1 {
+		t.Errorf("%d entries carry repository characters; the census verifies GitHub's alone", carried)
+	}
+}
+
 func TestNamesCompareWithoutCase(t *testing.T) {
 	if without, known := find(t, github).NamesCompareWithoutCase(); without || known {
 		t.Errorf("GitHub NamesCompareWithoutCase() = %v, %v; the census records it unverified", without, known)
@@ -887,9 +920,9 @@ func TestTheSubPackageCarriesOnlyTheClassifiersFields(t *testing.T) {
 		"name": true, "issuer": true, "tenant_placeholder": true, "tenant_kind": true, "tenant_syntax": true,
 		"tenant_recyclable": true,
 		"tenant_membership": true, "not_a_controlled_tenant": true, "anonymous_tokens": true,
-		"tenancy_claims": true, "subject_forms": true, "owner_name_characters": true, "names_unique_regardless_of_case": true,
-		"not_tenancy": true, "never_pin": true, "platform": true, "declaration_namespace": true,
-		"aws_condition_keys": true, "multi_valued_claims": true,
+		"tenancy_claims": true, "subject_forms": true, "owner_name_characters": true, "repository_name_characters": true,
+		"names_unique_regardless_of_case": true, "not_tenancy": true, "never_pin": true, "platform": true,
+		"declaration_namespace": true, "aws_condition_keys": true, "multi_valued_claims": true,
 	}
 	for _, e := range doc.Issuers {
 		for k := range e {

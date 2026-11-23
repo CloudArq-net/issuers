@@ -1,7 +1,7 @@
 {
  "about": "What every reader of the census answers about every entry, written by the Go tests (go test . -run TestGoAndPythonAgree -update) and checked by the Go and the Python tests alike. scripts/build.py copies it to python/tests/answers.json.",
  "probes": {
-  "characters": "/@:-_.%aZ09 é",
+  "characters": "/@:-_.%aZ09 é*?",
   "tenants": [
    "acme",
    "9188040d-6c67-4c5b-b112-36a304b66dad"
@@ -226,7 +226,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Bitbucket Pipelines",
     "issuer": "https://api.bitbucket.org/2.0/workspaces/\u003cworkspace\u003e/pipelines-config/identity/oidc",
@@ -434,7 +435,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Buildkite",
     "issuer": "https://agent.buildkite.com"
@@ -618,7 +620,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "CircleCI",
     "issuer": "https://oidc.circleci.com/org/\u003corganization_id\u003e",
@@ -803,7 +806,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Codeberg (Forgejo)",
     "issuer": "unverified"
@@ -980,7 +984,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Codefresh",
     "issuer": "https://oidc.codefresh.io"
@@ -1157,7 +1162,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Depot",
     "issuer": "https://identity.depot.dev"
@@ -1379,7 +1385,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "0001100111100",
+   "owner_name_may_contain": "000110011110000",
+   "repository_name_may_contain": "000111011110000",
    "tenancy": {
     "name": "GitHub Actions",
     "issuer": "https://token.actions.githubusercontent.com",
@@ -1493,6 +1500,14 @@
      "A-Z",
      "a-z",
      "0-9",
+     "-",
+     "_"
+    ],
+    "repository_name_characters": [
+     "A-Z",
+     "a-z",
+     "0-9",
+     ".",
      "-",
      "_"
     ],
@@ -1739,7 +1754,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "GitHub Actions (enterprise issuer path)",
     "issuer": "https://token.actions.githubusercontent.com/\u003centerpriseSlug\u003e",
@@ -1919,7 +1935,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "GitHub Enterprise Server (self-hosted)",
     "issuer": "https://\u003chostname\u003e/_services/token"
@@ -2093,7 +2110,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "GitLab self-managed",
     "issuer": "https://\u003cgitlab-host\u003e"
@@ -2270,7 +2288,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "GitLab.com",
     "issuer": "https://gitlab.com"
@@ -2444,7 +2463,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Gitea / Forgejo Actions",
     "issuer": "https://\u003cinstance-host\u003e"
@@ -2618,7 +2638,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Harness",
     "issuer": ""
@@ -2792,7 +2813,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Harness",
     "issuer": "unverified"
@@ -2966,7 +2988,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Jenkins (OpenID Connect Provider plugin)",
     "issuer": "https://\u003cjenkins-url\u003e/oidc"
@@ -3140,7 +3163,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Microsoft (Azure DevOps)",
     "issuer": "unverified"
@@ -3317,7 +3341,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Namespace",
     "issuer": "https://federation.namespaceapis.com"
@@ -3491,7 +3516,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Semaphore",
     "issuer": "https://\u003corganization\u003e.semaphoreci.com"
@@ -3698,7 +3724,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "0001100111100",
+   "owner_name_may_contain": "000110011110000",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "HCP Terraform (Terraform Cloud)",
     "issuer": "https://app.terraform.io",
@@ -3940,7 +3967,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Pulumi Cloud",
     "issuer": "https://api.pulumi.com/oidc"
@@ -4117,7 +4145,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Scalr",
     "issuer": "https://scalr.io"
@@ -4319,7 +4348,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Spacelift",
     "issuer": "https://\u003caccount\u003e.app.spacelift.io",
@@ -4520,7 +4550,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Terraform Enterprise (self-hosted)",
     "issuer": "https://\u003ctfe-hostname\u003e"
@@ -4697,7 +4728,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "env0",
     "issuer": "https://login.app.env0.com/"
@@ -4899,7 +4931,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Amazon EKS (Kubernetes service account issuer / IRSA)",
     "issuer": "https://oidc.eks.\u003cregion\u003e.amazonaws.com/id/\u003ccluster_oidc_id\u003e",
@@ -5132,7 +5165,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Azure Kubernetes Service (AKS workload identity)",
     "issuer": "https://\u003cregion\u003e.oic.prod-aks.azure.com/\u003ctenant_id\u003e/\u003ccluster_uuid\u003e/",
@@ -5337,7 +5371,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Cloudflare Access",
     "issuer": "https://\u003cteam-name\u003e.cloudflareaccess.com"
@@ -5539,7 +5574,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Google Kubernetes Engine (GKE)",
     "issuer": "https://container.googleapis.com/v1/projects/\u003cproject\u003e/locations/\u003clocation\u003e/clusters/\u003ccluster\u003e",
@@ -5744,7 +5780,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "HashiCorp Vault (as an OIDC provider)",
     "issuer": "https://\u003cvault-addr\u003e/v1/identity/oidc/provider/\u003cprovider_name\u003e"
@@ -5921,7 +5958,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Modal",
     "issuer": "https://oidc.modal.com"
@@ -6095,7 +6133,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "SPIFFE / SPIRE (OIDC Discovery Provider)",
     "issuer": "https://\u003coidc-discovery-host\u003e"
@@ -6269,7 +6308,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Teleport",
     "issuer": "https://\u003ccluster-name\u003e.teleport.sh"
@@ -6471,7 +6511,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "AWS (outbound identity federation)",
     "issuer": "https://\u003ctenant_uuid\u003e.tokens.sts.global.api.aws",
@@ -6676,7 +6717,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "AWS STS (sts.amazonaws.com)",
     "issuer": "not an OIDC issuer"
@@ -6877,7 +6919,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Google (accounts.google.com)",
     "issuer": "https://accounts.google.com",
@@ -7104,7 +7147,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Amazon Cognito identity pools",
     "issuer": "cognito-identity.amazonaws.com",
@@ -7311,7 +7355,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Login with Amazon",
     "issuer": "www.amazon.com",
@@ -7506,7 +7551,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Facebook",
     "issuer": "graph.facebook.com",
@@ -7718,7 +7764,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Microsoft Entra ID",
     "issuer": "https://login.microsoftonline.com/\u003ctenant_id\u003e/v2.0",
@@ -7926,7 +7973,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Cognition",
     "issuer": "https://app.devin.ai"
@@ -8103,7 +8151,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Cursor",
     "issuer": "https://api.cursor.com"
@@ -8280,7 +8329,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Cursor",
     "issuer": "https://api2.cursor.sh/cloud-agent/identity"
@@ -8457,7 +8507,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Warp",
     "issuer": "https://app.warp.dev"
@@ -8634,7 +8685,8 @@
      false
     ]
    },
-   "owner_name_may_contain": "1111111111111",
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111",
    "tenancy": {
     "name": "Chainguard",
     "issuer": "https://issuer.enforce.dev"
@@ -8646,7 +8698,8 @@
    "characters": [
     "a-z"
    ],
-   "owner_name_may_contain": "0000000100000"
+   "owner_name_may_contain": "000000010000000",
+   "repository_name_may_contain": "000000010000000"
   },
   {
    "characters": [
@@ -8656,68 +8709,79 @@
     "-",
     "_"
    ],
-   "owner_name_may_contain": "0001100111100"
+   "owner_name_may_contain": "000110011110000",
+   "repository_name_may_contain": "000110011110000"
   },
   {
    "characters": [
     "--/"
    ],
-   "owner_name_may_contain": "1001010000000"
+   "owner_name_may_contain": "100101000000000",
+   "repository_name_may_contain": "100101000000000"
   },
   {
    "characters": [
     "z-a"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     "a-é"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     "é"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     "a-z",
     "é"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     "€"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     "aé"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     "ab"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     ""
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   },
   {
    "characters": [
     "a-"
    ],
-   "owner_name_may_contain": "1111111111111"
+   "owner_name_may_contain": "111111111111111",
+   "repository_name_may_contain": "111111111111111"
   }
  ]
 }

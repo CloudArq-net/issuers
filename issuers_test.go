@@ -551,6 +551,8 @@ func facts(e Issuer) map[string][]Fact {
 	add("subject_forms.evidence", s.Evidence...)
 	add("owner_charset.evidence", e.OwnerCharset.Evidence...)
 	add("owner_charset.context", e.OwnerCharset.Context...)
+	add("repository_charset.evidence", e.RepositoryCharset.Evidence...)
+	add("repository_charset.context", e.RepositoryCharset.Context...)
 	add("names_unique_regardless_of_case.evidence", e.NamesUniqueRegardlessOfCase.Evidence...)
 	add("names_unique_regardless_of_case.context", e.NamesUniqueRegardlessOfCase.Context...)
 	m := e.Match
@@ -830,7 +832,8 @@ func TestTheNewFieldsKeepTheirVocabularies(t *testing.T) {
 			t.Errorf("%s: anonymous_tokens %q, basis %q", n, e.AnonymousTokens.Value, e.AnonymousTokens.Basis)
 		}
 		for field, v := range map[string]string{"tenancy_claims": e.TenancyClaims.Value, "not_tenancy": e.NotTenancy.Value,
-			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value, "match": e.Match.Value,
+			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value,
+			"repository_charset": e.RepositoryCharset.Value, "match": e.Match.Value,
 			"accounts": e.Accounts.Value, "aws_condition_keys": e.AWSConditionKeys.Value} {
 			if !oneOf(v, "verified", "unverified") {
 				t.Errorf("%s: %s value %q", n, field, v)
@@ -930,6 +933,9 @@ func TestAVerifiedValueCarriesItsEvidence(t *testing.T) {
 		}
 		if o := e.OwnerCharset; o.Value == "verified" && (len(o.Characters) == 0 || len(o.Evidence) == 0 || o.Description == "") {
 			t.Errorf("%s: an owner character set needs its characters, its description and its evidence", n)
+		}
+		if o := e.RepositoryCharset; o.Value == "verified" && (len(o.Characters) == 0 || len(o.Evidence) == 0 || o.Description == "") {
+			t.Errorf("%s: a repository character set needs its characters, its description and its evidence", n)
 		}
 		if v := e.NamesUniqueRegardlessOfCase.Value; (v == "yes" || v == "no") && len(e.NamesUniqueRegardlessOfCase.Evidence) == 0 {
 			t.Errorf("%s: names_unique_regardless_of_case %q with no evidence", n, v)
@@ -1295,7 +1301,8 @@ func TestGitLabAndBuildkiteCarryAnonymousTokensOnly(t *testing.T) {
 			t.Errorf("%s: IssuesAnonymousTokens() = %v, %v; unverified reads as may", name, anonymous, known)
 		}
 		for field, v := range map[string]string{"tenancy_claims": e.TenancyClaims.Value, "not_tenancy": e.NotTenancy.Value,
-			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value, "match": e.Match.Value,
+			"subject_forms": e.SubjectForms.Value, "owner_charset": e.OwnerCharset.Value,
+			"repository_charset": e.RepositoryCharset.Value, "match": e.Match.Value,
 			"tenant_membership": e.TenantMembership.Value, "names_unique_regardless_of_case": e.NamesUniqueRegardlessOfCase.Value,
 			"built_in": e.BuiltIn.Value} {
 			if v != "unverified" {
@@ -1854,15 +1861,17 @@ type answers struct {
 	About   string        `json:"about"`
 	Probes  probes        `json:"probes"`
 	Entries []entryAnswer `json:"entries"`
-	// Charsets are owner character sets the census does not hold, which a
-	// caller can still hand either package: what OwnerNameMayContain answers
-	// for each probe character, 1 or 0 in order.
+	// Charsets are character sets the census does not hold, which a caller
+	// can still hand either package: what OwnerNameMayContain and
+	// RepositoryNameMayContain answer for each probe character, 1 or 0 in
+	// order.
 	Charsets []charsetAnswer `json:"charsets"`
 }
 
 type charsetAnswer struct {
-	Characters          []string `json:"characters"`
-	OwnerNameMayContain string   `json:"owner_name_may_contain"`
+	Characters               []string `json:"characters"`
+	OwnerNameMayContain      string   `json:"owner_name_may_contain"`
+	RepositoryNameMayContain string   `json:"repository_name_may_contain"`
 }
 
 // probeCharsets are character sets in and out of the census's rule: ASCII
@@ -1904,9 +1913,11 @@ type entryAnswer struct {
 	AWSConditionKeyIsMultivalued map[string][2]bool `json:"aws_condition_key_is_multivalued"`
 	// ClaimIsMultiValued is what ClaimIsMultiValued says of each probe claim.
 	ClaimIsMultiValued map[string][2]bool `json:"claim_is_multi_valued"`
-	// OwnerNameMayContain holds 1 or 0 for each probe character, in order.
-	OwnerNameMayContain string         `json:"owner_name_may_contain"`
-	Tenancy             tenancy.Issuer `json:"tenancy"`
+	// OwnerNameMayContain and RepositoryNameMayContain hold 1 or 0 for each
+	// probe character, in order.
+	OwnerNameMayContain      string         `json:"owner_name_may_contain"`
+	RepositoryNameMayContain string         `json:"repository_name_may_contain"`
+	Tenancy                  tenancy.Issuer `json:"tenancy"`
 }
 
 type matchAnswer struct {
@@ -1946,7 +1957,7 @@ func goAnswers() answers {
 		About: "What every reader of the census answers about every entry, written by the Go tests " +
 			"(go test . -run TestGoAndPythonAgree -update) and checked by the Go and the Python tests alike. " +
 			"scripts/build.py copies it to python/tests/answers.json.",
-		Probes: probes{Characters: "/@:-_.%aZ09 é", Tenants: []string{"acme", personalMSA},
+		Probes: probes{Characters: "/@:-_.%aZ09 é*?", Tenants: []string{"acme", personalMSA},
 			ConditionKeys: []string{"sub", "aud", "oaud", "OAUD", "amr", "AMR", "repository_owner", "repository_owner_id",
 				"id", "user_id", "oidc.circleci.com/project-id", "google/organization_number"},
 			Claims: []string{"aud", "Aud", "azp", "sub", "amr", "repository_owner_id"}},
@@ -1987,22 +1998,24 @@ func goAnswers() answers {
 		for _, tenant := range tenants {
 			a.ControlledTenant[tenant] = pair(t.ControlledTenant(tenant))
 		}
-		a.OwnerNameMayContain = mayContain(t, out.Probes.Characters)
+		a.OwnerNameMayContain = mayContain(t.OwnerNameMayContain, out.Probes.Characters)
+		a.RepositoryNameMayContain = mayContain(t.RepositoryNameMayContain, out.Probes.Characters)
 		out.Entries = append(out.Entries, a)
 	}
 	for _, cs := range probeCharsets {
 		out.Charsets = append(out.Charsets, charsetAnswer{Characters: cs,
-			OwnerNameMayContain: mayContain(tenancy.Issuer{OwnerNameCharacters: cs}, out.Probes.Characters)})
+			OwnerNameMayContain:      mayContain(tenancy.Issuer{OwnerNameCharacters: cs}.OwnerNameMayContain, out.Probes.Characters),
+			RepositoryNameMayContain: mayContain(tenancy.Issuer{RepositoryNameCharacters: cs}.RepositoryNameMayContain, out.Probes.Characters)})
 	}
 	return out
 }
 
-// mayContain is 1 or 0 for each probe character, in order: whether it can
-// occur in an owner name.
-func mayContain(t tenancy.Issuer, probe string) string {
+// mayContain is 1 or 0 for each probe character, in order: whether may says
+// it can occur in a name.
+func mayContain(may func(rune) bool, probe string) string {
 	var b strings.Builder
 	for _, r := range probe {
-		if t.OwnerNameMayContain(r) {
+		if may(r) {
 			b.WriteByte('1')
 		} else {
 			b.WriteByte('0')

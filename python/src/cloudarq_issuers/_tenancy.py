@@ -317,6 +317,9 @@ def projection(entry: Mapping[str, Any]) -> dict:
     oc = entry.get("owner_charset") or {}
     if oc.get("value") == "verified" and oc.get("characters"):
         t["owner_name_characters"] = list(oc["characters"])
+    rc = entry.get("repository_charset") or {}
+    if rc.get("value") == "verified" and rc.get("characters"):
+        t["repository_name_characters"] = list(rc["characters"])
     if settled((entry.get("names_unique_regardless_of_case") or {}).get("value")):
         t["names_unique_regardless_of_case"] = entry["names_unique_regardless_of_case"]["value"]
     ak = entry.get("aws_condition_keys") or {}

@@ -29,9 +29,9 @@ reading of the data is wrong:
 The tenancy fields answer who can hold a token an issuer mints: whether it
 mints them to people with no account (``anonymous_tokens``), which claims and
 subject forms name a tenant (``tenancy_claims``, ``subject_forms``,
-``owner_charset``), which claims look like tenants and are not
-(``not_tenancy``), and, for an issuer whose URL names the tenant, how to read
-it (``match``, ``tenant_membership``). Each value rests on vendor sentences kept
+``owner_charset``, ``repository_charset``), which claims look like tenants and
+are not (``not_tenancy``), and, for an issuer whose URL names the tenant, how
+to read it (``match``, ``tenant_membership``). Each value rests on vendor sentences kept
 beside it, with their source and the date they were read. ``match()`` finds an
 issuer's entry and its tenant.
 
@@ -70,6 +70,7 @@ __all__ = [
     "aws_condition_key_is_multivalued",
     "claim_is_multi_valued",
     "owner_name_may_contain",
+    "repository_name_may_contain",
     "names_compare_without_case",
     "host_of",
 ]
@@ -383,9 +384,19 @@ def owner_name_may_contain(entry: Mapping[str, Any], character: str) -> bool:
     reads what the Go package reads, one ASCII character or a range of them
     such as ``a-z``: Go counts bytes, and outside ASCII a character is more
     than one."""
+    return _may_contain(tenancy(entry).get("owner_name_characters"), character)
+
+
+def repository_name_may_contain(entry: Mapping[str, Any], character: str) -> bool:
+    """Whether ``character`` can occur in a repository's name. With no
+    recorded character set, or one this package cannot read, any character
+    may. It reads the set as ``owner_name_may_contain`` reads an owner's."""
+    return _may_contain(tenancy(entry).get("repository_name_characters"), character)
+
+
+def _may_contain(chars: Any, character: str) -> bool:
     if len(character) != 1:
         raise ValueError(f"one character, not {character!r}")
-    chars = tenancy(entry).get("owner_name_characters")
     if not chars:
         return True
     found = False

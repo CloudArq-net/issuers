@@ -27,12 +27,13 @@
 //
 // The tenancy fields answer who can hold a token an issuer mints: whether it
 // mints them to people with no account (AnonymousTokens), which claims and
-// subject forms name a tenant (TenancyClaims, SubjectForms, OwnerCharset),
-// which claims look like tenants and are not (NotTenancy), and, for an issuer
-// whose URL names the tenant, how to read it (Match, TenantMembership). Each
-// value rests on vendor sentences kept beside it as Facts, with their source
-// and the date they were read. Match finds an issuer's entry and its tenant;
-// the tenancy sub-package carries only what a classifier reads.
+// subject forms name a tenant (TenancyClaims, SubjectForms, OwnerCharset,
+// RepositoryCharset), which claims look like tenants and are not (NotTenancy),
+// and, for an issuer whose URL names the tenant, how to read it (Match,
+// TenantMembership). Each value rests on vendor sentences kept beside it as
+// Facts, with their source and the date they were read. Match finds an
+// issuer's entry and its tenant; the tenancy sub-package carries only what a
+// classifier reads.
 //
 // Anything nobody confirmed says "unverified". In a tenancy field it means
 // exactly that no vendor sentence establishes the value in this release,
@@ -140,6 +141,7 @@ type Issuer struct {
 	NotTenancy                  NotTenancy        `json:"not_tenancy"`
 	SubjectForms                SubjectForms      `json:"subject_forms"`
 	OwnerCharset                OwnerCharset      `json:"owner_charset"`
+	RepositoryCharset           RepositoryCharset `json:"repository_charset"`
 	NamesUniqueRegardlessOfCase NameCase          `json:"names_unique_regardless_of_case"`
 	Match                       MatchRule         `json:"match"`
 	TenantMembership            TenantMembership  `json:"tenant_membership"`
@@ -296,6 +298,18 @@ type NeverPin struct {
 // OwnerCharset is the character set of owner names. A delimiter outside it
 // cannot occur inside a name, so it ends the owner in a subject form.
 type OwnerCharset struct {
+	// Value is "verified" or "unverified".
+	Value string `json:"value"`
+	// Characters lists single characters and ranges such as "a-z".
+	Characters  []string `json:"characters,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Evidence    []Fact   `json:"evidence,omitempty"`
+	Context     []Fact   `json:"context,omitempty"`
+}
+
+// RepositoryCharset is the character set of repository names. A character
+// outside it occurs in no repository's name.
+type RepositoryCharset struct {
 	// Value is "verified" or "unverified".
 	Value string `json:"value"`
 	// Characters lists single characters and ranges such as "a-z".
@@ -545,6 +559,9 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 	}
 	if i.OwnerCharset.Value == "verified" {
 		t.OwnerNameCharacters = slices.Clone(i.OwnerCharset.Characters)
+	}
+	if i.RepositoryCharset.Value == "verified" {
+		t.RepositoryNameCharacters = slices.Clone(i.RepositoryCharset.Characters)
 	}
 	t.NamesUniqueRegardlessOfCase = settled(i.NamesUniqueRegardlessOfCase.Value)
 	if i.AWSConditionKeys.Value == "verified" {
