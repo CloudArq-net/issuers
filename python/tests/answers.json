@@ -1575,6 +1575,7 @@
       "claim": "enterprise_id"
      }
     ],
+    "aws_required_condition_key": "sub",
     "platform": "GitHub",
     "declaration_namespace": "github"
    }

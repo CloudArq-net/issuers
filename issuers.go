@@ -30,10 +30,11 @@
 // subject forms name a tenant (TenancyClaims, SubjectForms, OwnerCharset,
 // RepositoryCharset), which claims look like tenants and are not (NotTenancy),
 // and, for an issuer whose URL names the tenant, how to read it (Match,
-// TenantMembership). Each value rests on vendor sentences kept beside it as
-// Facts, with their source and the date they were read. Match finds an
-// issuer's entry and its tenant; the tenancy sub-package carries only what a
-// classifier reads.
+// TenantMembership). AWSConditionKeys and AWSIdentityProviderControls say how
+// AWS reads a trust policy that trusts the issuer. Each value rests on vendor
+// sentences kept beside it as Facts, with their source and the date they were
+// read. Match finds an issuer's entry and its tenant; the tenancy sub-package
+// carries only what a classifier reads.
 //
 // Anything nobody confirmed says "unverified". In a tenancy field it means
 // exactly that no vendor sentence establishes the value in this release,
@@ -135,20 +136,21 @@ type Issuer struct {
 	// Researched is "in_release" when this release read the entry's tenancy
 	// facts from its vendor, and "not_in_this_release" when it did not, in
 	// which case every tenancy field below is unverified.
-	Researched                  string            `json:"researched"`
-	AnonymousTokens             AnonymousTokens   `json:"anonymous_tokens"`
-	TenancyClaims               TenancyClaims     `json:"tenancy_claims"`
-	NotTenancy                  NotTenancy        `json:"not_tenancy"`
-	SubjectForms                SubjectForms      `json:"subject_forms"`
-	OwnerCharset                OwnerCharset      `json:"owner_charset"`
-	RepositoryCharset           RepositoryCharset `json:"repository_charset"`
-	NamesUniqueRegardlessOfCase NameCase          `json:"names_unique_regardless_of_case"`
-	Match                       MatchRule         `json:"match"`
-	TenantMembership            TenantMembership  `json:"tenant_membership"`
-	BuiltIn                     BuiltIn           `json:"built_in"`
-	Accounts                    Accounts          `json:"accounts"`
-	AWSConditionKeys            AWSConditionKeys  `json:"aws_condition_keys"`
-	MultiValuedClaims           MultiValuedClaims `json:"multi_valued_claims"`
+	Researched                  string                      `json:"researched"`
+	AnonymousTokens             AnonymousTokens             `json:"anonymous_tokens"`
+	TenancyClaims               TenancyClaims               `json:"tenancy_claims"`
+	NotTenancy                  NotTenancy                  `json:"not_tenancy"`
+	SubjectForms                SubjectForms                `json:"subject_forms"`
+	OwnerCharset                OwnerCharset                `json:"owner_charset"`
+	RepositoryCharset           RepositoryCharset           `json:"repository_charset"`
+	NamesUniqueRegardlessOfCase NameCase                    `json:"names_unique_regardless_of_case"`
+	Match                       MatchRule                   `json:"match"`
+	TenantMembership            TenantMembership            `json:"tenant_membership"`
+	BuiltIn                     BuiltIn                     `json:"built_in"`
+	Accounts                    Accounts                    `json:"accounts"`
+	AWSConditionKeys            AWSConditionKeys            `json:"aws_condition_keys"`
+	AWSIdentityProviderControls AWSIdentityProviderControls `json:"aws_identity_provider_controls"`
+	MultiValuedClaims           MultiValuedClaims           `json:"multi_valued_claims"`
 	// Research keeps the rest of what the tenancy research read for this
 	// entry, as the research recorded it: context a reader checking a value
 	// wants beside it. Every fact inside it carries its source like any other.
@@ -434,6 +436,27 @@ type AWSConditionKeys struct {
 	Note     string `json:"note,omitempty"`
 }
 
+// AWSIdentityProviderControls records the check AWS makes of a trust policy
+// that trusts the issuer, which AWS calls its identity-provider controls: IAM
+// refuses to create or update one whose condition does not test
+// <provider>:<Key>, or tests it with a value that is solely a wildcard
+// character (* and ?) or null. It does not evaluate trust policies that
+// existed before, so one of those may lack the key and still admit.
+type AWSIdentityProviderControls struct {
+	// Value is "verified" or "unverified".
+	Value string `json:"value"`
+	// Key is the condition key the check requires, as AWSConditionKeys
+	// names keys: one AWS documents for the issuer.
+	Key string `json:"key,omitempty"`
+	// ExistingTrustPolicies is "not_evaluated": AWS does not check a trust
+	// policy that existed before, until it is changed.
+	ExistingTrustPolicies string `json:"existing_trust_policies,omitempty"`
+	Evidence              []Fact `json:"evidence,omitempty"`
+	// Discrepancy holds AWS's pages that name the check otherwise.
+	Discrepancy []Fact `json:"discrepancy,omitempty"`
+	Note        string `json:"note,omitempty"`
+}
+
 // AWSConditionKey is one condition key AWS documents for an issuer.
 type AWSConditionKey struct {
 	Key string `json:"key"`
@@ -575,6 +598,9 @@ func (i Issuer) Tenancy() tenancy.Issuer {
 			}
 			t.AWSConditionKeys = append(t.AWSConditionKeys, key)
 		}
+	}
+	if i.AWSIdentityProviderControls.Value == "verified" {
+		t.AWSRequiredConditionKey = i.AWSIdentityProviderControls.Key
 	}
 	if i.MultiValuedClaims.Value == "verified" {
 		for _, c := range i.MultiValuedClaims.Claims {

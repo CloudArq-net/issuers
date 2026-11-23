@@ -31,8 +31,10 @@ mints them to people with no account (``anonymous_tokens``), which claims and
 subject forms name a tenant (``tenancy_claims``, ``subject_forms``,
 ``owner_charset``, ``repository_charset``), which claims look like tenants and
 are not (``not_tenancy``), and, for an issuer whose URL names the tenant, how
-to read it (``match``, ``tenant_membership``). Each value rests on vendor sentences kept
-beside it, with their source and the date they were read. ``match()`` finds an
+to read it (``match``, ``tenant_membership``). ``aws_condition_keys`` and
+``aws_identity_provider_controls`` say how AWS reads a trust policy that trusts
+the issuer. Each value rests on vendor sentences kept beside it, with their
+source and the date they were read. ``match()`` finds an
 issuer's entry and its tenant.
 
 Anything nobody confirmed says ``"unverified"``. In a tenancy field it means

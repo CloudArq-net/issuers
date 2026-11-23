@@ -325,6 +325,9 @@ def projection(entry: Mapping[str, Any]) -> dict:
     ak = entry.get("aws_condition_keys") or {}
     if ak.get("value") == "verified" and ak.get("keys"):
         t["aws_condition_keys"] = [condition_key(k) for k in ak["keys"]]
+    ip = entry.get("aws_identity_provider_controls") or {}
+    if ip.get("value") == "verified" and ip.get("key"):
+        t["aws_required_condition_key"] = ip["key"]
     mv = entry.get("multi_valued_claims") or {}
     if mv.get("value") == "verified" and mv.get("claims"):
         t["multi_valued_claims"] = [c["claim"] for c in mv["claims"]]

@@ -180,6 +180,21 @@ value. The build refuses a `yes` without AWS's sentence for that key, and an `un
 whose sentence the census quotes. `aws_condition_key_is_multivalued` and `IsMultivalued` read
 it.
 
+**`aws_identity_provider_controls`** — the check AWS makes of a trust policy that trusts the
+issuer, which AWS calls its identity-provider controls: the condition `key` the policy must
+test, one of the issuer's `aws_condition_keys`, and `existing_trust_policies`. For GitHub
+Actions, AWS says "IAM checks the role trust policy condition to verify that the condition
+key `token.actions.githubusercontent.com:sub` is present and that its value is not solely a
+wildcard character (* and ?) or null", that "IAM performs this check when the trust policy is
+created or updated", and that "Identity-provider controls will not be evaluated by IAM for
+existing OIDC role trust policies." So a trust policy saved today tests `sub`, and one that
+existed before may not and still admit; `existing_trust_policies` reads `not_evaluated`. AWS's
+table of shared providers, read the same day, names `sub` or `job_workflow_ref` for GitHub
+actions; the census keeps that row as the check's `discrepancy`, since the GitHub sentence names
+`sub` alone and no AWS sentence says which values of `job_workflow_ref` the check refuses.
+Verified for GitHub Actions alone. The tenancy sub-package carries the key as
+`aws_required_condition_key`, and `AWSRequiredConditionKey` in Go.
+
 **`multi_valued_claims`** — the claims the issuer's tokens may carry with several values,
 each on the sentences that say so. RFC 7519 says that in the general case `aud` is an array.
 Kubernetes says of a service account token's audience "May be repeated to request a token
@@ -285,11 +300,11 @@ several, known := eks.Tenancy().ClaimIsMultiValued("aud")
 ```
 
 A program that only classifies issuers can import `github.com/CloudArq-net/issuers/tenancy`
-instead. It carries the values a classifier reads and none of the sentences: 8,623 bytes of
-data (`tenancy/tenancy.json`) against the root package's 244,854 (`issuers.json`). A small
+instead. It carries the values a classifier reads and none of the sentences: 8,658 bytes of
+data (`tenancy/tenancy.json`) against the root package's 249,536 (`issuers.json`). A small
 program that matches the issuer given on its command line and prints the entry's name, built
-with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,539,916 bytes through
-`tenancy` and 4,816,421 through the root package: 276,505 bytes smaller, and 48,894 smaller
+with go1.27.1 by `GOOS=js GOARCH=wasm go build -trimpath`, came out 4,540,060 bytes through
+`tenancy` and 4,821,767 through the root package: 281,707 bytes smaller, and 49,862 smaller
 after `gzip -9`. None of the census's quoted sentences is in the smaller one.
 `scripts/build.py` writes the sub-package's data from the same YAML, and CI fails when it is
 out of step.
@@ -353,10 +368,10 @@ $ python3 scripts/build.py
 issuers.json: 44 entries, 17 researched in this release; tenancy/tenancy.json: 29 entries an issuer can match
 $ git status --porcelain            # empty: the committed files are what the YAML builds
 $ go vet ./... && go test ./... -count=1
-ok  	github.com/CloudArq-net/issuers	0.113s
-ok  	github.com/CloudArq-net/issuers/tenancy	0.009s
+ok  	github.com/CloudArq-net/issuers	0.131s
+ok  	github.com/CloudArq-net/issuers/tenancy	0.013s
 $ cd python && PYTHONPATH=src python3 -m pytest tests -q
-397 passed in 10.55s
+398 passed in 11.70s
 ```
 
 The Python checks need `pyyaml` and `pytest`; CI installs them, and every dependency, from

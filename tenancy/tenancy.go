@@ -88,6 +88,14 @@ type Issuer struct {
 	// on <provider>:<key> tests for a key not listed here, AWS does not
 	// document. Empty when the census does not record them.
 	AWSConditionKeys []ConditionKey `json:"aws_condition_keys,omitempty"`
+	// AWSRequiredConditionKey is the condition key, named as AWSConditionKeys
+	// names keys, that AWS requires a trust policy trusting the issuer to
+	// test: IAM refuses to create or update one whose condition does not test
+	// <provider>:<key>, or tests it with a value that is solely a wildcard
+	// character (* and ?) or null. IAM does not evaluate trust policies that
+	// existed before, so one of those may lack the key. Empty when the census
+	// does not record the check.
+	AWSRequiredConditionKey string `json:"aws_required_condition_key,omitempty"`
 	// MultiValuedClaims are the claims a sentence says the issuer's tokens
 	// may carry with several values, as Kubernetes says of a service account
 	// token's audience. A claim not listed is not thereby one value.

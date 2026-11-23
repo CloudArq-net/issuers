@@ -85,7 +85,8 @@ KEEP = ['name', 'vendor', 'category', 'issuer', 'issuer_pattern', 'tenancy_model
 # YAML, and each is written unverified.
 TENANCY_FIELDS = ['anonymous_tokens', 'tenancy_claims', 'not_tenancy', 'subject_forms', 'owner_charset',
                   'repository_charset', 'names_unique_regardless_of_case', 'match', 'tenant_membership',
-                  'built_in', 'accounts', 'aws_condition_keys', 'multi_valued_claims']
+                  'built_in', 'accounts', 'aws_condition_keys', 'aws_identity_provider_controls',
+                  'multi_valued_claims']
 
 # A field must have one shape across every entry. A field that is a string on
 # one entry and a map on another silently breaks any typed consumer -- Go
@@ -737,6 +738,32 @@ def check_aws_condition_keys(c, a, pinned):
             c.fail(kw, f"{k['key']!r} pins a tenant, and AWS carries it under another claim's name")
 
 
+def check_identity_provider_controls(c, p, documented):
+    """The check AWS makes of a trust policy that trusts the issuer when the
+    policy is created or updated: the condition key it must test, with a value
+    that is not solely a wildcard character or null, which is one of the keys
+    AWS documents for the issuer, and AWS's sentence that a trust policy that
+    existed before is not evaluated. An unverified check names neither, and
+    rests on no evidence."""
+    w = 'aws_identity_provider_controls'
+    if not c.keys(w, p, {'value', 'key', 'existing_trust_policies', 'evidence', 'discrepancy', 'note'}, ['value']):
+        return
+    c.one_of(f'{w}.value', p['value'], LISTED)
+    if p['value'] != 'verified':
+        for k in ('key', 'existing_trust_policies', 'evidence'):
+            if k in p:
+                c.fail(w, f"an unverified check carries {k}")
+    else:
+        c.text(f'{w}.key', p.get('key'))
+        if isinstance(p.get('key'), str) and p['key'] not in documented:
+            c.fail(f'{w}.key', f"{p['key']!r} is not a condition key the census records AWS documenting for the issuer")
+        c.one_of(f'{w}.existing_trust_policies', p.get('existing_trust_policies'), {'not_evaluated'})
+        c.facts(f'{w}.evidence', p.get('evidence'), required=True)
+    c.facts(f'{w}.discrepancy', p.get('discrepancy'))
+    if 'note' in p:
+        c.text(f'{w}.note', p['note'])
+
+
 def check_multi_valued_claims(c, m, one_valued):
     """The claims the issuer's tokens may carry with several values, each on
     the sentences that say so. A claim not listed is not thereby one value:
@@ -882,6 +909,11 @@ def check_entry(e):
         if sf.get('value') == 'verified' and sf.get('forms'):
             pinned.add('sub')
         check_aws_condition_keys(c, e['aws_condition_keys'], pinned)
+    if 'aws_identity_provider_controls' in e:
+        ak = e.get('aws_condition_keys') or {}
+        documented = {k.get('key') for k in ak.get('keys') or [] if isinstance(k, dict)} \
+            if ak.get('value') == 'verified' else set()
+        check_identity_provider_controls(c, e['aws_identity_provider_controls'], documented)
     if 'multi_valued_claims' in e:
         tc = e.get('tenancy_claims') or {}
         one_valued = {x.get('claim') for x in tc.get('claims') or []
