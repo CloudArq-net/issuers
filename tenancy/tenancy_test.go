@@ -922,7 +922,7 @@ func TestTheSubPackageCarriesOnlyTheClassifiersFields(t *testing.T) {
 		"tenant_membership": true, "not_a_controlled_tenant": true, "anonymous_tokens": true,
 		"tenancy_claims": true, "subject_forms": true, "owner_name_characters": true, "repository_name_characters": true,
 		"names_unique_regardless_of_case": true, "not_tenancy": true, "never_pin": true, "platform": true,
-		"declaration_namespace": true, "aws_condition_keys": true, "aws_required_condition_key": true,
+		"declaration_namespace": true, "aws_condition_keys": true, "aws_identity_provider_control_keys": true,
 		"multi_valued_claims": true,
 	}
 	for _, e := range doc.Issuers {

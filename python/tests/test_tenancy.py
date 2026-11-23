@@ -433,23 +433,34 @@ def test_aws_condition_keys_are_recorded_per_issuer():
             assert c["claim"] == c["key"], c
 
 
-def test_aws_requires_github_s_subject_only_when_a_trust_policy_is_saved():
+def test_aws_checks_github_s_trust_policies_only_when_saved():
     """AWS refuses to create or update a trust policy that trusts GitHub's
-    issuer unless it tests ``sub`` with a value that is not solely a wildcard
-    character or null, and does not evaluate trust policies that existed
-    before. The census verifies it for GitHub Actions alone, and the tenancy
-    projection carries the key as Go carries it."""
+    issuer unless it tests one of the keys its pages name, and does not
+    evaluate trust policies that existed before. Its page on creating a role
+    for an OIDC provider names ``sub`` alone, with a value that is not solely a
+    wildcard character or null; its table of shared providers names ``sub`` or
+    ``job_workflow_ref``. The census verifies both keys for GitHub Actions
+    alone, the table among the evidence and the sentence naming ``sub`` alone
+    as the discrepancy, and the tenancy projection carries them as Go carries
+    them."""
     gh = by_name("GitHub Actions")
     c = gh["aws_identity_provider_controls"]
-    assert (c["value"], c["key"], c["existing_trust_policies"]) == ("verified", "sub", "not_evaluated")
+    assert "key" not in c
+    assert (c["value"], c["keys"], c["existing_trust_policies"]) == (
+        "verified", ["sub", "job_workflow_ref"], "not_evaluated")
     assert {f["source"].rsplit("/", 1)[1] for f in c["evidence"]} == {
-        "id_roles_create_for-idp_oidc.html", "id_roles_providers_oidc_secure-by-default.html"}
-    assert any("job_workflow_ref" in f["quote"] for f in c["discrepancy"])
-    assert ci.tenancy(gh)["aws_required_condition_key"] == "sub"
-    carried = [e["name"] for e in ci.issuers() if "aws_required_condition_key" in ci.tenancy(e)]
+        "id_roles_create_for-idp_oidc.html", "id_roles_providers_oidc_secure-by-default.html",
+        "id_roles_providers_oidc_secure-by-default.md"}
+    assert any("token.actions.githubusercontent.com:job_workflow_ref" in f["quote"] for f in c["evidence"])
+    assert [f["source"].rsplit("/", 1)[1] for f in c["discrepancy"]] == ["id_roles_create_for-idp_oidc.html"]
+    assert "token.actions.githubusercontent.com:sub" in c["discrepancy"][0]["quote"]
+    assert "job_workflow_ref" not in c["discrepancy"][0]["quote"]
+    assert ci.tenancy(gh)["aws_identity_provider_control_keys"] == ["sub", "job_workflow_ref"]
+    carried = [e["name"] for e in ci.issuers() if "aws_identity_provider_control_keys" in ci.tenancy(e)]
     assert carried == ["GitHub Actions"]
+    assert not [e["name"] for e in ci.issuers() if "aws_required_condition_key" in ci.tenancy(e)]
     entry = {"name": "x", "aws_identity_provider_controls": {"value": "unverified"}}
-    assert "aws_required_condition_key" not in ci.tenancy(entry)
+    assert "aws_identity_provider_control_keys" not in ci.tenancy(entry)
 
 
 def test_every_condition_key_carries_its_claim():

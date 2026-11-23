@@ -49,7 +49,7 @@ UNREAD_KEY = {"key": "org/number", "claim": "unverified", "table_claim": "org:nu
               "why": "the issuer's own page prints the number inside an org claim", "multivalued": "unverified"}
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
                   "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
-                  "aws_condition_keys", "multi_valued_claims")
+                  "aws_condition_keys", "aws_identity_provider_controls", "multi_valued_claims")
 
 # Python raises on any file it reads or writes in the locale's encoding when
 # run this way, so a build that forgot to say UTF-8 fails here, whatever the
@@ -101,6 +101,8 @@ def valid_census():
                  {"key": "aud", "claim": "azp", "fallback_claim": "aud", "multivalued": "unverified"},
                  {"key": "amr", "claim": "amr", "multivalued": "yes"}],
                                     "evidence": [KEYS_TABLE, dict(MULTIVALUED)]},
+             "aws_identity_provider_controls": {"value": "verified", "keys": ["sub", "owner_id"],
+                                                "existing_trust_policies": "not_evaluated", "evidence": [fact()]},
              "multi_valued_claims": {"value": "verified", "claims": [{"claim": "aud", "evidence": [fact()]}]},
              "research": {"population": "anyone with an account", "nested": {"read": fact()},
                           "live": {"observed": observation()}}},
@@ -183,6 +185,7 @@ def test_the_sub_package_carries_only_what_is_settled(tmp_path):
          "aws_condition_keys": [{"key": "sub", "claim": "sub"}, {"key": "owner_id", "claim": "owner_id"},
                                 {"key": "aud", "claim": "azp", "fallback_claim": "aud"},
                                 {"key": "amr", "claim": "amr", "multivalued": "yes"}],
+         "aws_identity_provider_control_keys": ["sub", "owner_id"],
          "multi_valued_claims": ["aud"]},
         {"name": "Per tenant", "issuer": "https://<tenant>.example.org", "tenant_placeholder": "<tenant>",
          "tenant_kind": "name", "tenant_membership": "controlled"},
@@ -377,6 +380,15 @@ REFUSALS = {
                                               SETTLES_NOTHING),
     "an unverified key list carrying keys": (put(f"{SHARED}.aws_condition_keys", "value", "unverified"),
                                              "an unverified list carries keys"),
+    "a key AWS's check reads that AWS does not document for the issuer": (
+        put(f"{SHARED}.aws_identity_provider_controls", "keys", ["sub", "email"]),
+        "aws_identity_provider_controls.keys[1]: 'email' is not a condition key the census records AWS documenting"),
+    "a key AWS's check reads listed twice": (put(f"{SHARED}.aws_identity_provider_controls", "keys", ["sub", "sub"]),
+                                             "aws_identity_provider_controls.keys[1]: 'sub' is listed twice"),
+    "a verified check that reads no key": (put(f"{SHARED}.aws_identity_provider_controls", "keys", []),
+                                           "a verified check needs its keys"),
+    "an unverified check carrying keys": (put(f"{SHARED}.aws_identity_provider_controls", "value", "unverified"),
+                                          "an unverified check carries keys"),
     "a verified accounts block that names no platform": (drop(f"{SHARED}.accounts", "platform"),
                                                          "names no platform"),
     "an observation behind a platform": (put(f"{SHARED}.accounts", "evidence", [OBSERVATION]), SETTLES_NOTHING),
