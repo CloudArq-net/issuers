@@ -23,6 +23,10 @@
   `terraform_organization_id` name it, its subjects lead with `organization:` and the
   organization's name, and the name holds numbers, letters, underscores and hyphens, read as
   ASCII by the census. `anonymous_tokens` reads `no`, on a chain of HashiCorp's sentences.
+- **Cognito's `amr`.** Amazon Cognito identity pools now list `amr` in `multi_valued_claims`,
+  on Cognito's guide, which calls it "the multi-value amr claim" of the token an identity pool
+  issues and says a signed-in user's `amr` holds the providers used as well as `authenticated`.
+  The `tenancy` package answers that the claim may hold several values.
 
 ## v0.2.0
 
