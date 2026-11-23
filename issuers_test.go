@@ -728,7 +728,7 @@ var recorded = map[string]struct {
 		[]string{"population", "sources"}},
 	"GitHub Actions": {map[string]int{"accounts": 3, "anonymous_tokens": 5, "aws_condition_keys": 5,
 		"names_unique_regardless_of_case": 2, "not_tenancy": 20,
-		"owner_charset": 7, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
+		"owner_charset": 6, "repository_charset": 2, "research": 25, "subject_forms": 22, "tenancy_claims": 11},
 		[]string{"aws", "context_can_contain", "fork_pull_requests", "immutable_subject", "issuer_variants", "population",
 			"population_evidence", "sources"}},
 	"GitHub Actions (enterprise issuer path)": {map[string]int{"accounts": 1, "anonymous_tokens": 7,
@@ -977,7 +977,8 @@ func TestEveryEntrySaysWhetherItWasResearched(t *testing.T) {
 		t.Fatal(err)
 	}
 	fields := []string{"anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-		"names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts", "aws_condition_keys"}
+		"repository_charset", "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
+		"aws_condition_keys"}
 	var inRelease []string
 	unresearched := 0
 	for _, e := range doc.Issuers {
@@ -1070,6 +1071,101 @@ func TestGitHubsOwnerCharacterSetNamesItsSources(t *testing.T) {
 		if !notTenancy[c] {
 			t.Errorf("GitHub: %s is not recorded in not_tenancy: it names no owner, repository or enterprise", c)
 		}
+	}
+}
+
+// GitHub names the characters a repository's name can hold, and in both repo:
+// forms the repository's name follows the owner's /. The census records them
+// as a set of their own, on GitHub's sentences alone, and the tenancy
+// sub-package carries it, so a reader can tell that no repository's name holds
+// a character outside it.
+func TestGitHubsRepositoryCharacterSetIsGitHubs(t *testing.T) {
+	type charset struct {
+		Value      string   `json:"value"`
+		Characters []string `json:"characters"`
+		Evidence   []Fact   `json:"evidence"`
+		Context    []Fact   `json:"context"`
+	}
+	var doc struct {
+		Issuers []map[string]json.RawMessage `json:"issuers"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"A-Z", "a-z", "0-9", ".", "-", "_"}
+	sentences := map[string]string{
+		"The repository name must not exceed 100 characters, and can only contain ASCII letters, digits, and the " +
+			"characters `.`, `-`, and `_`.": "https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository",
+		"The `@` separator is used between names and IDs because `@` cannot appear in GitHub usernames or repository names.": "https://docs.github.com/en/actions/reference/security/oidc",
+	}
+	found := false
+	for _, e := range doc.Issuers {
+		var name string
+		if err := json.Unmarshal(e["name"], &name); err != nil {
+			t.Fatal(err)
+		}
+		if name != "GitHub Actions" {
+			continue
+		}
+		found = true
+		if _, ok := e["repository_charset"]; !ok {
+			t.Fatal("GitHub Actions writes out no repository_charset")
+		}
+		var rc, oc charset
+		if err := json.Unmarshal(e["repository_charset"], &rc); err != nil {
+			t.Fatalf("GitHub Actions repository_charset: %v", err)
+		}
+		if err := json.Unmarshal(e["owner_charset"], &oc); err != nil {
+			t.Fatalf("GitHub Actions owner_charset: %v", err)
+		}
+		if rc.Value != "verified" || !slices.Equal(rc.Characters, want) {
+			t.Errorf("GitHub's repository characters are %q %q; GitHub's sentence names %q", rc.Value, rc.Characters, want)
+		}
+		quoted := map[string]bool{}
+		for _, f := range rc.Evidence {
+			if !strings.HasPrefix(f.Source, "https://docs.github.com/") || f.VerifiedAt == "" || f.Role == "" {
+				t.Errorf("GitHub's repository characters rest on a sentence that is not GitHub's, or says no date or role: %+v", f)
+			}
+			if sentences[f.Quote] == f.Source {
+				quoted[f.Quote] = true
+			}
+		}
+		if len(quoted) != len(sentences) || len(rc.Evidence) != len(sentences) {
+			t.Errorf("GitHub's repository characters quote %d of GitHub's %d sentences, in %d facts", len(quoted),
+				len(sentences), len(rc.Evidence))
+		}
+		for _, f := range slices.Concat(oc.Evidence, oc.Context) {
+			if strings.HasPrefix(f.Quote, "The repository name must not exceed") {
+				t.Errorf("the repository-name sentence is still held under owner_charset, from %s", f.Source)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no census entry GitHub Actions")
+	}
+	var sub struct {
+		Issuers []map[string]json.RawMessage `json:"issuers"`
+	}
+	readJSON(t, "tenancy/tenancy.json", &sub)
+	carried := 0
+	for _, e := range sub.Issuers {
+		var name string
+		var chars []string
+		if err := json.Unmarshal(e["name"], &name); err != nil {
+			t.Fatal(err)
+		}
+		if b, ok := e["repository_name_characters"]; ok {
+			if err := json.Unmarshal(b, &chars); err != nil {
+				t.Fatal(err)
+			}
+			carried++
+		}
+		if name == "GitHub Actions" && !slices.Equal(chars, want) {
+			t.Errorf("the tenancy sub-package carries GitHub's repository characters as %q, want %q", chars, want)
+		}
+	}
+	if carried != 1 {
+		t.Errorf("%d entries of the tenancy sub-package carry repository characters; the census verifies GitHub's alone", carried)
 	}
 }
 

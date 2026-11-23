@@ -34,8 +34,8 @@ RESEARCHED = {
     "Amazon Cognito identity pools", "Login with Amazon", "Facebook", "Microsoft Entra ID",
 }
 TENANCY_FIELDS = ("anonymous_tokens", "tenancy_claims", "not_tenancy", "subject_forms", "owner_charset",
-                  "names_unique_regardless_of_case", "match", "tenant_membership", "built_in", "accounts",
-                  "aws_condition_keys", "multi_valued_claims")
+                  "repository_charset", "names_unique_regardless_of_case", "match", "tenant_membership", "built_in",
+                  "accounts", "aws_condition_keys", "multi_valued_claims")
 
 
 def match_key(entry):
@@ -283,6 +283,18 @@ def test_owner_name_may_contain():
         assert ci.owner_name_may_contain({"name": "x"}, ch), ch
 
 
+def test_repository_name_may_contain():
+    gh = by_name("GitHub Actions")
+    for ch in "*?/@:%~ é":
+        assert not ci.repository_name_may_contain(gh, ch), ch
+    for ch in "aAzZ09.-_":
+        assert ci.repository_name_may_contain(gh, ch), ch
+    for ch in "*?/@:%":
+        assert ci.repository_name_may_contain({"name": "x"}, ch), ch
+    with pytest.raises(ValueError):
+        ci.repository_name_may_contain(gh, "ab")
+
+
 @pytest.mark.parametrize("n", range(len(ANSWERS["charsets"])), ids=lambda n: repr(ANSWERS["charsets"][n]["characters"]))
 def test_an_owner_character_set_reads_as_go_reads_it(n):
     """Character sets the census does not hold, as a caller might hand either
@@ -292,6 +304,16 @@ def test_an_owner_character_set_reads_as_go_reads_it(n):
     entry = {"name": "x", "owner_charset": {"value": "verified", "characters": want["characters"]}}
     got = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
     assert got == want["owner_name_may_contain"], want["characters"]
+
+
+@pytest.mark.parametrize("n", range(len(ANSWERS["charsets"])), ids=lambda n: repr(ANSWERS["charsets"][n]["characters"]))
+def test_a_repository_character_set_reads_as_go_reads_it(n):
+    """The same sets, held as an issuer's repository characters, read as the
+    same set held as its owner characters, in both packages."""
+    want = ANSWERS["charsets"][n]
+    entry = {"name": "x", "repository_charset": {"value": "verified", "characters": want["characters"]}}
+    got = "".join("1" if ci.repository_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
+    assert got == want["repository_name_may_contain"] == want["owner_name_may_contain"], want["characters"]
 
 
 def test_the_character_set_probes_exercise_both_readings():
@@ -305,6 +327,8 @@ def test_the_character_set_probes_exercise_both_readings():
 def test_an_empty_character_set_is_left_out_as_go_leaves_it():
     entry = {"name": "x", "owner_charset": {"value": "verified", "characters": []}}
     assert "owner_name_characters" not in ci.tenancy(entry)
+    entry = {"name": "x", "repository_charset": {"value": "verified", "characters": []}}
+    assert "repository_name_characters" not in ci.tenancy(entry)
 
 
 def test_names_compare_without_case():
@@ -332,6 +356,8 @@ def test_the_researched_facts_are_the_census_s():
         ("enterprise_id", "id", "enterprise", "no", "unverified"),
     ]
     assert gh["owner_charset"]["characters"] == ["A-Z", "a-z", "0-9", "-", "_"]
+    assert gh["repository_charset"]["characters"] == ["A-Z", "a-z", "0-9", ".", "-", "_"]
+    assert ci.tenancy(gh)["repository_name_characters"] == ["A-Z", "a-z", "0-9", ".", "-", "_"]
     assert "job_workflow_ref:" in [n["leading_literal"] for n in gh["subject_forms"]["never_pin"]]
     not_tenancy = {c["claim"] for c in gh["not_tenancy"]["claims"]}
     assert {"actor", "actor_id", "job_workflow_ref", "job_workflow_sha", "environment", "ref", "event_name",
@@ -852,6 +878,8 @@ def test_go_and_python_agree(n):
         want["claim_is_multi_valued"]
     chars = "".join("1" if ci.owner_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
     assert chars == want["owner_name_may_contain"]
+    chars = "".join("1" if ci.repository_name_may_contain(entry, c) else "0" for c in ANSWERS["probes"]["characters"])
+    assert chars == want["repository_name_may_contain"]
     assert ci.tenancy(entry) == want["tenancy"]
 
 
